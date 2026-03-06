@@ -1,0 +1,5 @@
+# Nitter instances for profile RSS
+# One URL per line; # = comment
+https://nitter.net
+https://nitter.privacyredirect.com
+https://nitter.tiekoetter.com

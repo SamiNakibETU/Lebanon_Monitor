@@ -1,0 +1,23 @@
+{
+  "data": [
+    {
+      "id": "123456",
+      "fields": {
+        "title": "Lebanon: Flash Update - Emergency response",
+        "date": { "original": "2025-03-01T00:00:00+00:00" },
+        "source": [{ "name": "OCHA" }],
+        "url": "https://reliefweb.int/report/lebanon/example",
+        "theme": [{ "name": "Food and Nutrition" }, { "name": "Health" }]
+      }
+    },
+    {
+      "id": "789",
+      "fields": {
+        "title": "Lebanon: Recovery and reconstruction programme",
+        "date": { "original": "2025-02-28T12:00:00+00:00" },
+        "url": "https://reliefweb.int/report/lebanon/recovery",
+        "theme": [{ "name": "Recovery" }]
+      }
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "items": [
+    {
+      "title": "Beirut hosts cultural festival",
+      "link": "https://example.com/1",
+      "pubDate": "2025-03-01T12:00:00Z",
+      "contentSnippet": "Annual cultural event in Beirut",
+      "feedName": "L'Orient-Le Jour"
+    },
+    {
+      "title": "Political crisis deepens in Lebanon",
+      "link": "https://example.com/2",
+      "pubDate": "2025-03-01T10:00:00Z",
+      "contentSnippet": "Protests in Tripoli",
+      "feedName": "NNA"
+    }
+  ]
+}

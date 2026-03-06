@@ -1,0 +1,55 @@
+---
+description: Testing conventions and validation requirements. Apply when working on tests.
+globs:
+  - "**/*.test.ts"
+  - "**/*.spec.ts"
+  - "src/**/__tests__/**/*"
+  - "vitest.config.*"
+alwaysApply: false
+---
+
+# Testing Rules
+
+## Framework
+- Unit tests: Vitest
+- E2E tests: Playwright (later phase)
+- No Jest — use Vitest exclusively
+
+## Test File Conventions
+- Co-located tests in `__tests__/` directories
+- Name: `<module>.test.ts`
+- Use `describe` blocks matching the module name
+- Use `it` (not `test`) for individual cases
+- Descriptive test names: `it('should return empty array when API returns 404')`
+
+## API Testing Pattern
+```typescript
+// Always use fixtures, never live calls
+import fixture from './fixtures/gdelt-response.json';
+import { normalize } from '../normalizer';
+
+describe('gdelt normalizer', () => {
+  it('should normalize valid response to LebanonEvent[]', () => {
+    const events = normalize(fixture);
+    expect(events).toHaveLength(expect.any(Number));
+    events.forEach(event => {
+      expect(event.source).toBe('gdelt');
+      expect(event.latitude).toBeGreaterThan(33);
+      expect(event.latitude).toBeLessThan(35);
+      expect(event.longitude).toBeGreaterThan(35);
+      expect(event.longitude).toBeLessThan(37);
+      expect(['lumiere', 'ombre', 'neutre']).toContain(event.classification);
+    });
+  });
+});
+```
+
+## Validation Checklist (run after each source is built)
+For each source, verify:
+- [ ] API call returns valid data (save fixture)
+- [ ] Normalizer produces correct LebanonEvent shape
+- [ ] All events have valid lat/lng within Lebanon bounding box
+- [ ] Classification produces reasonable lumiere/ombre distribution
+- [ ] Error handling works (test with invalid params, timeout)
+- [ ] TTL/caching behaves correctly
+- [ ] TypeScript compiles with no errors

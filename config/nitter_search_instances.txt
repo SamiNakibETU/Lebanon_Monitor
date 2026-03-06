@@ -1,0 +1,3 @@
+# Nitter instances for search/hashtag (HTML timeline)
+https://nitter.net
+https://nitter.privacyredirect.com

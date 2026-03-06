@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Lebanon Monitor — Norgram / design-system.mdc */
+:root {
+  /* Lumière (light panel, left) */
+  --lumiere-bg: #f4f4f4;
+  --lumiere-fg: #0c0c0c;
+  --lumiere-muted: #6b6b6b;
+  --lumiere-accent: #3d6b4a;
+  --lumiere-accent-light: #e8f0ea;
+
+  /* Ombre (dark panel, right) */
+  --ombre-bg: #0a0a0a;
+  --ombre-fg: #e5e5e5;
+  --ombre-muted: #6b6b6b;
+  --ombre-accent: #7a5163;
+  --ombre-accent-light: #1a1218;
+
+  /* Legacy aliases */
+  --light-bg: var(--lumiere-bg);
+  --light-fg: var(--lumiere-fg);
+  --dark-bg: var(--ombre-bg);
+  --dark-fg: var(--ombre-fg);
+  --dark-muted: var(--ombre-muted);
+  --dark-border: rgba(255, 255, 255, 0.06);
+  --border-light: rgba(0, 0, 0, 0.06);
+  --border-dark: rgba(255, 255, 255, 0.06);
+
+  /* Classification */
+  --lumiere: #3d6b4a;
+  --ombre: #7a5163;
+  --neutre: #5c5c5c;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Leaflet — barely there */
+.leaflet-container {
+  font-family: inherit;
+  background: var(--lumiere-bg);
+}
+
+.leaflet-control-zoom {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.leaflet-control-zoom a {
+  background: rgba(255, 255, 255, 0.95) !important;
+  color: var(--lumiere-fg) !important;
+  border: 1px solid rgba(0, 0, 0, 0.07) !important;
+  width: 26px !important;
+  height: 26px !important;
+  line-height: 26px !important;
+  font-size: 14px !important;
+}
+
+.leaflet-tooltip-minimal {
+  background: rgba(10, 10, 10, 0.92) !important;
+  color: #f5f5f5 !important;
+  border: none !important;
+  padding: 5px 9px !important;
+  font-size: 11px !important;
+  border-radius: 3px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12) !important;
+}

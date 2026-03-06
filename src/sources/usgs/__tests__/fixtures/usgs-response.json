@@ -1,0 +1,39 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "mag": 3.2,
+        "place": "15 km NE of Beirut, Lebanon",
+        "time": 1709312400000,
+        "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us7000abc1",
+        "title": "M 3.2 - 15 km NE of Beirut",
+        "type": "earthquake",
+        "alert": null,
+        "tsunami": 0
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [35.55, 33.95, 10.0]
+      },
+      "id": "us7000abc1"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "mag": 5.1,
+        "place": "30 km S of Tyre, Lebanon",
+        "time": 1709308800000,
+        "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us7000abc2",
+        "title": "M 5.1 - 30 km S of Tyre",
+        "type": "earthquake"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [35.2, 33.1, 5.0]
+      },
+      "id": "us7000abc2"
+    }
+  ]
+}

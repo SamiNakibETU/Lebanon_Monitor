@@ -1,0 +1,22 @@
+[
+  {
+    "city": "Beirut",
+    "lat": 33.8938,
+    "lng": 35.5018,
+    "data": {
+      "main": { "temp": 22 },
+      "weather": [{ "main": "Clear" }],
+      "wind": { "speed": 3 }
+    }
+  },
+  {
+    "city": "Baalbek",
+    "lat": 34.0047,
+    "lng": 36.211,
+    "data": {
+      "main": { "temp": 42 },
+      "weather": [{ "main": "Clear" }],
+      "wind": { "speed": 5 }
+    }
+  }
+]

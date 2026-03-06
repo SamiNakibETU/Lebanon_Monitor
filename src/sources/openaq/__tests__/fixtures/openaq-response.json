@@ -1,0 +1,18 @@
+{
+  "results": [
+    {
+      "location": "Beirut",
+      "city": "Beirut",
+      "country": "LB",
+      "coordinates": { "latitude": 33.89, "longitude": 35.5 },
+      "measurements": [{ "parameter": "pm25", "value": 35.2, "unit": "µg/m³" }]
+    },
+    {
+      "location": "Tripoli",
+      "city": "Tripoli",
+      "country": "LB",
+      "coordinates": { "latitude": 34.43, "longitude": 35.85 },
+      "measurements": [{ "parameter": "pm25", "value": 8.5, "unit": "µg/m³" }]
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "articles": [
+    {
+      "url": "https://www.lorientlejour.com/article/example-lebanon-news",
+      "url_mobile": "",
+      "title": "Lebanon's parliament approves budget reform",
+      "seendate": "20250301T120000Z",
+      "socialimage": "https://example.com/img.jpg",
+      "domain": "lorientlejour.com",
+      "language": "French",
+      "sourcecountry": "Lebanon",
+      "tone": 4.5,
+      "extrasdata": ""
+    },
+    {
+      "url": "https://example.com/negative-news",
+      "title": "Economic crisis deepens in Lebanon",
+      "seendate": "20250301T100000Z",
+      "domain": "unknown.com",
+      "tone": -5.2
+    },
+    {
+      "url": "https://example.com/neutral",
+      "title": "Weather report for Beirut",
+      "seendate": "20250301T080000Z",
+      "domain": "dailystar.com.lb",
+      "tone": 0.5
+    }
+  ]
+}

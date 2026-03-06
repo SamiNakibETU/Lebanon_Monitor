@@ -1,0 +1,97 @@
+---
+description: Rules for data source modules, API ingestion, and event normalization. Apply when working in src/sources/ or src/types/.
+globs:
+  - "src/sources/**/*"
+  - "src/types/**/*"
+  - "src/lib/fetcher*"
+  - "src/app/api/**/*"
+alwaysApply: false
+---
+
+# Data Ingestion Rules
+
+## Source Module Structure
+Every data source lives in `src/sources/<source-name>/` with this structure:
+```
+src/sources/gdelt/
+├── index.ts          # barrel export
+├── fetcher.ts        # raw API call with error handling
+├── normalizer.ts     # transforms raw → LebanonEvent[]
+├── classifier.ts     # Lumière/Ombre classification logic
+├── types.ts          # raw API response types
+├── config.ts         # endpoints, TTLs, constants
+└── __tests__/
+    ├── fetcher.test.ts
+    ├── normalizer.test.ts
+    └── classifier.test.ts
+```
+
+## LebanonEvent Interface (canonical)
+All sources MUST normalize to this interface:
+```typescript
+interface LebanonEvent {
+  id: string;                    // unique: `${source}-${sourceId}`
+  source: SourceName;            // enum: 'gdelt' | 'usgs' | 'firms' | ...
+  title: string;
+  description?: string;
+  url?: string;
+  timestamp: Date;
+  latitude: number;
+  longitude: number;
+  classification: 'lumiere' | 'ombre' | 'neutre';
+  confidence: number;            // 0-1
+  category: EventCategory;       // enum defined in types
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  rawData?: Record<string, unknown>;
+  metadata: {
+    fetchedAt: Date;
+    ttlSeconds: number;
+    sourceReliability: 'high' | 'medium' | 'low';
+  };
+}
+```
+
+## Fetcher Rules
+- Every fetcher MUST have a configurable timeout (default 10s)
+- Every fetcher MUST use AbortController for cancellation
+- Every fetcher MUST return `Result<T, SourceError>` pattern
+- Every fetcher MUST log: source name, response time, status code, event count
+- Rate limiting: respect source TTLs, never poll faster than config
+- Retry: max 2 retries with exponential backoff for 5xx errors
+- Never retry on 4xx errors (bad request = our bug)
+
+## Classifier Rules
+- Lumière/Ombre classification uses keyword dictionaries + tone scores
+- Keyword dictionaries are in `src/lib/classification/dictionaries/`
+- Three language dictionaries: Arabic, French, English
+- GDELT tone score mapping: tone > 3 → lumière, tone < -3 → ombre, else neutre
+- CAMEO Goldstein scale: > 5 → lumière, < -5 → ombre
+- Always output a confidence score between 0 and 1
+- Log classification decisions for review
+
+## API Route Rules
+- All API routes go in `src/app/api/sources/[source]/route.ts`
+- Use NextResponse with proper status codes
+- Add Cache-Control headers matching source TTL
+- Validate query params with Zod schemas
+- Return typed JSON responses
+
+## Testing Requirements
+- Every source MUST have fixture files in `__tests__/fixtures/`
+- Fixtures are real API responses saved as JSON
+- Tests MUST work offline (no live API calls in tests)
+- Test: fetcher error handling, normalizer output shape, classifier accuracy
+- Minimum: 3 test cases per source (happy path, error, edge case)
+
+## Priority Sources (Phase 1)
+Implement in this exact order:
+1. GDELT DOC API (events + tone)
+2. USGS Earthquake API (seismic)
+3. NASA FIRMS (fires)
+4. RSS feeds (6-8 Lebanese media)
+5. GDACS (disasters)
+6. ReliefWeb API (humanitarian)
+7. OpenWeatherMap (weather)
+8. Cloudflare Radar (internet outages)
+9. LBP/USD scraper (exchange rate)
+10. OpenAQ (air quality)
