@@ -7,7 +7,7 @@ import { DEFAULT_COORDS } from '@/config/lebanon';
 export const RELIEFWEB_CONFIG = {
   baseUrl: 'https://api.reliefweb.int/v1/reports',
   params: {
-    appname: 'lebanon-monitor',
+    appname: process.env.RELIEFWEB_APPNAME ?? 'lebanon-monitor',
     'filter[field]': 'country',
     'filter[value]': 'Lebanon',
     limit: '20',

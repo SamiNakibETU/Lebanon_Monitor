@@ -12,7 +12,7 @@ const SOURCE = 'reliefweb';
 function buildUrl(): string {
   const base = 'https://api.reliefweb.int/v1/reports';
   const params = new URLSearchParams();
-  params.set('appname', 'lebanon-monitor');
+  params.set('appname', process.env.RELIEFWEB_APPNAME ?? 'lebanon-monitor');
   params.set('filter[field]', 'country');
   params.set('filter[value]', 'Lebanon');
   params.set('limit', '20');

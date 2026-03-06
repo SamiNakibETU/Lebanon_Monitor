@@ -34,3 +34,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# AI / Cursor — no trace in repo
+agent-transcripts/
+.cursor/
+_archive/
+AGENT_PROMPT*.md
+SKILL.md

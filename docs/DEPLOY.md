@@ -19,11 +19,61 @@ Guide pas à pas pour déployer sur Railway.
 
 ---
 
-## 2. Ajouter PostgreSQL
+## 2. Ajouter PostgreSQL et lier `DATABASE_URL`
 
-1. Dans le projet → **+ New** → **Database** → **PostgreSQL**
-2. Railway crée une instance et expose `DATABASE_URL`
-3. **PostGIS** : dans les variables du service PostgreSQL, ou via le dashboard Railway, activer l’extension PostGIS si disponible (certains plans l’incluent)
+### 2.1 Créer la base PostgreSQL
+
+1. Ouvrir ton projet Railway
+2. Cliquer sur **+ New** (ou `Ctrl+K` / `Cmd+K` → menu)
+3. Choisir **Database** → **PostgreSQL**
+4. Railway déploie une instance PostgreSQL. Le service apparaît sur le canvas (ex. nommé « Postgres » ou « PostgreSQL »)
+
+### 2.2 Variables exposées par PostgreSQL
+
+Le service PostgreSQL expose automatiquement :
+
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | URL complète de connexion (réseau privé interne) |
+| `PGDATABASE` | Nom de la base |
+| `PGPASSWORD` | Mot de passe |
+| `PGUSER` | Utilisateur |
+| `PGPORT` | Port |
+| `PGHOST` | Hôte |
+
+L’app Lebanon Monitor utilise `DATABASE_URL` (comportement par défaut de Prisma, Drizzle, Knex, etc.).
+
+### 2.3 Référencer `DATABASE_URL` dans le service Web
+
+Pour que ton **service Web** (Lebanon Monitor) accède à la base :
+
+1. Cliquer sur le **service Web** (ton app Next.js)
+2. Onglet **Variables**
+3. Cliquer **New Variable**
+4. Dans le **nom** : `DATABASE_URL`
+5. Dans la **valeur** : utiliser la syntaxe de référence Railway :
+   ```
+   ${{ Postgres.DATABASE_URL }}
+   ```
+   **Important** : remplacer `Postgres` par le **nom exact** de ton service PostgreSQL (visible sur le canvas). Exemples : `Postgres`, `PostgreSQL`, `lebanon-monitor-postgres`, etc.
+6. Railway propose un **autocomplete** dans le champ valeur : taper `${{` puis sélectionner le service et la variable dans la liste
+7. **Deploy** pour appliquer les changements
+
+### 2.4 URL privée vs publique
+
+| Variable | Usage |
+|----------|--------|
+| `DATABASE_URL` | Réseau **privé** Railway (recommandé en prod). Utilise `postgres.railway.internal` pour les connexions service-à-service |
+| `DATABASE_PUBLIC_URL` | Réseau **public** (TCP Proxy). À utiliser si tu te connectes **depuis l’extérieur** (ex. migrations en local avec l’URL copiée). Des frais d’egress peuvent s’appliquer |
+
+Pour les migrations **en local** avec la vraie DB Railway : copier `DATABASE_PUBLIC_URL` depuis l’onglet Variables du service PostgreSQL.
+
+### 2.5 PostGIS (optionnel)
+
+Le template PostgreSQL standard n’inclut pas PostGIS. Pour PostGIS :
+
+- Template [PostGIS](https://railway.com/deploy/postgis) dans le marketplace, **ou**
+- Migrations Lebanon Monitor adaptées sans PostGIS (colonnes `lat`/`lng`)
 
 ---
 
@@ -33,12 +83,15 @@ Dans **Web Service** → **Variables** :
 
 | Variable | Obligatoire | Description |
 |----------|-------------|-------------|
-| `DATABASE_URL` | Oui* | Fournie automatiquement si PostgreSQL est lié |
+| `DATABASE_URL` | Oui* | Référencer depuis le service PostgreSQL (Add Reference) |
 | `NODE_ENV` | Non | `production` (défaut sur Railway) |
 | `OWM_API_KEY` | Non | OpenWeatherMap pour la météo |
 | `FIRMS_MAP_KEY` | Non | NASA FIRMS pour incendies |
 | `CF_API_TOKEN` | Non | Cloudflare Radar |
-| `OPENAQ_API_KEY` | Non | Qualité de l’air |
+| `HF_API_TOKEN` | Non | Hugging Face Inference (NLP) |
+| `UCDP_ACCESS_TOKEN` | Non | UCDP API (conflits) |
+| `RELIEFWEB_APPNAME` | Non | ReliefWeb appname approuvé (ex. `SNakib-lebanonmonitor-sn7k2`) |
+| `OPENAQ_API_KEY` | Non | Qualité de l’air (OpenAQ v3) |
 
 \* Si `DATABASE_URL` est absent, l’app fonctionne en mode dégradé (sans persistance).
 
@@ -46,20 +99,24 @@ Dans **Web Service** → **Variables** :
 
 ## 4. Migrations et seed
 
-**Avant le premier déploiement**, ou via **Release Command** si configuré :
+**Avant le premier déploiement**, exécuter les migrations une fois :
 
 ```bash
-# En local avec DATABASE_URL Railway
-export DATABASE_URL="postgresql://..."
+# Depuis ta machine : utiliser DATABASE_PUBLIC_URL (pas DATABASE_URL)
+# Copier la valeur dans : PostgreSQL service → Variables → DATABASE_PUBLIC_URL
+
+export DATABASE_URL="postgresql://user:password@host.railway.app:PORT/railway"
 npm run db:migrate
 npm run db:seed
 ```
 
-Ou dans Railway : **Settings** → **Deploy** → **Custom Start Command** (optionnel) :
+**Où trouver l’URL** : Railway Dashboard → service **PostgreSQL** → **Variables** → `DATABASE_PUBLIC_URL` → copier la valeur.
+
+**Alternative** (migrations au démarrage du conteneur) : **Settings** → **Deploy** → **Custom Start Command** :
 ```bash
 npm run db:migrate && npm run start
 ```
-À utiliser avec précaution (migrations à chaque redémarrage).
+À éviter en prod : les migrations s’exécuteraient à chaque redémarrage.
 
 ---
 

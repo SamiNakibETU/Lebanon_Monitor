@@ -312,7 +312,7 @@ Références :
 - `src/lib/labels.ts`
 - `config/nitter_instances.txt`
 - `config/nitter_search_instances.txt`
-- `.cursor/plans/phase-2-social-tools.md`
+- Plans Phase 2 (référence interne)
 - `docs/PROJECT_SUMMARY.md` (ce fichier)
 
 ### Modifiés

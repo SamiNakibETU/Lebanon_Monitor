@@ -1,24 +1,24 @@
 -- Seed places (gazetteer) for Lebanon Monitor
 -- Run after migrations: psql $DATABASE_URL -f src/db/seed/002_places.sql
 
--- Cities
-INSERT INTO place (name_primary, name_ar, name_fr, name_en, place_type, geometry) VALUES
-('Beirut', 'بيروت', 'Beyrouth', 'Beirut', 'city', ST_SetSRID(ST_MakePoint(35.5018, 33.8938), 4326)),
-('Tripoli', 'طرابلس', 'Tripoli', 'Tripoli', 'city', ST_SetSRID(ST_MakePoint(35.8498, 34.4332), 4326)),
-('Sidon', 'صيدا', 'Sidon', 'Sidon', 'city', ST_SetSRID(ST_MakePoint(35.3729, 33.5571), 4326)),
-('Tyre', 'صور', 'Tyr', 'Tyre', 'city', ST_SetSRID(ST_MakePoint(35.2038, 33.2705), 4326)),
-('Baalbek', 'بعلبك', 'Baalbek', 'Baalbek', 'city', ST_SetSRID(ST_MakePoint(36.211, 34.0047), 4326)),
-('Jounieh', 'جونيه', 'Jounieh', 'Jounieh', 'city', ST_SetSRID(ST_MakePoint(35.6178, 33.9808), 4326)),
-('Zahle', 'زحلة', 'Zahlé', 'Zahle', 'city', ST_SetSRID(ST_MakePoint(35.902, 33.8463), 4326)),
-('Nabatieh', 'النبطية', 'Nabatieh', 'Nabatieh', 'city', ST_SetSRID(ST_MakePoint(35.4839, 33.3779), 4326)),
-('Byblos', 'جبيل', 'Byblos', 'Byblos', 'city', ST_SetSRID(ST_MakePoint(35.6511, 34.1236), 4326)),
-('Dahieh', 'الضاحية', 'Dahiyeh', 'Dahieh', 'neighborhood', ST_SetSRID(ST_MakePoint(35.5024, 33.8547), 4326)),
-('South Lebanon', 'جنوب لبنان', 'Sud-Liban', 'South Lebanon', 'governorate', ST_SetSRID(ST_MakePoint(35.4, 33.27), 4326)),
-('Bekaa', 'البقاع', 'Bekaa', 'Bekaa', 'governorate', ST_SetSRID(ST_MakePoint(36.0, 33.85), 4326)),
-('Akkar', 'عكار', 'Akkar', 'Akkar', 'governorate', ST_SetSRID(ST_MakePoint(36.1, 34.55), 4326)),
-('Mount Lebanon', 'جبل لبنان', 'Mont-Liban', 'Mount Lebanon', 'governorate', ST_SetSRID(ST_MakePoint(35.6, 33.85), 4326)),
-('North Lebanon', 'شمال لبنان', 'Nord-Liban', 'North Lebanon', 'governorate', ST_SetSRID(ST_MakePoint(35.8, 34.35), 4326)),
-('Lebanon', 'لبنان', 'Liban', 'Lebanon', 'country', ST_SetSRID(ST_MakePoint(35.5018, 33.8938), 4326));
+-- Cities (lat, lng instead of PostGIS geometry)
+INSERT INTO place (name_primary, name_ar, name_fr, name_en, place_type, lat, lng) VALUES
+('Beirut', 'بيروت', 'Beyrouth', 'Beirut', 'city', 33.8938, 35.5018),
+('Tripoli', 'طرابلس', 'Tripoli', 'Tripoli', 'city', 34.4332, 35.8498),
+('Sidon', 'صيدا', 'Sidon', 'Sidon', 'city', 33.5571, 35.3729),
+('Tyre', 'صور', 'Tyr', 'Tyre', 'city', 33.2705, 35.2038),
+('Baalbek', 'بعلبك', 'Baalbek', 'Baalbek', 'city', 34.0047, 36.211),
+('Jounieh', 'جونيه', 'Jounieh', 'Jounieh', 'city', 33.9808, 35.6178),
+('Zahle', 'زحلة', 'Zahlé', 'Zahle', 'city', 33.8463, 35.902),
+('Nabatieh', 'النبطية', 'Nabatieh', 'Nabatieh', 'city', 33.3779, 35.4839),
+('Byblos', 'جبيل', 'Byblos', 'Byblos', 'city', 34.1236, 35.6511),
+('Dahieh', 'الضاحية', 'Dahiyeh', 'Dahieh', 'neighborhood', 33.8547, 35.5024),
+('South Lebanon', 'جنوب لبنان', 'Sud-Liban', 'South Lebanon', 'governorate', 33.27, 35.4),
+('Bekaa', 'البقاع', 'Bekaa', 'Bekaa', 'governorate', 33.85, 36.0),
+('Akkar', 'عكار', 'Akkar', 'Akkar', 'governorate', 34.55, 36.1),
+('Mount Lebanon', 'جبل لبنان', 'Mont-Liban', 'Mount Lebanon', 'governorate', 33.85, 35.6),
+('North Lebanon', 'شمال لبنان', 'Nord-Liban', 'North Lebanon', 'governorate', 34.35, 35.8),
+('Lebanon', 'لبنان', 'Liban', 'Lebanon', 'country', 33.8938, 35.5018);
 
 -- Place aliases (for resolution)
 INSERT INTO place_alias (place_id, alias, language, alias_type)

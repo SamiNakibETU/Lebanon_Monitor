@@ -1,9 +1,6 @@
 -- Lebanon Monitor — Initial schema
--- PostgreSQL + PostGIS
+-- PostgreSQL (works without PostGIS; uses lat/lng)
 -- Run with: psql $DATABASE_URL -f 001_initial_schema.sql
-
--- Enable PostGIS
-CREATE EXTENSION IF NOT EXISTS postgis;
 
 -- =============================================================================
 -- Raw & Source
@@ -56,13 +53,14 @@ CREATE TABLE place (
   name_en VARCHAR(255),
   place_type VARCHAR(50),
   parent_place_id UUID REFERENCES place(id) ON DELETE SET NULL,
-  geometry GEOMETRY(Point, 4326),
-  bbox GEOMETRY(Polygon, 4326),
+  lat DOUBLE PRECISION,
+  lng DOUBLE PRECISION,
+  bbox JSONB,
   metadata JSONB,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_place_geometry ON place USING GIST(geometry);
+CREATE INDEX idx_place_coords ON place(lat, lng);
 CREATE INDEX idx_place_type ON place(place_type);
 
 -- -----------------------------------------------------------------------------

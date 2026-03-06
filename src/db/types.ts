@@ -59,7 +59,8 @@ export interface PlaceRow {
   name_en: string | null;
   place_type: string | null;
   parent_place_id: string | null;
-  geometry: unknown | null; // PostGIS Point
+  lat: number | null;
+  lng: number | null;
   bbox: unknown | null;
   metadata: Record<string, unknown> | null;
   created_at: Date;

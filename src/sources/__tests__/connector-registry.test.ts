@@ -67,7 +67,7 @@ describe('createConnector', () => {
       normalize: (raw: { items: unknown[] }, fetchedAt) => [
         {
           id: 'test-1',
-          source: 'test',
+          source: 'rss',
           title: 'Test',
           timestamp: fetchedAt,
           latitude: 0,
