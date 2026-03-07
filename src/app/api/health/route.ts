@@ -20,6 +20,7 @@ export async function GET() {
       {
         status: 'ok',
         timestamp: new Date().toISOString(),
+        databaseUrlSet: !!process.env.DATABASE_URL,
         ...(dbOk !== null && { database: dbOk ? 'connected' : 'disconnected' }),
         sources: health,
       },
