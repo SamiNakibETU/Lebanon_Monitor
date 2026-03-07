@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 import useSWR from 'swr';
 import Link from 'next/link';
 import { Header } from '@/components/layout/Header';
@@ -37,7 +37,7 @@ interface SearchEvent {
   sourceCount?: number;
 }
 
-export default function SearchPage() {
+function SearchContent() {
   const searchParams = useSearchParams();
   const q = searchParams?.get('q') ?? '';
   const [lang, setLang] = useState<Language>('fr');
@@ -144,5 +144,22 @@ export default function SearchPage() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense
+      fallback={
+        <div
+          className="min-h-screen flex items-center justify-center"
+          style={{ background: '#000000', color: '#666666', fontSize: 13 }}
+        >
+          Chargement…
+        </div>
+      }
+    >
+      <SearchContent />
+    </Suspense>
   );
 }
