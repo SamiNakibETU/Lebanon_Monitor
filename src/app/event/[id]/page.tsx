@@ -1,11 +1,25 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
 import useSWR from 'swr';
 import Link from 'next/link';
 import { Header } from '@/components/layout/Header';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
+const LANG_STORAGE_KEY = 'lebanon-monitor-lang';
+type Language = 'fr' | 'en' | 'ar';
+
+function getInitialLang(searchParams: URLSearchParams | null): Language {
+  const fromUrl = searchParams?.get('lang');
+  if (fromUrl === 'fr' || fromUrl === 'en' || fromUrl === 'ar') return fromUrl;
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem(LANG_STORAGE_KEY);
+    if (stored === 'fr' || stored === 'en' || stored === 'ar') return stored;
+  }
+  return 'fr';
+}
 
 interface EventDetail {
   id: string;
@@ -28,16 +42,31 @@ interface EventDetail {
 export default function EventDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const id = params?.id as string;
+
+  const [lang, setLang] = useState<Language>('fr');
+  useEffect(() => {
+    setLang(getInitialLang(searchParams));
+  }, [searchParams]);
+
+  const handleLangChange = useCallback((l: Language) => {
+    setLang(l);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(LANG_STORAGE_KEY, l);
+    }
+    router.replace(`/event/${id}?lang=${l}`, { scroll: false });
+  }, [id, router]);
+
   const { data, error } = useSWR<EventDetail>(
-    id ? `/api/v2/events/${id}?lang=fr` : null,
+    id ? `/api/v2/events/${id}?lang=${lang}` : null,
     fetcher
   );
 
   if (error) {
     return (
       <div className="min-h-screen" style={{ background: '#000', color: '#FFF' }}>
-        <Header />
+        <Header lang={lang} onLangChange={handleLangChange} />
         <div className="max-w-[720px] mx-auto px-6 py-12">
           <p style={{ color: '#666' }}>Erreur de chargement.</p>
           <button
@@ -56,7 +85,7 @@ export default function EventDetailPage() {
   if (!data) {
     return (
       <div className="min-h-screen" style={{ background: '#000', color: '#FFF' }}>
-        <Header />
+        <Header lang={lang} onLangChange={handleLangChange} />
         <div className="max-w-[720px] mx-auto px-6 py-12">
           <p style={{ color: '#666' }}>Chargement…</p>
         </div>
@@ -68,7 +97,7 @@ export default function EventDetailPage() {
 
   return (
     <div className="min-h-screen" style={{ background: '#000', color: '#FFF' }}>
-      <Header />
+      <Header lang={lang} onLangChange={handleLangChange} />
       <div className="max-w-[720px] mx-auto px-6 py-8">
         <Link
           href="/"

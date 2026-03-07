@@ -16,21 +16,33 @@ import { logger } from '@/lib/logger';
 import { EVENT_SOURCE_NAMES } from '@/sources/connector-registry';
 import type { LebanonEvent } from '@/types/events';
 
-export async function runPipeline(): Promise<void> {
+export interface PipelineResult {
+  eventsCreated: number;
+  eventsUpdated: number;
+  rawCount: number;
+  newItemsCount: number;
+  sourcesRun: string[];
+}
+
+export async function runPipeline(): Promise<PipelineResult> {
   const start = Date.now();
   const startedAt = new Date();
   let eventsCreated = 0;
   let eventsUpdated = 0;
   const sourcesRun: string[] = [];
+  let rawCount = 0;
+  let newItemsCount = 0;
 
   try {
     const { rawIds, statuses, indicators } = await runIngest();
     sourcesRun.push(...Object.keys(rawIds));
+    rawCount = Object.keys(rawIds).length;
 
     await logSourceHealth(statuses);
 
     const newItems = await runNormalize(rawIds);
-    logger.info('Normalize produced new items', { count: newItems.length });
+    newItemsCount = newItems.length;
+    logger.info('Normalize produced new items', { count: newItemsCount });
 
     const toProcess = newItems.filter(({ event }) => EVENT_SOURCE_NAMES.has(event.source));
 
@@ -69,7 +81,9 @@ export async function runPipeline(): Promise<void> {
       } else {
         const { eventId, title, summary } = await storeNewEvent(sourceItem, classified);
         eventsCreated++;
-        translateAndStore(eventId, title, summary).catch(() => {});
+        translateAndStore(eventId, title, summary).catch((err) =>
+          logger.warn('Translation failed for event', { eventId, err: err instanceof Error ? err.message : String(err) })
+        );
       }
     }
 
@@ -82,7 +96,7 @@ export async function runPipeline(): Promise<void> {
     await logPipelineRun({
       status: 'success',
       sourcesRun,
-      rawCount: Object.keys(rawIds).length,
+      rawCount,
       eventsCreated,
       eventsUpdated,
       startedAt,
@@ -93,6 +107,8 @@ export async function runPipeline(): Promise<void> {
       eventsCreated,
       eventsUpdated,
     });
+
+    return { eventsCreated, eventsUpdated, rawCount, newItemsCount, sourcesRun };
   } catch (err) {
     logger.error('Pipeline failed', {
       error: err instanceof Error ? err.message : String(err),

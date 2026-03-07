@@ -62,9 +62,11 @@ interface V2Cluster {
 function EventCard({
   e,
   variant,
+  lang,
 }: {
   e: V2Event;
   variant: 'lumiere' | 'ombre';
+  lang: Language;
 }) {
   const time = new Date(e.occurredAt);
   const rel =
@@ -82,7 +84,7 @@ function EventCard({
 
   return (
     <a
-      href={`/event/${e.id}`}
+      href={`/event/${e.id}?lang=${lang}`}
       className="flex gap-3 py-4 px-6 transition-colors cursor-pointer block no-underline"
       style={{ borderBottom: `1px solid ${borderColor}` }}
       onMouseEnter={(ev) => {
@@ -156,11 +158,13 @@ function PanelEventFeed({
   variant,
   eventsError,
   isLoading,
+  lang,
 }: {
   events: V2Event[];
   variant: 'lumiere' | 'ombre';
   eventsError: unknown;
   isLoading: boolean;
+  lang: Language;
 }) {
   const label = variant === 'lumiere' ? 'Lumière' : 'Ombre';
   return (
@@ -203,16 +207,29 @@ function PanelEventFeed({
               : 'No events yet.'}
           </div>
         ) : (
-          events.map((e) => <EventCard key={e.id} e={e} variant={variant} />)
+          events.map((e) => <EventCard key={e.id} e={e} variant={variant} lang={lang} />)
         )}
       </div>
     </div>
   );
 }
 
+const LANG_STORAGE_KEY = 'lebanon-monitor-lang';
+
 export default function Home() {
-  const [lang, setLang] = useState<Language>('fr');
+  const [lang, setLangState] = useState<Language>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(LANG_STORAGE_KEY);
+      if (stored === 'fr' || stored === 'en' || stored === 'ar') return stored;
+    }
+    return 'fr';
+  });
   const [splitMode, setSplitMode] = useState<SplitMode>('split');
+
+  const setLang = (l: Language) => {
+    setLangState(l);
+    if (typeof window !== 'undefined') localStorage.setItem(LANG_STORAGE_KEY, l);
+  };
 
   const timelineRef = useRef<HTMLDivElement>(null);
   const timelineOmbreRef = useRef<HTMLDivElement>(null);
@@ -305,6 +322,7 @@ export default function Home() {
                   variant="lumiere"
                   eventsError={lumiereError}
                   isLoading={!lumiereRes && !lumiereError}
+                  lang={lang}
                 />
               </div>
             </div>
@@ -312,7 +330,8 @@ export default function Home() {
               className="grid gap-px"
               style={{
                 gridTemplateColumns: '2fr 1fr 1fr',
-                height: 180,
+                minHeight: 280,
+                height: 'clamp(240px, 20vh, 320px)',
                 borderTop: '1px solid rgba(0,0,0,0.06)',
               }}
             >
@@ -386,6 +405,7 @@ export default function Home() {
                   variant="ombre"
                   eventsError={ombreError}
                   isLoading={!ombreRes && !ombreError}
+                  lang={lang}
                 />
               </div>
             </div>
@@ -393,7 +413,8 @@ export default function Home() {
               className="grid gap-px"
               style={{
                 gridTemplateColumns: '2fr 1fr 1fr',
-                height: 180,
+                minHeight: 280,
+                height: 'clamp(240px, 20vh, 320px)',
                 borderTop: '1px solid rgba(255,255,255,0.04)',
               }}
             >

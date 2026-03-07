@@ -41,10 +41,11 @@ export async function GET(request: Request) {
       const { rows: pipelineRows } = await client.query<{
         started_at: Date;
         status: string;
+        raw_count: number;
         events_created: number;
         events_updated: number;
       }>(
-        `SELECT started_at, status, events_created, events_updated 
+        `SELECT started_at, status, raw_count, events_created, events_updated 
          FROM pipeline_run 
          ORDER BY started_at DESC 
          LIMIT 1`
@@ -58,6 +59,7 @@ export async function GET(request: Request) {
           ? {
               startedAt: lastRun.started_at,
               status: lastRun.status,
+              rawCount: lastRun.raw_count,
               eventsCreated: lastRun.events_created,
               eventsUpdated: lastRun.events_updated,
             }

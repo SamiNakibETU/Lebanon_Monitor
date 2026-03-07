@@ -94,6 +94,12 @@ body {
   border-top-color: #0d0d0d;
 }
 
+/* MapLibre layer controls — ensure clickable above overlays */
+.maplibregl-ctrl-group {
+  pointer-events: auto;
+  z-index: 2;
+}
+
 .leaflet-tooltip-minimal {
   background: #0d0d0d !important;
   color: #ffffff !important;
@@ -124,14 +130,15 @@ body {
 .split-container .panel {
   transition: flex 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.split-container:has(.panel--lumiere:hover) .panel--lumiere { flex: 1.85; }
-.split-container:has(.panel--lumiere:hover) .panel--ombre { flex: 1; }
-.split-container:has(.panel--ombre:hover) .panel--ombre { flex: 1.85; }
-.split-container:has(.panel--ombre:hover) .panel--lumiere { flex: 1; }
-.split-container[data-mode="lumiere"] .panel--lumiere { flex: 1; }
-.split-container[data-mode="lumiere"] .panel--ombre { flex: 0; overflow: hidden; min-width: 0; }
-.split-container[data-mode="ombre"] .panel--ombre { flex: 1; }
-.split-container[data-mode="ombre"] .panel--lumiere { flex: 0; overflow: hidden; min-width: 0; }
+/* Hover expand only in split mode — data-mode takes precedence otherwise */
+.split-container[data-mode="split"]:has(.panel--lumiere:hover) .panel--lumiere { flex: 1.85; }
+.split-container[data-mode="split"]:has(.panel--lumiere:hover) .panel--ombre { flex: 1; }
+.split-container[data-mode="split"]:has(.panel--ombre:hover) .panel--ombre { flex: 1.85; }
+.split-container[data-mode="split"]:has(.panel--ombre:hover) .panel--lumiere { flex: 1; }
+.split-container[data-mode="lumiere"] .panel--lumiere { flex: 1; flex-basis: 0; }
+.split-container[data-mode="lumiere"] .panel--ombre { flex: 0 1 0; overflow: hidden; min-width: 0; width: 0; }
+.split-container[data-mode="ombre"] .panel--ombre { flex: 1; flex-basis: 0; }
+.split-container[data-mode="ombre"] .panel--lumiere { flex: 0 1 0; overflow: hidden; min-width: 0; width: 0; }
 .split-container[data-mode="twothirds"] .panel--lumiere { flex: 2; }
 .split-container[data-mode="twothirds"] .panel--ombre { flex: 1; }
 .split-divider {

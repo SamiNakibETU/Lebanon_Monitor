@@ -69,7 +69,7 @@ export function Header({
                 type="button"
                 onClick={() => onSplitModeChange(m)}
                 title={m === 'split' ? 'Split 50/50' : m === 'lumiere' ? 'Lumière plein écran' : m === 'ombre' ? 'Ombre plein écran' : '2/3 - 1/3'}
-                className="px-2 py-1 text-[14px] transition-opacity duration-150"
+                className="px-2 py-1 text-[14px] transition-opacity duration-150 cursor-pointer hover:opacity-100"
                 style={{
                   opacity: splitMode === m ? 1 : 0.5,
                 }}
@@ -85,7 +85,7 @@ export function Header({
               key={l}
               type="button"
               onClick={() => handleLang(l)}
-              className="px-2.5 py-1 text-[11px] tracking-[0.04em] transition-colors duration-150"
+              className="px-2.5 py-1 text-[11px] tracking-[0.04em] transition-colors duration-150 cursor-pointer"
               style={{
                 color: lang === l ? '#FFFFFF' : '#666666',
               }}

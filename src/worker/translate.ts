@@ -27,7 +27,10 @@ export async function translateAndStore(
   summary?: string | null
 ): Promise<void> {
   const token = process.env.HF_API_TOKEN;
-  if (!token) return;
+  if (!token) {
+    logger.warn('HF_API_TOKEN not set — translations disabled');
+    return;
+  }
 
   const from = detectLanguage(title);
 

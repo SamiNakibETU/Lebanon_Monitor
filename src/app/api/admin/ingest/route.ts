@@ -26,9 +26,17 @@ export async function POST(req: NextRequest) {
 
   try {
     const start = Date.now();
-    await runPipeline();
-    const duration = Date.now() - start;
-    return NextResponse.json({ ok: true, durationMs: duration });
+    const result = await runPipeline();
+    const durationMs = Date.now() - start;
+    return NextResponse.json({
+      ok: true,
+      durationMs,
+      eventsCreated: result.eventsCreated,
+      eventsUpdated: result.eventsUpdated,
+      rawCount: result.rawCount,
+      newItemsCount: result.newItemsCount,
+      sourcesRun: result.sourcesRun,
+    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: msg }, { status: 500 });

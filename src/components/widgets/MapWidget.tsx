@@ -22,6 +22,45 @@ const LAYER_LABELS: Record<string, string> = {
 const LAYERS = ['events', 'heatmap', 'terrain', 'unifil', 'infrastructure'] as const;
 type LayerId = (typeof LAYERS)[number];
 
+/** Custom MapLibre control for layer toggles — uses addControl so buttons are above canvas and receive clicks */
+function createLayerControl(
+  layers: Record<LayerId, boolean>,
+  onToggle: (id: LayerId) => void,
+  variant: 'lumiere' | 'ombre'
+): maplibregl.IControl {
+  return {
+    onAdd() {
+      const div = document.createElement('div');
+      div.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+      div.style.cssText = 'margin: 8px; padding: 4px; display: flex; gap: 4px; flex-wrap: wrap;';
+      const isDark = variant === 'ombre';
+      LAYERS.forEach((id) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = LAYER_LABELS[id];
+        btn.dataset.layerId = id;
+        btn.style.cssText = `
+          padding: 4px 8px;
+          font-size: 10px;
+          border: 1px solid ${isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)'};
+          background: ${layers[id] ? (isDark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)') : 'transparent'};
+          color: ${isDark ? '#fff' : '#1a1a1a'};
+          cursor: pointer;
+          border-radius: 2px;
+        `;
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onToggle(id);
+        });
+        div.appendChild(btn);
+      });
+      return div;
+    },
+    onRemove() {},
+  };
+}
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, '&amp;')
@@ -85,6 +124,7 @@ export function MapWidget({
 }: MapWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const layerControlRef = useRef<maplibregl.IControl | null>(null);
   const [styleLoaded, setStyleLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [layers, setLayers] = useState<Record<LayerId, boolean>>({
@@ -346,9 +386,31 @@ export function MapWidget({
     if (map.getLayer('infrastructure-points')) map.setLayoutProperty('infrastructure-points', 'visibility', v('infrastructure'));
   }, [layers, styleLoaded]);
 
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !styleLoaded || !showLayerToggles) return;
+    if (layerControlRef.current) {
+      map.removeControl(layerControlRef.current);
+      layerControlRef.current = null;
+    }
+    const ctrl = createLayerControl(layers, toggleLayer, variant);
+    map.addControl(ctrl, 'bottom-left');
+    layerControlRef.current = ctrl;
+    return () => {
+      if (layerControlRef.current) {
+        try {
+          map.removeControl(layerControlRef.current);
+        } catch {
+          //
+        }
+        layerControlRef.current = null;
+      }
+    };
+  }, [styleLoaded, showLayerToggles, layers, variant]);
+
   return (
     <div className={`relative w-full h-full min-h-[200px] ${className}`}>
-      <div ref={containerRef} className="absolute inset-0" />
+      <div ref={containerRef} className="absolute inset-0 z-0" />
       {loadError && (
         <div
           className="absolute inset-0 flex items-center justify-center z-20 px-4 text-center"
@@ -359,33 +421,6 @@ export function MapWidget({
           }}
         >
           Carte indisponible
-        </div>
-      )}
-      {showLayerToggles && !loadError && (
-        <div
-          className="absolute bottom-2 left-2 flex gap-1 z-10"
-          style={{
-            fontSize: 10,
-            fontFamily: 'inherit',
-          }}
-        >
-          {LAYERS.map((id) => {
-            const isDark = variant === 'ombre';
-            const btnBg = layers[id] ? (isDark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)') : 'transparent';
-            const btnColor = isDark ? '#fff' : '#1a1a1a';
-            const btnBorder = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)';
-            return (
-              <button
-                key={id}
-                type="button"
-                onClick={() => toggleLayer(id)}
-                className="px-2 py-1 border transition-colors"
-                style={{ background: btnBg, color: btnColor, borderColor: btnBorder }}
-              >
-                {LAYER_LABELS[id]}
-              </button>
-            );
-          })}
         </div>
       )}
     </div>

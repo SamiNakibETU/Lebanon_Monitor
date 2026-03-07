@@ -19,7 +19,6 @@ export function Panel({ variant, children }: PanelProps) {
     <div
       className={`panel panel--${variant} flex-1 overflow-y-auto overflow-x-hidden transition-[flex] duration-500`}
       style={{
-        flex: 1,
         background: isLumiere ? '#F5F2EE' : '#0A0A0A',
         color: isLumiere ? '#1A1A1A' : '#FFFFFF',
       }}
