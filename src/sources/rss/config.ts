@@ -5,12 +5,12 @@
 import { LEBANON_CITIES } from '@/config/lebanon';
 
 export const RSS_FEEDS = [
-  { url: 'https://www.lorientlejour.com/feed', name: 'L\'Orient-Le Jour' },
+  { url: 'https://today.lorientlejour.com/feed/', name: 'L\'Orient Today' },
   { url: 'http://nna-leb.gov.lb/en/rss', name: 'NNA' },
   { url: 'https://www.aljazeera.com/xml/rss/all.xml', name: 'Al Jazeera' },
   { url: 'https://www.france24.com/en/rss', name: 'France 24' },
   { url: 'https://www.dailystar.com.lb/rss', name: 'Daily Star Lebanon' },
-  { url: 'https://www.mtv.com.lb/Feed/RSS', name: 'MTV Lebanon' },
+  { url: 'https://www.mtv.com.lb/en/?feed=rss', name: 'MTV Lebanon' },
 ] as const;
 
 export const RSS_USER_AGENT =

@@ -4,6 +4,76 @@ Guide pas à pas pour déployer sur Railway.
 
 ---
 
+## 🔗 Connexion base de données — Guide simplifié
+
+La base de données (PostgreSQL) stocke les événements. Sans elle, l'app affiche "DB not configured" et aucun événement.
+
+### Option A : En local (sur ton PC)
+
+1. **Installer PostgreSQL**  
+   - Windows : [postgresql.org/download/windows](https://www.postgresql.org/download/windows)  
+   - Ou via [Docker](https://www.docker.com/) : `docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres`
+
+2. **Créer une base**  
+   - Ouvre pgAdmin ou la ligne de commande  
+   - Crée une base nommée `lebanon_monitor`
+
+3. **Configurer `.env.local`** à la racine du projet :
+   ```
+   DATABASE_URL=postgresql://postgres:postgres@localhost:5432/lebanon_monitor
+   ```
+   Remplace `postgres:postgres` par ton utilisateur:mot_de_passe si différent.
+
+4. **Lancer les migrations** :
+   ```bash
+   npm run db:migrate
+   npm run db:seed
+   ```
+
+5. **Lancer le worker** (pour remplir la base) :
+   ```bash
+   npm run worker
+   ```
+
+### Option B : Sur Railway (déploiement en ligne)
+
+1. **Créer le projet** : New Project → Deploy from GitHub repo → choisis LEBANON_MONITOR.
+
+2. **Ajouter PostgreSQL** :  
+   - Clique sur **+ New** dans ton projet  
+   - Choisis **Database** → **PostgreSQL**  
+   - Railway crée une base automatiquement (tu verras un bloc "Postgres" sur le canvas).
+
+3. **Lier la base à ton app** :  
+   - Clique sur ton **service Web** (l'app Next.js)  
+   - Onglet **Variables**  
+   - **New Variable**  
+   - Nom : `DATABASE_URL`  
+   - Valeur : tape `${{` puis sélectionne **Postgres** → **DATABASE_URL** dans l'autocomplete  
+   - (Si ton service s'appelle autrement, remplace "Postgres" par son nom exact)
+
+4. **Migrations** (une seule fois) :  
+   - Clique sur le service **PostgreSQL**  
+   - Onglet **Variables**  
+   - Copie la valeur de `DATABASE_PUBLIC_URL`  
+   - Sur ton PC, dans le terminal du projet :
+     ```bash
+     # Windows PowerShell :
+     $env:DATABASE_URL="postgresql://postgres:xxx@xxx.railway.app:12345/railway"
+     npm run db:migrate
+     npm run db:seed
+     ```
+   - Colle ta vraie URL à la place de `postgresql://...` (Railway → PostgreSQL → Variables → DATABASE_PUBLIC_URL)
+
+5. **Redéploie** l'app si besoin (Settings → Redeploy).
+
+### Vérifier que ça marche
+
+- **En local** : `npm run db:check` → doit afficher "DB OK"
+- **En prod** : ouvre `https://ton-app.railway.app/api/health` → `database` doit être `"connected"`
+
+---
+
 ## Prérequis
 
 - Compte [Railway](https://railway.app)
@@ -84,6 +154,7 @@ Dans **Web Service** → **Variables** :
 | Variable | Obligatoire | Description |
 |----------|-------------|-------------|
 | `DATABASE_URL` | Oui* | Référencer depuis le service PostgreSQL (Add Reference) |
+| `NEXT_PUBLIC_APP_URL` | Non | URL publique (ex. `https://xxx.railway.app`) — SEO, sitemap |
 | `NODE_ENV` | Non | `production` (défaut sur Railway) |
 | `OWM_API_KEY` | Non | OpenWeatherMap pour la météo |
 | `FIRMS_MAP_KEY` | Non | NASA FIRMS pour incendies |
@@ -145,14 +216,32 @@ Configurer dans Railway : **Settings** → **Health Check** → Path: `/api/heal
 
 ---
 
+## 8. Worker (ingestion)
+
+Pour que les événements soient ingérés en production, déployer un **service Worker** séparé :
+
+1. **+ New** → **Empty Service** (ou **Deploy from GitHub** avec le même repo)
+2. **Settings** → **Build** : désactiver le build (ou utiliser le même build que le Web)
+3. **Settings** → **Deploy** → **Custom Start Command** :
+   ```bash
+   npm run worker
+   ```
+4. **Variables** : référencer `DATABASE_URL` depuis PostgreSQL (comme le service Web)
+5. **Variables** : ajouter les clés optionnelles (ANTHROPIC_API_KEY, HF_API_TOKEN, ACLED_*, etc.) si besoin
+
+Le worker tourne en boucle (intervalle 5 min). Pour un cron externe à la place : utiliser **Railway Cron** ou un service type cron-job.org qui appelle un endpoint dédié.
+
+---
+
 ## Dépannage
 
 | Problème | Piste |
 |----------|--------|
 | Build échoue (Turbopack) | Le script utilise `--webpack` |
-| DB non connectée | Vérifier `DATABASE_URL` et le lien au service PostgreSQL |
+| DB non connectée | 1) Vérifier `/api/health` : si `dbError` est présent, il indique la cause (ex. `ECONNREFUSED`, `ETIMEDOUT`). 2) Sur Railway : utiliser la référence `${{ Postgres.DATABASE_URL }}` (pas une copie manuelle). 3) Si tu as copié l’URL : utiliser `DATABASE_PUBLIC_URL` du service Postgres (le client ajoute `sslmode=require` automatiquement). 4) Vérifier que Web et Postgres sont dans le même projet Railway. |
 | Timeout healthcheck | Utiliser `/api/health/live` pour le healthcheck Railway |
-| PostGIS manquant | Vérifier le plan PostgreSQL Railway ; migrer vers un provider avec PostGIS si besoin |
+| **`extension "postgis" is not available`** | La migration actuelle n’utilise **pas** PostGIS (lat/lng uniquement). Si tu vois cette erreur, une ancienne version est déployée. Pull le dernier code, push, redéploie. Puis réinitialise la DB : supprimer le service PostgreSQL Railway et en recréer un, ou `DROP SCHEMA public CASCADE; CREATE SCHEMA public;` puis `npm run db:migrate` et `npm run db:seed`. |
+| **`column "geometry" of relation "place" does not exist`** | Même cause : seed exécuté avec une migration PostGIS. Utilise la migration actuelle (lat/lng) et réinitialise la DB comme ci-dessus. |
 
 ---
 

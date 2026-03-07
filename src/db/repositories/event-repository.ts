@@ -2,8 +2,13 @@
  * Event repository — CRUD operations for event table.
  */
 
-import type { PoolClient } from 'pg';
-import type { EventRow, PolarityUi, VerificationStatus, GeoPrecision } from '../types';
+import type { PoolClient } from "pg";
+import type {
+  EventRow,
+  PolarityUi,
+  VerificationStatus,
+  GeoPrecision,
+} from "../types";
 
 export interface CreateEventInput {
   canonical_title: string;
@@ -31,6 +36,8 @@ export interface ListEventsFilter {
   place_id?: string;
   from_date?: Date;
   to_date?: Date;
+  event_type?: string; // single category
+  event_types?: readonly string[]; // multiple categories (e.g. political feed)
   limit?: number;
   offset?: number;
 }
@@ -62,7 +69,7 @@ export async function createEvent(
       input.impact_score ?? null,
       input.severity_score ?? null,
       input.confidence_score ?? null,
-      input.verification_status ?? 'unverified',
+      input.verification_status ?? "unverified",
       input.occurred_at,
       now,
       now,
@@ -86,7 +93,7 @@ export async function getEventById(
   id: string
 ): Promise<EventRow | null> {
   const { rows } = await client.query<EventRow>(
-    'SELECT * FROM event WHERE id = $1 AND is_active = true',
+    "SELECT * FROM event WHERE id = $1 AND is_active = true",
     [id]
   );
   return rows[0] ?? null;
@@ -99,7 +106,7 @@ export async function listEvents(
   client: PoolClient,
   filter: ListEventsFilter = {}
 ): Promise<{ events: EventRow[]; total: number }> {
-  const conditions: string[] = ['is_active = true'];
+  const conditions: string[] = ["is_active = true"];
   const params: unknown[] = [];
   let paramIndex = 1;
 
@@ -123,8 +130,17 @@ export async function listEvents(
     conditions.push(`occurred_at <= $${paramIndex++}`);
     params.push(filter.to_date);
   }
+  if (filter.event_type) {
+    conditions.push(`event_type = $${paramIndex++}`);
+    params.push(filter.event_type);
+  }
+  if (filter.event_types && filter.event_types.length > 0) {
+    conditions.push(`event_type = ANY($${paramIndex++}::text[])`);
+    params.push(filter.event_types);
+  }
 
-  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const whereClause =
+    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
   if (filter.source) {
     params.push(filter.source);
@@ -165,3 +181,91 @@ export async function listEvents(
   );
   return { events: rows, total };
 }
+
+/**
+ * Full-text search on canonical_title and canonical_summary.
+ */
+export async function searchEvents(
+  client: PoolClient,
+  q: string,
+  limit = 20
+): Promise<{ events: EventRow[]; total: number }> {
+  const query = q.trim();
+  if (!query) {
+    return { events: [], total: 0 };
+  }
+
+  const safeQuery = query.replace(/'/g, "''").replace(/[^\w\s-]/g, " ");
+  const likePattern = `%${safeQuery}%`;
+  const searchSql = `
+    SELECT e.*, ts_rank(
+      to_tsvector('simple', COALESCE(e.canonical_title, '') || ' ' || COALESCE(e.canonical_summary, '')),
+      plainto_tsquery('simple', $1)
+    ) AS rank
+    FROM event e
+    WHERE e.is_active = true
+      AND (
+        to_tsvector('simple', COALESCE(e.canonical_title, '') || ' ' || COALESCE(e.canonical_summary, ''))
+        @@ plainto_tsquery('simple', $1)
+        OR e.canonical_title ILIKE $2
+        OR e.canonical_summary ILIKE $2
+      )
+    ORDER BY rank DESC NULLS LAST, e.occurred_at DESC
+    LIMIT $3
+  `;
+  const { rows } = await client.query<EventRow & { rank?: number }>(searchSql, [
+    query,
+    likePattern,
+    limit,
+  ]);
+
+  const events = rows.map(({ rank: _rank, ...e }) => e) as EventRow[];
+
+  const countResult = await client.query<{ total: number }>(
+    `SELECT COUNT(*)::int as total FROM event e
+     WHERE e.is_active = true
+       AND (
+         to_tsvector('simple', COALESCE(e.canonical_title, '') || ' ' || COALESCE(e.canonical_summary, ''))
+         @@ plainto_tsquery('simple', $1)
+         OR e.canonical_title ILIKE $2
+         OR e.canonical_summary ILIKE $2
+       )`,
+    [query, likePattern]
+  );
+
+  const total = countResult.rows[0]?.total ?? 0;
+  return { events, total };
+}
+
+/**
+ * Get recent events without primary_cluster_id for clustering.
+ */
+export async function getRecentUnclusteredEvents(
+  client: PoolClient,
+  fromDate: Date,
+  limit = 500
+): Promise<EventRow[]> {
+  const { rows } = await client.query<EventRow>(
+    `SELECT * FROM event
+     WHERE is_active = true AND primary_cluster_id IS NULL AND occurred_at >= $1
+     ORDER BY occurred_at DESC
+     LIMIT $2`,
+    [fromDate, limit]
+  );
+  return rows;
+}
+
+/**
+ * Update event's primary_cluster_id.
+ */
+export async function updateEventPrimaryCluster(
+  client: PoolClient,
+  eventId: string,
+  clusterId: string
+): Promise<void> {
+  await client.query(
+    `UPDATE event SET primary_cluster_id = $1, updated_at = now() WHERE id = $2`,
+    [clusterId, eventId]
+  );
+}
+

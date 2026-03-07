@@ -2,36 +2,60 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Lebanon Monitor — Norgram / design-system.mdc */
+/* Lebanon Monitor V2 — Norgram Bento Design System */
 :root {
-  /* Lumière (light panel, left) */
-  --lumiere-bg: #f4f4f4;
-  --lumiere-fg: #0c0c0c;
-  --lumiere-muted: #6b6b6b;
-  --lumiere-accent: #3d6b4a;
-  --lumiere-accent-light: #e8f0ea;
+  /* Base — Near-black tones like Norgram */
+  --bg-primary: #0a0a0a;
+  --bg-card: #141414;
+  --bg-card-hover: #1a1a1a;
+  --bg-card-elevated: #1e1e1e;
 
-  /* Ombre (dark panel, right) */
-  --ombre-bg: #0a0a0a;
-  --ombre-fg: #e5e5e5;
-  --ombre-muted: #6b6b6b;
-  --ombre-accent: #7a5163;
-  --ombre-accent-light: #1a1218;
+  /* Borders — Very subtle */
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-hover: rgba(255, 255, 255, 0.12);
 
-  /* Legacy aliases */
-  --light-bg: var(--lumiere-bg);
-  --light-fg: var(--lumiere-fg);
-  --dark-bg: var(--ombre-bg);
-  --dark-fg: var(--ombre-fg);
-  --dark-muted: var(--ombre-muted);
-  --dark-border: rgba(255, 255, 255, 0.06);
-  --border-light: rgba(0, 0, 0, 0.06);
-  --border-dark: rgba(255, 255, 255, 0.06);
+  /* Text */
+  --text-primary: #fafafa;
+  --text-secondary: #888888;
+  --text-tertiary: #555555;
 
-  /* Classification */
-  --lumiere: #3d6b4a;
-  --ombre: #7a5163;
-  --neutre: #5c5c5c;
+  /* Classification accents */
+  --lumiere: #4ade80;
+  --lumiere-bg: rgba(74, 222, 128, 0.08);
+  --ombre: #f87171;
+  --ombre-bg: rgba(248, 113, 113, 0.08);
+  --neutre: #a1a1aa;
+
+  /* Functional */
+  --accent: #3b82f6;
+  --warning: #fbbf24;
+  --critical: #ef4444;
+
+  /* Border radius — Rounded like Norgram */
+  --radius-card: 16px;
+  --radius-inner: 12px;
+  --radius-button: 8px;
+
+  /* Typography scale */
+  --text-xs: 0.6875rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+  --text-4xl: 3.5rem;
+
+  /* Legacy aliases for backward compat */
+  --lumiere-bg: #0a0a0a;
+  --lumiere-fg: var(--text-primary);
+  --lumiere-muted: var(--text-secondary);
+  --lumiere-accent: var(--lumiere);
+  --ombre-bg: var(--bg-primary);
+  --ombre-fg: var(--text-primary);
+  --ombre-muted: var(--text-secondary);
+  --ombre-accent: var(--ombre);
+  --border-dark: var(--border-subtle);
+  --border-light: var(--border-subtle);
 }
 
 * {
@@ -64,6 +88,19 @@ body {
   height: 26px !important;
   line-height: 26px !important;
   font-size: 14px !important;
+}
+
+/* MapLibre dark popup */
+.maplibregl-popup.dark-popup .maplibregl-popup-content {
+  background: #1e1e1e;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  color: #fafafa;
+  padding: 0;
+}
+.maplibregl-popup.dark-popup .maplibregl-popup-tip {
+  border-top-color: #1e1e1e;
 }
 
 .leaflet-tooltip-minimal {

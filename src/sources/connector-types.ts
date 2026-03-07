@@ -21,7 +21,8 @@ export type SourceCategory =
   | 'economy'
   | 'connectivity'
   | 'social'
-  | 'indicators';
+  | 'indicators'
+  | 'conflict';
 
 export interface FetchResult<T = unknown> {
   ok: boolean;

@@ -4,42 +4,44 @@
  */
 
 export type SourceName =
-  | 'gdelt'
-  | 'usgs'
-  | 'firms'
-  | 'rss'
-  | 'gdacs'
-  | 'reliefweb'
-  | 'weather'
-  | 'cloudflare'
-  | 'lbp-rate'
-  | 'openaq'
-  | 'twitter'
-  | 'ucdp'; // Not wired to registry until DB stable
+  | "gdelt"
+  | "usgs"
+  | "firms"
+  | "rss"
+  | "gdacs"
+  | "reliefweb"
+  | "weather"
+  | "cloudflare"
+  | "lbp-rate"
+  | "openaq"
+  | "twitter"
+  | "acled"
+  | "ucdp"
+  | "telegram";
 
 export type EventCategory =
-  | 'cultural_event'
-  | 'reconstruction'
-  | 'institutional_progress'
-  | 'solidarity'
-  | 'economic_positive'
-  | 'international_recognition'
-  | 'environmental_positive'
-  | 'armed_conflict'
-  | 'economic_crisis'
-  | 'political_tension'
-  | 'displacement'
-  | 'infrastructure_failure'
-  | 'environmental_negative'
-  | 'disinformation'
-  | 'violence'
-  | 'neutral';
+  | "cultural_event"
+  | "reconstruction"
+  | "institutional_progress"
+  | "solidarity"
+  | "economic_positive"
+  | "international_recognition"
+  | "environmental_positive"
+  | "armed_conflict"
+  | "economic_crisis"
+  | "political_tension"
+  | "displacement"
+  | "infrastructure_failure"
+  | "environmental_negative"
+  | "disinformation"
+  | "violence"
+  | "neutral";
 
-export type Classification = 'lumiere' | 'ombre' | 'neutre';
+export type Classification = "lumiere" | "ombre" | "neutre";
 
-export type Severity = 'low' | 'medium' | 'high' | 'critical';
+export type Severity = "low" | "medium" | "high" | "critical";
 
-export type SourceReliability = 'high' | 'medium' | 'low';
+export type SourceReliability = "high" | "medium" | "low";
 
 export interface LebanonEvent {
   id: string;
@@ -60,16 +62,29 @@ export interface LebanonEvent {
     ttlSeconds: number;
     sourceReliability: SourceReliability;
     /** Phase D: language detection */
-    originalLanguage?: 'ar' | 'fr' | 'en';
+    originalLanguage?: "ar" | "fr" | "en";
     languageConfidence?: number;
     /** Phase D: taxonomy code from docs/TAXONOMY.md */
     taxonomyCode?: string;
     /** Phase D: extracted entities */
-    extractedEntities?: { persons: string[]; parties: string[]; cities: string[]; organizations: string[] };
+    extractedEntities?: {
+      persons: string[];
+      parties: string[];
+      cities: string[];
+      organizations: string[];
+    };
     /** Phase D: cluster ID for grouping similar events */
     clusterId?: string;
     /** Phase E: geo precision from place resolution */
-    geoPrecision?: 'exact_point' | 'neighborhood' | 'city' | 'district' | 'governorate' | 'country' | 'inferred' | 'unknown';
+    geoPrecision?:
+      | "exact_point"
+      | "neighborhood"
+      | "city"
+      | "district"
+      | "governorate"
+      | "country"
+      | "inferred"
+      | "unknown";
     /** Phase E: resolved place name when geocoded from text */
     resolvedPlaceName?: string;
   };

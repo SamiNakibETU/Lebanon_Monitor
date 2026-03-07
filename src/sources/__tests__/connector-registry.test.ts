@@ -32,7 +32,7 @@ describe('connector-registry', () => {
       expect(c.name).toBeDefined();
       expect(typeof c.getTTL()).toBe('number');
       expect(c.getTTL()).toBeGreaterThan(0);
-      expect(['news', 'humanitarian', 'geophysical', 'economy', 'connectivity', 'social', 'indicators']).toContain(c.category);
+      expect(['news', 'humanitarian', 'geophysical', 'economy', 'connectivity', 'social', 'indicators', 'conflict']).toContain(c.category);
       expect(typeof c.eventSource).toBe('boolean');
       expect(typeof c.indicatorSource).toBe('boolean');
     }

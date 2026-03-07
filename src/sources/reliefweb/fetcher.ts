@@ -1,18 +1,21 @@
 /**
  * ReliefWeb API fetcher.
- * Try without appname; add User-Agent if 403.
+ * On 403 (appname not approved): retry without appname param.
  */
 
-import { fetchWithTimeout } from '@/lib/fetcher';
 import { logger } from '@/lib/logger';
 import type { ReliefWebResponse } from './types';
 
 const SOURCE = 'reliefweb';
 
-function buildUrl(): string {
+const APPROVED_APPNAME = 'SNakib-lebanonmonitor-sn7k2';
+
+function buildUrl(useAppname: boolean): string {
   const base = 'https://api.reliefweb.int/v1/reports';
   const params = new URLSearchParams();
-  params.set('appname', process.env.RELIEFWEB_APPNAME ?? 'lebanon-monitor');
+  if (useAppname) {
+    params.set('appname', process.env.RELIEFWEB_APPNAME ?? APPROVED_APPNAME);
+  }
   params.set('filter[field]', 'country');
   params.set('filter[value]', 'Lebanon');
   params.set('limit', '20');
@@ -34,26 +37,39 @@ export async function fetchReliefWeb(): Promise<
   | { ok: true; data: ReliefWebResponse }
   | { ok: false; error: { source: string; message: string } }
 > {
-  const url = buildUrl();
+  const urlsToTry = [buildUrl(true), buildUrl(false)];
 
-  const result = await fetchWithTimeout(url, { headers: RELIEFWEB_HEADERS }, {
-    timeoutMs: 15_000,
-    source: SOURCE,
-  });
+  for (let i = 0; i < urlsToTry.length; i++) {
+    const url = urlsToTry[i]!;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15_000);
 
-  if (!result.ok) {
-    logger.error('ReliefWeb fetch failed', { source: SOURCE, message: result.error.message });
-    return { ok: false, error: result.error };
+    try {
+      const response = await fetch(url, { headers: RELIEFWEB_HEADERS, signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (response.status === 403 && i === 0) {
+        logger.warn('ReliefWeb 403 with appname, retrying without', { source: SOURCE });
+        continue;
+      }
+
+      if (!response.ok) {
+        const text = (await response.text()).slice(0, 200);
+        logger.error('ReliefWeb fetch failed', { source: SOURCE, status: response.status });
+        return { ok: false, error: { source: SOURCE, message: `HTTP ${response.status}: ${text}` } };
+      }
+
+      const data = (await response.json()) as ReliefWebResponse;
+      const count = data.data?.length ?? 0;
+      logger.info('ReliefWeb fetch successful', { source: SOURCE, reportCount: count });
+      return { ok: true, data };
+    } catch (e) {
+      clearTimeout(timeoutId);
+      const message = e instanceof Error ? e.message : String(e);
+      logger.error('ReliefWeb fetch failed', { source: SOURCE, message });
+      return { ok: false, error: { source: SOURCE, message } };
+    }
   }
 
-  try {
-    const data = (await result.data.json()) as ReliefWebResponse;
-    const count = data.data?.length ?? 0;
-    logger.info('ReliefWeb fetch successful', { source: SOURCE, reportCount: count });
-    return { ok: true, data };
-  } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    logger.error('ReliefWeb parse failed', { source: SOURCE, message });
-    return { ok: false, error: { source: SOURCE, message } };
-  }
+  return { ok: false, error: { source: SOURCE, message: 'ReliefWeb 403: appname not approved. Request one at reliefweb.int/about/api' } };
 }

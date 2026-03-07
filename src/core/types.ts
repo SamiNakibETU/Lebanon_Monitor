@@ -12,7 +12,9 @@ export type EventSourceName =
   | 'reliefweb'
   | 'twitter'
   | 'cloudflare'
-  | 'ucdp';
+  | 'acled'
+  | 'ucdp'
+  | 'telegram';
 
 export type IndicatorSourceName = 'weather' | 'lbp-rate' | 'openaq';
 

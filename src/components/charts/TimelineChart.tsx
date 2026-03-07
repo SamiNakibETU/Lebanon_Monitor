@@ -1,82 +1,96 @@
 'use client';
 
-import { AreaChart, Area, XAxis, ResponsiveContainer } from 'recharts';
-import type { LebanonEvent } from '@/types/events';
+import { useEffect, useRef } from 'react';
+import * as d3 from 'd3';
 
 interface TimelineChartProps {
-  events: LebanonEvent[];
-  bucketHours?: number;
-  accentColor?: string;
-  theme: 'light' | 'dark';
+  width: number;
+  height: number;
+  data?: Array<{ hour: string; count: number; ombre: number; lumiere: number }>;
 }
 
-function bucketEvents7Days(events: LebanonEvent[], bucketHours: number): { label: string; count: number }[] {
-  const bucketMs = bucketHours * 60 * 60 * 1000;
-  const now = Date.now();
-  const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
-  const start = now - sevenDaysMs;
-  const numBuckets = Math.ceil(sevenDaysMs / bucketMs);
-  const buckets: number[] = Array(numBuckets).fill(0);
+export function TimelineChart({ width, height, data = [] }: TimelineChartProps) {
+  const svgRef = useRef<SVGSVGElement>(null);
 
-  events.forEach((e) => {
-    const ts = e.timestamp.getTime();
-    if (ts < start || ts > now) return;
-    const idx = Math.min(Math.floor((ts - start) / bucketMs), numBuckets - 1);
-    buckets[idx] = (buckets[idx] ?? 0) + 1;
-  });
+  useEffect(() => {
+    if (!svgRef.current || width < 10 || height < 10) return;
 
-  return buckets.map((count, i) => ({
-    label: new Date(start + i * bucketMs).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: 'short',
-    }),
-    count,
-  }));
-}
+    const svg = d3.select(svgRef.current);
+    svg.selectAll('*').remove();
 
-export function TimelineChart({
-  events,
-  bucketHours = 6,
-  accentColor,
-  theme,
-}: TimelineChartProps) {
-  const data = bucketEvents7Days(events, bucketHours);
-  const fill = accentColor ?? (theme === 'light' ? 'var(--lumiere-accent)' : 'var(--ombre-accent)');
-  const tickColor = theme === 'light' ? 'var(--lumiere-muted)' : 'var(--ombre-muted)';
+    const margin = { top: 8, right: 8, bottom: 20, left: 32 };
+    const innerWidth = Math.max(0, width - margin.left - margin.right);
+    const innerHeight = Math.max(0, height - margin.top - margin.bottom);
 
-  const chartData = data.length > 0 ? data : Array.from({ length: 7 }, (_, i) => ({
-    label: new Date(Date.now() - (6 - i) * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }),
-    count: 0,
-  }));
+    const g = svg
+      .append('g')
+      .attr('transform', `translate(${margin.left},${margin.top})`);
 
-  const gradId = `timeline-grad-${theme}`;
+    if (data.length === 0) {
+      g.append('text')
+        .attr('x', innerWidth / 2)
+        .attr('y', innerHeight / 2)
+        .attr('text-anchor', 'middle')
+        .attr('fill', 'var(--text-tertiary)')
+        .style('font-size', '11px')
+        .text('No data');
+      return;
+    }
+
+    const xScale = d3
+      .scaleBand()
+      .domain(data.map((d) => d.hour))
+      .range([0, innerWidth])
+      .padding(0.1);
+
+    const maxCount = d3.max(data, (d) => d.count) ?? 1;
+    const yScale = d3.scaleLinear().domain([0, maxCount]).range([innerHeight, 0]);
+
+    const areaOmbre = d3
+      .area<{ hour: string; ombre: number }>()
+      .x((d) => (xScale(d.hour) ?? 0) + xScale.bandwidth() / 2)
+      .y0(innerHeight)
+      .y1((d) => yScale(d.ombre))
+      .curve(d3.curveMonotoneX);
+
+    const areaLumiere = d3
+      .area<{ hour: string; lumiere: number }>()
+      .x((d) => (xScale(d.hour) ?? 0) + xScale.bandwidth() / 2)
+      .y0(innerHeight)
+      .y1((d) => yScale(innerHeight) - yScale(d.lumiere))
+      .curve(d3.curveMonotoneX);
+
+    g.append('path')
+      .datum(data)
+      .attr('fill', 'rgba(248, 113, 113, 0.3)')
+      .attr('d', areaOmbre as never);
+
+    g.append('path')
+      .datum(data)
+      .attr('fill', 'rgba(74, 222, 128, 0.3)')
+      .attr('d', areaLumiere as never);
+
+    g.append('g')
+      .attr('transform', `translate(0,${innerHeight})`)
+      .call(
+        d3.axisBottom(xScale).tickValues(
+          xScale.domain().filter((_, i) => i % 4 === 0)
+        ) as never
+      )
+      .selectAll('text')
+      .style('font-size', '9px')
+      .attr('fill', 'var(--text-tertiary)');
+
+    g.selectAll('.domain, .tick line').attr('stroke', 'rgba(255,255,255,0.06)');
+  }, [width, height, data]);
 
   return (
-    <div style={{ minHeight: 180, minWidth: 200 }}>
-      <ResponsiveContainer width="100%" height={180}>
-        <AreaChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 24 }}>
-          <defs>
-            <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={fill} stopOpacity={0.15} />
-              <stop offset="100%" stopColor={fill} stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <XAxis
-            dataKey="label"
-            axisLine={false}
-            tickLine={false}
-            tick={{ fontSize: 10, fill: tickColor }}
-            interval="preserveStartEnd"
-          />
-          <Area
-            type="monotone"
-            dataKey="count"
-            stroke={fill}
-            strokeWidth={1.5}
-            fill={`url(#${gradId})`}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
-    </div>
+    <svg
+      ref={svgRef}
+      width={width}
+      height={height}
+      className="overflow-visible"
+      style={{ minHeight: 60 }}
+    />
   );
 }

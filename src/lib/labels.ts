@@ -16,7 +16,9 @@ export const SOURCE_LABELS: Record<SourceName, string> = {
   'lbp-rate': 'LBP Rate',
   openaq: 'OpenAQ',
   twitter: 'Twitter/X',
-  ucdp: 'UCDP', // Not wired until DB stable
+  acled: 'ACLED',
+  ucdp: 'UCDP',
+  telegram: 'Telegram',
 };
 
 export const CATEGORY_LABELS: Record<EventCategory, string> = {

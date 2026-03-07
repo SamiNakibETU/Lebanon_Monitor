@@ -1,67 +1,82 @@
 'use client';
 
-import { CATEGORY_LABELS } from '@/lib/labels';
-import type { LebanonEvent, EventCategory } from '@/types/events';
+import { useEffect, useRef } from 'react';
+import * as d3 from 'd3';
 
 interface CategoryBarsProps {
-  events: LebanonEvent[];
-  maxItems?: number;
-  theme: 'light' | 'dark';
-  accentColor?: string;
+  width: number;
+  height: number;
+  data?: Array<{ code: string; count: number; isOmbre?: boolean }>;
 }
 
-export function CategoryBars({
-  events,
-  maxItems = 5,
-  theme,
-  accentColor,
-}: CategoryBarsProps) {
-  const counts = events.reduce<Record<EventCategory, number>>(
-    (acc, e) => {
-      acc[e.category] = (acc[e.category] ?? 0) + 1;
-      return acc;
-    },
-    {} as Record<EventCategory, number>
-  );
+export function CategoryBars({ width, height, data = [] }: CategoryBarsProps) {
+  const svgRef = useRef<SVGSVGElement>(null);
 
-  const data = (Object.entries(counts) as [EventCategory, number][])
-    .filter(([, c]) => c > 0)
-    .map(([cat, count]) => ({ category: cat, count, label: CATEGORY_LABELS[cat] }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, maxItems);
+  useEffect(() => {
+    if (!svgRef.current || width < 10 || height < 10) return;
 
-  if (data.length === 0) return null;
+    const svg = d3.select(svgRef.current);
+    svg.selectAll('*').remove();
 
-  const maxCount = Math.max(...data.map((d) => d.count), 1);
-  const fill = accentColor ?? (theme === 'light' ? 'var(--lumiere-accent)' : 'var(--ombre-accent)');
-  const muted = theme === 'light' ? 'var(--lumiere-muted)' : 'var(--ombre-muted)';
-  const trackBg = theme === 'light' ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)';
+    const margin = { top: 4, right: 8, bottom: 4, left: 80 };
+    const innerWidth = Math.max(0, width - margin.left - margin.right);
+    const innerHeight = Math.max(0, height - margin.top - margin.bottom);
+
+    const g = svg
+      .append('g')
+      .attr('transform', `translate(${margin.left},${margin.top})`);
+
+    if (data.length === 0) {
+      g.append('text')
+        .attr('x', innerWidth / 2)
+        .attr('y', innerHeight / 2)
+        .attr('text-anchor', 'middle')
+        .attr('fill', 'var(--text-tertiary)')
+        .style('font-size', '11px')
+        .text('No data');
+      return;
+    }
+
+    const maxCount = d3.max(data, (d) => d.count) ?? 1;
+    const xScale = d3.scaleLinear().domain([0, maxCount]).range([0, innerWidth]);
+    const yScale = d3
+      .scaleBand()
+      .domain(data.map((d) => d.code))
+      .range([0, innerHeight])
+      .padding(0.2);
+
+    g.selectAll('rect')
+      .data(data)
+      .join('rect')
+      .attr('y', (d) => yScale(d.code) ?? 0)
+      .attr('height', yScale.bandwidth())
+      .attr('x', 0)
+      .attr('width', (d) => xScale(d.count))
+      .attr('fill', (d) =>
+        d.isOmbre ? 'rgba(248, 113, 113, 0.6)' : 'rgba(74, 222, 128, 0.6)'
+      )
+      .attr('rx', 2);
+
+    g.selectAll('.label')
+      .data(data)
+      .join('text')
+      .attr('class', 'label')
+      .attr('y', (d) => (yScale(d.code) ?? 0) + yScale.bandwidth() / 2)
+      .attr('x', -4)
+      .attr('dy', '0.32em')
+      .attr('text-anchor', 'end')
+      .style('font-size', '10px')
+      .attr('fill', 'var(--text-secondary)')
+      .text((d) => d.code.replace(/\./g, '/'));
+  }, [width, height, data]);
 
   return (
-    <div className="space-y-2">
-      {data.map(({ category, count, label }) => (
-        <div key={category} className="flex items-center gap-4">
-          <div className="w-24 text-[11px] truncate shrink-0" style={{ color: muted }}>
-            {label}
-          </div>
-          <div
-            className="flex-1 h-3 overflow-hidden rounded-sm min-w-[60px]"
-            style={{ background: trackBg }}
-          >
-            <div
-              className="h-full rounded-sm transition-all duration-300"
-              style={{
-                width: `${(count / maxCount) * 100}%`,
-                background: fill,
-                opacity: 0.8,
-              }}
-            />
-          </div>
-          <span className="w-6 text-right text-[11px] tabular-nums shrink-0" style={{ color: muted }}>
-            {count}
-          </span>
-        </div>
-      ))}
-    </div>
+    <svg
+      ref={svgRef}
+      width={width}
+      height={height}
+      className="overflow-visible"
+      style={{ minHeight: 80 }}
+    />
   );
 }

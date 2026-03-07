@@ -2,10 +2,12 @@ import { NextResponse } from 'next/server';
 import { fetchAll } from '@/sources/registry';
 import { healthCheck as dbHealthCheck } from '@/db/client';
 
+const hasDbUrl = !!(process.env.DATABASE_URL || process.env.DATABASE_PRIVATE_URL);
+
 export async function GET() {
   try {
-    const [dbOk, { statuses }] = await Promise.all([
-      process.env.DATABASE_URL ? dbHealthCheck() : Promise.resolve(null),
+    const [dbResult, { statuses }] = await Promise.all([
+      hasDbUrl ? dbHealthCheck() : Promise.resolve(null),
       fetchAll(),
     ]);
 
@@ -20,8 +22,11 @@ export async function GET() {
       {
         status: 'ok',
         timestamp: new Date().toISOString(),
-        databaseUrlSet: !!process.env.DATABASE_URL,
-        ...(dbOk !== null && { database: dbOk ? 'connected' : 'disconnected' }),
+        databaseUrlSet: hasDbUrl,
+        ...(dbResult !== null && {
+          database: dbResult.ok ? 'connected' : 'disconnected',
+          ...(dbResult.ok === false && dbResult.error && { dbError: dbResult.error }),
+        }),
         sources: health,
       },
       {

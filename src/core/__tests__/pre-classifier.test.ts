@@ -59,6 +59,18 @@ describe('preClassify', () => {
     });
   });
 
+  describe('NEGATION check (V2)', () => {
+    it('returns null when lumière keyword + negation (defer to LLM)', () => {
+      const r = preClassify('Macron tente un cessez-le-feu mais se heurte au refus');
+      expect(r).toBeNull();
+    });
+
+    it('returns ombre when hard ombre overrides lumière', () => {
+      const r = preClassify('Cessez-le-feu violé : tirs dans le Sud');
+      expect(r?.classification).toBe('ombre');
+    });
+  });
+
   describe('no match', () => {
     it('returns null for neutral text', () => {
       const r = preClassify('Weather in Beirut: 15°C');

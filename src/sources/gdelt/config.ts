@@ -11,8 +11,8 @@ export const GDELT_CONFIG = {
   sort: 'DateDesc',
   timespan: '1d',
   ttlSeconds: 15 * 60, // 15 minutes
-  minIntervalMs: 6000, // 6 seconds between requests (rate limit)
+  minIntervalMs: 12000, // 12 seconds between requests (rate limit)
   cacheTtlMs: 15 * 60 * 1000, // 15 min cache
-  backoffMs: 30000, // 30s backoff on 429
+  backoffMs: 60000, // 60s backoff on 429
   maxRetries: 1,
 } as const;

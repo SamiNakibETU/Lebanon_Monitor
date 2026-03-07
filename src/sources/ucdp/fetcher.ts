@@ -1,60 +1,43 @@
 /**
- * UCDP GED API fetcher.
- * NOT WIRED to registry — use when DB is stable.
- * Token: x-ucdp-access-token header.
+ * UCDP GED API fetcher — violence events in Lebanon.
  */
 
 import { fetchWithTimeout } from '@/lib/fetcher';
 import { logger } from '@/lib/logger';
-import { UCDP_CONFIG } from './config';
-import type { UcdpGedResponse } from './types';
 
 const SOURCE = 'ucdp';
 
-function buildUrl(): string {
-  const base = `${UCDP_CONFIG.baseUrl}/gedevents/${UCDP_CONFIG.gedVersion}`;
-  const params = new URLSearchParams();
-  params.set('pagesize', '50');
-  params.set('Country', String(UCDP_CONFIG.lebanonCountryId));
-  const now = new Date();
-  const startDate = new Date(now);
-  startDate.setDate(startDate.getDate() - 90);
-  params.set('StartDate', startDate.toISOString().split('T')[0]);
-  params.set('EndDate', now.toISOString().split('T')[0]);
-  return `${base}?${params.toString()}`;
-}
-
 export async function fetchUcdp(): Promise<
-  | { ok: true; data: UcdpGedResponse }
+  | { ok: true; data: { Results?: unknown[] } }
   | { ok: false; error: { source: string; message: string } }
 > {
   const token = process.env.UCDP_ACCESS_TOKEN;
   if (!token) {
-    logger.warn('UCDP_ACCESS_TOKEN not set — skipping UCDP fetch');
-    return { ok: false, error: { source: SOURCE, message: 'UCDP_ACCESS_TOKEN not configured' } };
+    return { ok: false, error: { source: SOURCE, message: 'UCDP not configured' } };
   }
 
-  const url = buildUrl();
-  const headers: HeadersInit = {
-    'x-ucdp-access-token': token,
-    Accept: 'application/json',
-  };
+  const params = new URLSearchParams();
+  params.set('pagesize', '100');
+  params.set('Country', 'Lebanon');
+  params.set('token', token);
 
-  const result = await fetchWithTimeout(url, { headers }, { timeoutMs: 15_000, source: SOURCE });
+  const url = `https://ucdpapi.pcr.uu.se/api/gedevents/24.1?${params.toString()}`;
+
+  const result = await fetchWithTimeout(url, {
+    headers: { Accept: 'application/json' },
+  }, { timeoutMs: 15_000, source: SOURCE });
 
   if (!result.ok) {
-    logger.error('UCDP fetch failed', { source: SOURCE, message: result.error.message });
-    return { ok: false, error: result.error };
+    return { ok: false, error: { source: SOURCE, message: result.error.message } };
   }
 
   try {
-    const data = (await result.data.json()) as UcdpGedResponse;
-    const count = data.Result?.length ?? 0;
+    const data = (await result.data.json()) as { Results?: unknown[] };
+    const count = data.Results?.length ?? 0;
     logger.info('UCDP fetch successful', { source: SOURCE, eventCount: count });
     return { ok: true, data };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
-    logger.error('UCDP parse failed', { source: SOURCE, message });
     return { ok: false, error: { source: SOURCE, message } };
   }
 }

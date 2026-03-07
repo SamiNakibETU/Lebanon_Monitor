@@ -8,20 +8,36 @@ import { Pool, type PoolClient } from 'pg';
 let pool: Pool | null = null;
 
 /**
+ * Resolve DB URL: prefer private (Railway internal) when available.
+ */
+function getConnectionUrl(): string {
+  const privateUrl = process.env.DATABASE_PRIVATE_URL;
+  const url = process.env.DATABASE_URL;
+  if (privateUrl) return privateUrl;
+  if (url) return url;
+  throw new Error('DATABASE_URL or DATABASE_PRIVATE_URL is not set');
+}
+
+/**
  * Get or create the database pool.
- * Uses DATABASE_URL from environment.
  */
 export function getPool(): Pool {
   if (!pool) {
-    const url = process.env.DATABASE_URL;
-    if (!url) {
-      throw new Error('DATABASE_URL is not set');
+    let url = getConnectionUrl();
+    const isInternal = url.includes('railway.internal');
+    const sslConfig = isInternal
+      ? false
+      : { rejectUnauthorized: false };
+    if (!isInternal && !url.includes('sslmode=')) {
+      const sep = url.includes('?') ? '&' : '?';
+      url = `${url}${sep}sslmode=require`;
     }
     pool = new Pool({
       connectionString: url,
+      ssl: sslConfig,
       max: 10,
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000,
+      connectionTimeoutMillis: 15000,
     });
   }
   return pool;
@@ -44,16 +60,22 @@ export async function withClient<T>(
 
 /**
  * Check if database is reachable.
+ * Returns { ok, error } for debugging when disconnected.
  */
-export async function healthCheck(): Promise<boolean> {
+export async function healthCheck(): Promise<
+  { ok: true } | { ok: false; error: string }
+> {
   try {
     const p = getPool();
     const client = await p.connect();
     await client.query('SELECT 1');
     client.release();
-    return true;
-  } catch {
-    return false;
+    return { ok: true };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    const code = e instanceof Error && 'code' in e ? (e as NodeJS.ErrnoException).code : '';
+    const hint = code || msg.slice(0, 80);
+    return { ok: false, error: hint };
   }
 }
 

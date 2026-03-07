@@ -53,6 +53,8 @@ export const CITIES: Record<string, { lat: number; lng: number }> = {
 };
 
 export const SOURCE_PRIORITY: Record<string, number> = {
+  acled: 11,
+  ucdp: 11,
   usgs: 10,
   firms: 10,
   gdacs: 10,
