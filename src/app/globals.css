@@ -98,6 +98,12 @@ body {
 .maplibregl-ctrl-group {
   pointer-events: auto;
   z-index: 2;
+  font-size: 11px;
+  line-height: 1.2;
+}
+.maplibregl-ctrl-group button {
+  min-height: 24px;
+  white-space: nowrap;
 }
 
 .leaflet-tooltip-minimal {

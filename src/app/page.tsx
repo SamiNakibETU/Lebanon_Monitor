@@ -312,8 +312,8 @@ export default function Home() {
                 </div>
               </div>
             </div>
-            <div className="grid gap-px flex-1" style={{ gridTemplateRows: 'minmax(220px, 40%) 1fr' }}>
-              <div className="overflow-hidden min-h-[220px]">
+            <div className="grid gap-px flex-1" style={{ gridTemplateRows: 'minmax(200px, 38%) 1fr' }}>
+              <div className="overflow-hidden min-h-[200px]">
                 <MapWidget events={lumiereEvents} variant="lumiere" className="h-full w-full" />
               </div>
               <div className="overflow-hidden">
@@ -327,11 +327,11 @@ export default function Home() {
               </div>
             </div>
             <div
-              className="grid gap-px"
+              className="grid gap-px shrink-0"
               style={{
                 gridTemplateColumns: '2fr 1fr 1fr',
-                minHeight: 280,
-                height: 'clamp(240px, 20vh, 320px)',
+                minHeight: 260,
+                height: 260,
                 borderTop: '1px solid rgba(0,0,0,0.06)',
               }}
             >
@@ -395,8 +395,8 @@ export default function Home() {
                 </div>
               </div>
             </div>
-            <div className="grid gap-px flex-1" style={{ gridTemplateRows: 'minmax(220px, 40%) 1fr' }}>
-              <div className="overflow-hidden min-h-[220px]">
+            <div className="grid gap-px flex-1" style={{ gridTemplateRows: 'minmax(200px, 38%) 1fr' }}>
+              <div className="overflow-hidden min-h-[200px]">
                 <MapWidget events={ombreEvents} variant="ombre" className="h-full w-full" />
               </div>
               <div className="overflow-hidden">
@@ -410,11 +410,11 @@ export default function Home() {
               </div>
             </div>
             <div
-              className="grid gap-px"
+              className="grid gap-px shrink-0"
               style={{
                 gridTemplateColumns: '2fr 1fr 1fr',
-                minHeight: 280,
-                height: 'clamp(240px, 20vh, 320px)',
+                minHeight: 260,
+                height: 260,
                 borderTop: '1px solid rgba(255,255,255,0.04)',
               }}
             >

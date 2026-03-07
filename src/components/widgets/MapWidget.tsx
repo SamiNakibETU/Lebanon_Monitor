@@ -40,13 +40,16 @@ function createLayerControl(
         btn.textContent = LAYER_LABELS[id];
         btn.dataset.layerId = id;
         btn.style.cssText = `
-          padding: 4px 8px;
-          font-size: 10px;
-          border: 1px solid ${isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)'};
-          background: ${layers[id] ? (isDark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)') : 'transparent'};
+          padding: 6px 10px;
+          font-size: 11px;
+          line-height: 1.2;
+          white-space: nowrap;
+          min-height: 24px;
+          border: 1px solid ${isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.15)'};
+          background: ${layers[id] ? (isDark ? 'rgba(0,0,0,0.9)' : 'rgba(255,255,255,0.95)') : isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)'};
           color: ${isDark ? '#fff' : '#1a1a1a'};
           cursor: pointer;
-          border-radius: 2px;
+          border-radius: 4px;
         `;
         btn.addEventListener('click', (e) => {
           e.preventDefault();
@@ -174,11 +177,14 @@ export function MapWidget({
     const container = containerRef.current;
     if (!map || !container) return;
 
-    const ro = new ResizeObserver(() => {
-      map.resize();
-    });
+    const resize = () => map.resize();
+    const ro = new ResizeObserver(resize);
     ro.observe(container);
-    return () => ro.disconnect();
+    const t = setTimeout(resize, 150);
+    return () => {
+      ro.disconnect();
+      clearTimeout(t);
+    };
   }, [styleLoaded]);
 
   useEffect(() => {
@@ -415,7 +421,7 @@ export function MapWidget({
         background: variant === 'ombre' ? '#0A0A0A' : '#E8E6E3',
       }}
     >
-      <div ref={containerRef} className="absolute inset-0 z-[1]" style={{ minHeight: 200 }} />
+      <div ref={containerRef} className="absolute inset-0 z-[1]" />
       {loadError && (
         <div
           className="absolute inset-0 flex items-center justify-center z-20 px-4 text-center"
