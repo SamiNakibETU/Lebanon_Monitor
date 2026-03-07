@@ -12,6 +12,8 @@ export const RSS_FEEDS = [
   { url: 'https://www.france24.com/en/rss', name: 'France 24' },
   { url: 'https://www.dailystar.com.lb/rss', name: 'Daily Star Lebanon' },
   { url: 'https://www.mtv.com.lb/en/?feed=rss', name: 'MTV Lebanon' },
+  { url: 'https://www.beirut.com/feed/', name: 'Beirut.com' },
+  { url: 'https://www.executive-magazine.com/feed', name: 'Executive Magazine' },
 ] as const;
 
 export const RSS_USER_AGENT =

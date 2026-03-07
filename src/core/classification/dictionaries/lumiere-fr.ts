@@ -8,4 +8,7 @@ export const LUMIERE_FR: string[] = [
   'investissement', 'croissance', 'emploi', 'embauche', 'reprise',
   'culture', 'art', 'spectacle', 'musée', 'conférence', 'sommet',
   'coopération', 'partenariat', 'convention',
+  'reforestation', 'plantation', 'diplôme', 'bourse', 'tourisme', 'touristes',
+  'startup', 'innovation', 'bénévolat', 'ouverture', 'lancement',
+  'record', 'succès', 'victoire',
 ];

@@ -32,7 +32,10 @@ export function CCTVWidget({ variant = 'lumiere' }: { variant?: 'lumiere' | 'omb
     if (data?.source?.id && !selectedId) setSelectedId(data.source.id);
   }, [data?.source?.id, selectedId]);
 
-  const embedUrl = data?.embedUrl;
+  const embedUrl =
+    data?.videoId
+      ? `/api/youtube/embed?videoId=${data.videoId}&autoplay=1&mute=1`
+      : data?.embedUrl;
   const isLive = data?.isLive ?? false;
   const sources = data?.sources ?? [];
 

@@ -234,7 +234,8 @@ export function MapWidget({
       filter: ['has', 'point_count'],
       paint: {
         'circle-color': clusterColor,
-        'circle-radius': ['step', ['get', 'point_count'], 8, 10, 12, 30, 16],
+        'circle-radius': ['step', ['get', 'point_count'], 6, 10, 8, 30, 12, 100, 16],
+        'circle-opacity': 0.7,
         'circle-stroke-width': 1,
         'circle-stroke-color': 'rgba(255,255,255,0.5)',
       },
@@ -262,7 +263,7 @@ export function MapWidget({
       filter: ['!', ['has', 'point_count']],
       paint: {
         'circle-color': markerColor,
-        'circle-radius': 6,
+        'circle-radius': 5,
         'circle-stroke-width': 1,
         'circle-stroke-color': 'rgba(255,255,255,0.5)',
       },

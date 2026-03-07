@@ -253,9 +253,9 @@ export default function Home() {
       />
       <SplitContainer mode={splitMode}>
         <Panel variant="lumiere">
-          <div className="flex flex-col h-full min-h-0">
+          <div className="flex flex-col min-h-0">
             <div
-              className="flex items-baseline gap-8 px-6 pt-4 pb-2 shrink-0"
+              className="flex items-baseline justify-between gap-8 px-6 pt-4 pb-2 shrink-0"
               style={{ minHeight: 60, borderBottom: '1px solid rgba(0,0,0,0.06)' }}
             >
               <div>
@@ -269,12 +269,21 @@ export default function Home() {
                   Lumière
                 </div>
               </div>
+              <a
+                href={`/api/v2/export?format=csv&classification=lumiere&lang=${lang}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] hover:opacity-80 transition-opacity self-end"
+                style={{ color: '#888888' }}
+              >
+                Export CSV
+              </a>
             </div>
-            <div className="grid gap-px flex-1 min-h-0" style={{ gridTemplateRows: 'minmax(240px, 45%) 1fr' }}>
-              <div className="relative overflow-hidden min-h-[240px]" style={{ minHeight: 240 }}>
+            <div className="grid gap-px flex-1 min-h-0" style={{ gridTemplateRows: '350px minmax(400px, 1fr)' }}>
+              <div className="relative overflow-hidden shrink-0" style={{ height: 350 }}>
                 <MapWidget events={lumiereEvents} variant="lumiere" className="absolute inset-0" />
               </div>
-              <div className="overflow-hidden" style={{ background: '#FFFFFF' }}>
+              <div className="overflow-y-auto min-h-[400px]" style={{ background: '#FFFFFF' }}>
                 <PanelEventFeed
                   events={lumiereEvents}
                   variant="lumiere"
@@ -288,7 +297,6 @@ export default function Home() {
               className="grid gap-px shrink-0"
               style={{
                 gridTemplateColumns: '2fr 1fr 1fr',
-                minHeight: 260,
                 height: 260,
                 borderTop: '1px solid rgba(0,0,0,0.06)',
                 background: '#FFFFFF',
@@ -338,9 +346,9 @@ export default function Home() {
           }}
         />
         <Panel variant="ombre">
-          <div className="flex flex-col h-full min-h-0">
+          <div className="flex flex-col min-h-0">
             <div
-              className="flex items-baseline gap-8 px-6 pt-4 pb-2 shrink-0"
+              className="flex items-baseline justify-between gap-8 px-6 pt-4 pb-2 shrink-0"
               style={{ minHeight: 60, borderBottom: '1px solid rgba(255,255,255,0.04)' }}
             >
               <div>
@@ -354,12 +362,21 @@ export default function Home() {
                   Ombre
                 </div>
               </div>
+              <a
+                href={`/api/v2/export?format=csv&classification=ombre&lang=${lang}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] hover:opacity-80 transition-opacity self-end"
+                style={{ color: '#666666' }}
+              >
+                Export CSV
+              </a>
             </div>
-            <div className="grid gap-px flex-1 min-h-0" style={{ gridTemplateRows: 'minmax(240px, 45%) 1fr' }}>
-              <div className="relative overflow-hidden min-h-[240px]" style={{ minHeight: 240 }}>
+            <div className="grid gap-px flex-1 min-h-0" style={{ gridTemplateRows: '350px minmax(400px, 1fr)' }}>
+              <div className="relative overflow-hidden shrink-0" style={{ height: 350 }}>
                 <MapWidget events={ombreEvents} variant="ombre" className="absolute inset-0" />
               </div>
-              <div className="overflow-hidden">
+              <div className="overflow-y-auto min-h-[400px]">
                 <PanelEventFeed
                   events={ombreEvents}
                   variant="ombre"
@@ -373,7 +390,6 @@ export default function Home() {
               className="grid gap-px shrink-0"
               style={{
                 gridTemplateColumns: '2fr 1fr 1fr',
-                minHeight: 260,
                 height: 260,
                 borderTop: '1px solid rgba(255,255,255,0.04)',
                 background: '#0A0A0A',

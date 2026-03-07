@@ -148,7 +148,7 @@ body {
   pointer-events: none;
 }
 .panel--lumiere .feed-zone-with-fade::after {
-  background: linear-gradient(transparent, #F5F2EE);
+  background: linear-gradient(transparent, #FFFFFF);
 }
 .panel--ombre .feed-zone-with-fade::after {
   background: linear-gradient(transparent, #0A0A0A);

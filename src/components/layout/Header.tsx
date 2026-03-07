@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import type { SplitMode } from './SplitContainer';
 
 type Language = 'fr' | 'en' | 'ar';
@@ -41,6 +42,13 @@ export function Header({
     minute: '2-digit',
   });
 
+  const router = useRouter();
+
+  const handleSearch = (value: string) => {
+    const q = value.trim();
+    if (q) router.push(`/search?q=${encodeURIComponent(q)}`);
+  };
+
   const modeConfig: Record<SplitMode, { icon: string; label: string }> = {
     split: { icon: '◐', label: 'Split' },
     lumiere: { icon: '☀', label: 'Lumière' },
@@ -61,6 +69,15 @@ export function Header({
         <span className="font-medium tracking-[0.02em]" style={{ color: '#FFFFFF', fontSize: 13 }}>
           LB · LEBANON MONITOR
         </span>
+        <input
+          type="search"
+          placeholder="Rechercher..."
+          className="bg-transparent border rounded px-3 py-1 text-[12px] w-36 sm:w-40 focus:w-56 transition-all focus:outline-none focus:ring-1"
+          style={{ borderColor: 'rgba(255,255,255,0.2)', color: '#FFF' }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleSearch(e.currentTarget.value);
+          }}
+        />
         {onSplitModeChange && (
           <div className="flex gap-1 border-l border-r pl-4 pr-4" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
             {(['split', 'lumiere', 'ombre', 'twothirds'] as const).map((m) => (

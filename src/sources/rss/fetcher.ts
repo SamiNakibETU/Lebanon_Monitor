@@ -38,7 +38,7 @@ export async function fetchRss(): Promise<
         feedName: feed.name,
       }));
 
-      const isLebaneseSource = ['L\'Orient Today', 'NNA', 'Daily Star Lebanon', 'MTV Lebanon'].includes(feed.name);
+      const isLebaneseSource = ['L\'Orient Today', 'NNA', 'Daily Star Lebanon', 'MTV Lebanon', 'Agenda Culturel'].includes(feed.name);
       const filtered = isLebaneseSource
         ? items
         : items.filter((i) => mentionsLebanon(i.title ?? '') || mentionsLebanon(i.contentSnippet ?? ''));

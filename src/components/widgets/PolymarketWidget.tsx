@@ -62,7 +62,7 @@ export function PolymarketWidget() {
             className="flex flex-col items-center gap-2 p-2"
             style={{ color: '#666666' }}
           >
-            <span className="text-[10px]">Aucun marché Liban</span>
+            <span className="text-[10px]">Marchés géopolitiques</span>
           </div>
         ) : (
           <div className="flex flex-col gap-2">

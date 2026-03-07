@@ -27,8 +27,8 @@ export function SplitContainer({ mode, children }: SplitContainerProps) {
 
   return (
     <div
-      className="split-container flex w-full overflow-hidden"
-      style={{ height: 'calc(100vh - 48px)' }}
+      className="split-container flex w-full overflow-y-auto overflow-x-hidden"
+      style={{ minHeight: 'calc(100vh - 48px)' }}
       data-mode={mode}
     >
       <div

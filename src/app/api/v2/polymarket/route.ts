@@ -38,6 +38,8 @@ const LEBANON_KEYWORDS = ['lebanon', 'lebanese', 'beirut', 'hezbollah', 'litani'
 const MIDDLE_EAST_KEYWORDS = [
   'iran', 'israel', 'hezbollah', 'gaza', 'hamas', 'ceasefire',
   'middle east', 'military action', 'strike', 'conflict',
+  'nuclear', 'sanctions', 'trump', 'netanyahu', 'war', 'attack',
+  'bombing', 'invasion', 'oil', 'crude', 'opec',
 ];
 
 function matchesLebanon(ev: GammaEvent): boolean {
@@ -76,7 +78,7 @@ function parseOutcomePrices(outcomePrices?: string): { yes: number; no: number }
 export async function GET() {
   try {
     const res = await fetch(
-      `${GAMMA_URL}?active=true&closed=false&limit=100&order=volume24hr&ascending=false`,
+      `${GAMMA_URL}?active=true&closed=false&limit=200&order=volume24hr&ascending=false`,
       { cache: 'no-store' }
     );
     if (!res.ok) {
@@ -103,7 +105,30 @@ export async function GET() {
     }
 
     items.sort((a, b) => (b.volume ?? 0) - (a.volume ?? 0));
-    return NextResponse.json({ markets: items.slice(0, 6) });
+    if (items.length > 0) {
+      return NextResponse.json({ markets: items.slice(0, 6) });
+    }
+
+    // Fallback: top 3 most traded events (no geo filter)
+    const fallbackItems: PolymarketItem[] = [];
+    for (const ev of events) {
+      if (!Array.isArray(ev.markets)) continue;
+      const openMarket = ev.markets.find((m) => !m.closed);
+      if (!openMarket) continue;
+      const { yes } = parseOutcomePrices(openMarket.outcomePrices);
+      const vol = typeof openMarket.volume === 'string' ? parseFloat(openMarket.volume) : openMarket.volume;
+      fallbackItems.push({
+        id: openMarket.id,
+        question: openMarket.question,
+        slug: openMarket.slug,
+        yesProb: yes,
+        noProb: 1 - yes,
+        eventSlug: ev.slug,
+        volume: vol,
+      });
+    }
+    fallbackItems.sort((a, b) => (b.volume ?? 0) - (a.volume ?? 0));
+    return NextResponse.json({ markets: fallbackItems.slice(0, 3) });
   } catch {
     return NextResponse.json({ markets: [] }, { status: 200 });
   }
