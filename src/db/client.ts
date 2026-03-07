@@ -33,7 +33,8 @@ export function getPool(): Pool {
       : { rejectUnauthorized: false };
     if (!isInternal && !url.includes('sslmode=')) {
       const sep = url.includes('?') ? '&' : '?';
-      url = `${url}${sep}sslmode=require`;
+      // uselibpqcompat=true: sslmode=require = use SSL without cert verification (avoids SELF_SIGNED_CERT_IN_CHAIN with Railway proxy)
+      url = `${url}${sep}uselibpqcompat=true&sslmode=require`;
     }
     pool = new Pool({
       connectionString: url,
