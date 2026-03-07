@@ -22,6 +22,15 @@ function decodeTitle(s: string): string {
   }
 }
 
+/** Strip URLs (http://, https://) and hashtags (#xxx) from display text. */
+function stripUrlsAndHashtags(s: string): string {
+  return s
+    .replace(/\s*https?:\/\/[^\s]+/gi, '')
+    .replace(/\s*#\w+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function extractTweetId(link: string | undefined, guid: string | undefined): string {
   if (link?.includes('/status/')) {
     const match = link.match(/\/status\/(\d+)/);
@@ -39,7 +48,7 @@ export function normalize(
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
     const rawTitle = item.title ?? stripHtml(item.content ?? '') ?? 'Tweet';
-    const title = decodeTitle(rawTitle);
+    const title = stripUrlsAndHashtags(decodeTitle(rawTitle));
     const text = `${title} ${item.contentSnippet ?? ''} ${item.content ?? ''}`;
     const { classification, confidence, category } = classifyByKeywords(text);
     const tweetId = extractTweetId(item.link, item.guid);

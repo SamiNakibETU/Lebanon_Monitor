@@ -19,6 +19,9 @@ interface EventDetail {
   latitude?: number | null;
   longitude?: number | null;
   sources?: string[];
+  verification_status?: 'unverified' | 'partially_verified' | 'verified' | 'disputed';
+  sourceCount?: number;
+  sourceTier?: 'T1' | 'T2' | 'T3' | null;
   translations?: Record<string, string>;
 }
 
@@ -76,7 +79,7 @@ export default function EventDetailPage() {
         </Link>
 
         <div className="mt-8">
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 flex-wrap mb-4">
             <span
               className="inline-block shrink-0 rounded-full"
               style={{ width: 6, height: 6, background: dotColor }}
@@ -84,9 +87,34 @@ export default function EventDetailPage() {
             <span className="text-[11px] uppercase tracking-[0.04em]" style={{ color: '#666' }}>
               {data.category ?? data.classification} · {data.severity}
             </span>
-            {data.sources && data.sources.length > 0 && (
+            {data.verification_status && data.verification_status !== 'unverified' && (
+              <span
+                className="text-[10px] uppercase px-1.5 py-0.5"
+                style={{
+                  color: data.verification_status === 'verified' ? '#43A047' : data.verification_status === 'partially_verified' ? '#FF9800' : '#666',
+                  background: data.verification_status === 'verified' ? 'rgba(67,160,71,0.15)' : data.verification_status === 'partially_verified' ? 'rgba(255,152,0,0.15)' : 'transparent',
+                }}
+              >
+                {data.verification_status === 'verified' ? 'Vérifié' : data.verification_status === 'partially_verified' ? 'Partiellement vérifié' : ''}
+              </span>
+            )}
+            {data.sourceCount != null && data.sourceCount > 1 && (
               <span className="text-[11px]" style={{ color: '#666' }}>
+                · Confirmé par {data.sourceCount} sources
+              </span>
+            )}
+            {data.sources && data.sources.length > 0 && (
+              <span className="text-[11px] flex items-center gap-1" style={{ color: '#666' }}>
                 · {data.sources.join(', ')}
+                {data.sourceTier && (
+                  <span
+                    className="inline-flex items-center px-1 rounded text-[9px]"
+                    style={{ background: 'rgba(255,255,255,0.08)', color: '#999' }}
+                    title={data.sourceTier === 'T1' ? 'Source fiable' : data.sourceTier === 'T2' ? 'Source moyenne' : 'Source faible'}
+                  >
+                    {data.sourceTier}
+                  </span>
+                )}
               </span>
             )}
           </div>

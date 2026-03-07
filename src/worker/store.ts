@@ -3,8 +3,11 @@
  */
 
 import { withClient } from '@/db/client';
-import { createEvent } from '@/db/repositories/event-repository';
-import { createEventObservation } from '@/db/repositories/event-observation-repository';
+import { createEvent, updateEventConvergence } from '@/db/repositories/event-repository';
+import {
+  createEventObservation,
+  getObservationCountByEventIds,
+} from '@/db/repositories/event-observation-repository';
 import type { LebanonEvent } from '@/types/events';
 import type { SourceItemRow } from '@/db/types';
 import { LEBANON_BBOX } from '@/config/lebanon';
@@ -66,7 +69,7 @@ export async function linkToExistingEvent(
   dedupConfidence: number
 ): Promise<void> {
   await withClient(async (client) => {
-    await createEventObservation(client, {
+    const obs = await createEventObservation(client, {
       source_item_id: sourceItem.id,
       event_id: eventId,
       observed_title: event.title,
@@ -75,6 +78,16 @@ export async function linkToExistingEvent(
       matching_confidence: dedupConfidence,
       dedup_reason: 'jaccard',
     });
+    if (!obs) return;
+
+    const counts = await getObservationCountByEventIds(client, [eventId]);
+    const count = counts.get(eventId) ?? 1;
+    const { rows } = await client.query<{ confidence_score: number | null }>(
+      'SELECT confidence_score FROM event WHERE id = $1',
+      [eventId]
+    );
+    const baseConfidence = rows[0]?.confidence_score ?? null;
+    await updateEventConvergence(client, eventId, count, baseConfidence);
   });
 }
 

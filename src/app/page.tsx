@@ -2,19 +2,13 @@
 
 import { useRef, useState } from 'react';
 import useSWR from 'swr';
-import Link from 'next/link';
 import { Header } from '@/components/layout/Header';
-import {
-  NorgramDashboard,
-  StatsStrip,
-  Stat,
-  MainContentRow,
-  ChartsStrip,
-  SecondaryStrip,
-} from '@/components/layout/NorgramDashboard';
-import { TimelineChart, CategoryBars, SourceDonut, OmbreGauge, LBPSparkline } from '@/components/charts';
+import { SplitContainer, type SplitMode } from '@/components/layout/SplitContainer';
+import { Panel } from '@/components/layout/Panel';
 import { MapWidget } from '@/components/widgets/MapWidget';
 import { CCTVWidget } from '@/components/widgets/CCTVWidget';
+import { PolymarketWidget } from '@/components/widgets/PolymarketWidget';
+import { TimelineChart, CategoryBars, LBPSparkline } from '@/components/charts';
 import { useContainerSize } from '@/hooks/useContainerSize';
 import { CATEGORY_LABELS } from '@/lib/labels';
 
@@ -31,33 +25,30 @@ interface V2Event {
   title: string;
   summary?: string;
   classification: 'lumiere' | 'ombre' | 'neutre';
-  confidence: number;
+  confidence?: number | null;
   category?: string;
   severity: string;
   occurredAt: string;
   latitude?: number | null;
   longitude?: number | null;
   source?: string | null;
+  sourceTier?: 'T1' | 'T2' | 'T3' | null;
+  sourceCount?: number;
 }
 
 interface V2Stats {
   totalEvents: number;
   eventsToday: number;
   ombreRatio: number;
+  topCategories?: Array<{ code: string; count: number }>;
+  topSources?: Array<{ name: string; count: number }>;
 }
 
 interface V2Indicators {
   lbp: number | null;
   weatherBeirut: string | null;
   aqi: number | null;
-  history?: {
-    lbp?: Array<{ at: string; value?: number }>;
-  };
-}
-
-interface V2StatsFull extends V2Stats {
-  topCategories?: Array<{ code: string; count: number }>;
-  topSources?: Array<{ name: string; count: number }>;
+  history?: { lbp?: Array<{ at: string; value?: number }> };
 }
 
 interface V2Cluster {
@@ -68,42 +59,91 @@ interface V2Cluster {
   trend: 'up' | 'down' | 'stable';
 }
 
-function ClassificationDot({ c }: { c: string }) {
-  const color = c === 'ombre' ? '#E53935' : c === 'lumiere' ? '#43A047' : '#666666';
-  return (
-    <span
-      className="inline-block shrink-0 rounded-full"
-      style={{ width: 6, height: 6, background: color }}
-    />
-  );
-}
-
-function EventCard({ e }: { e: V2Event }) {
+function EventCard({
+  e,
+  variant,
+}: {
+  e: V2Event;
+  variant: 'lumiere' | 'ombre';
+}) {
   const time = new Date(e.occurredAt);
-  const rel = time > new Date(Date.now() - 60 * 60 * 1000)
-    ? `${Math.round((Date.now() - time.getTime()) / 60000)} min ago`
-    : time.toLocaleDateString();
+  const rel =
+    time > new Date(Date.now() - 60 * 60 * 1000)
+      ? `${Math.round((Date.now() - time.getTime()) / 60000)} min ago`
+      : time.toLocaleDateString();
   const categoryLabel = e.category ? getCategoryLabel(e.category) : e.classification;
+  const isLumiere = variant === 'lumiere';
+
+  const dotColor = isLumiere ? '#2E7D32' : '#C62828';
+  const metaColor = isLumiere ? '#888888' : '#666666';
+  const textColor = isLumiere ? '#1A1A1A' : '#FFFFFF';
+  const borderColor = isLumiere ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.04)';
+  const hoverBg = isLumiere ? '#FAFAFA' : 'rgba(255,255,255,0.02)';
 
   return (
     <a
       href={`/event/${e.id}`}
       className="flex gap-3 py-4 px-6 transition-colors cursor-pointer block no-underline"
-      style={{
-        borderBottom: '1px solid rgba(255,255,255,0.04)',
+      style={{ borderBottom: `1px solid ${borderColor}` }}
+      onMouseEnter={(ev) => {
+        ev.currentTarget.style.backgroundColor = hoverBg;
       }}
-      onMouseEnter={(ev) => { ev.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.02)'; }}
-      onMouseLeave={(ev) => { ev.currentTarget.style.backgroundColor = 'transparent'; }}
+      onMouseLeave={(ev) => {
+        ev.currentTarget.style.backgroundColor = 'transparent';
+      }}
     >
-      <ClassificationDot c={e.classification} />
+      <span
+        className="inline-block shrink-0 rounded-full"
+        style={{ width: 6, height: 6, background: dotColor }}
+      />
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap text-[11px] mb-1.5 uppercase tracking-[0.04em]" style={{ color: '#666666' }}>
+        <div
+          className="flex items-center gap-2 flex-wrap text-[11px] mb-1.5 uppercase tracking-[0.08em]"
+          style={{ color: metaColor }}
+        >
           <span>{categoryLabel}</span>
           <span>·</span>
-          {e.source && <span>{e.source}</span>}
-          <span className="ml-auto" suppressHydrationWarning>{rel}</span>
+          {e.source && (
+            <span className="flex items-center gap-1">
+              {e.source}
+              {e.sourceTier && (
+                <span
+                  className="inline-flex items-center px-1 rounded"
+                  style={{
+                    fontSize: 9,
+                    background: isLumiere ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)',
+                    color: metaColor,
+                  }}
+                  title={e.sourceTier === 'T1' ? 'Source fiable' : e.sourceTier === 'T2' ? 'Source moyenne' : 'Source faible'}
+                >
+                  {e.sourceTier}
+                </span>
+              )}
+            </span>
+          )}
+          {e.confidence != null && e.confidence >= 0 && (
+            <span
+              className="tabular-nums"
+              style={{ opacity: 0.85 }}
+              title="Confiance classification"
+            >
+              {Math.round(e.confidence * 100)}%
+            </span>
+          )}
+          {e.sourceCount != null && e.sourceCount > 1 && (
+            <span
+              className="tabular-nums"
+              style={{ opacity: 0.9 }}
+              title="Confirmé par plusieurs sources"
+            >
+              {e.sourceCount} sources
+            </span>
+          )}
+          <span className="ml-auto" suppressHydrationWarning>
+            {rel}
+          </span>
         </div>
-        <div className="text-[14px] font-normal leading-snug" style={{ color: '#FFFFFF' }}>
+        <div className="text-[14px] font-normal leading-snug" style={{ color: textColor }}>
           {e.title}
         </div>
       </div>
@@ -111,213 +151,368 @@ function EventCard({ e }: { e: V2Event }) {
   );
 }
 
+function PanelEventFeed({
+  events,
+  variant,
+  eventsError,
+  isLoading,
+}: {
+  events: V2Event[];
+  variant: 'lumiere' | 'ombre';
+  eventsError: unknown;
+  isLoading: boolean;
+}) {
+  const label = variant === 'lumiere' ? 'Lumière' : 'Ombre';
+  return (
+    <div className="flex flex-col h-full">
+      <div
+        className="flex items-center justify-between gap-2 px-6 py-2"
+        style={{
+          borderBottom:
+            variant === 'lumiere' ? '1px solid rgba(0,0,0,0.06)' : '1px solid rgba(255,255,255,0.04)',
+        }}
+      >
+        <span
+          className="text-[11px] uppercase tracking-[0.08em]"
+          style={{ color: variant === 'lumiere' ? '#888888' : '#666666' }}
+        >
+          {label}
+        </span>
+      </div>
+      <div
+        className="flex-1 overflow-y-auto event-feed"
+        style={{
+          scrollbarWidth: 'thin',
+        }}
+      >
+        {isLoading ? (
+          <div
+            className="flex items-center justify-center h-full px-6"
+            style={{ color: variant === 'lumiere' ? '#888888' : '#666666' }}
+          >
+            —
+          </div>
+        ) : events.length === 0 ? (
+          <div
+            className="flex items-center justify-center h-full px-6"
+            style={{ color: variant === 'lumiere' ? '#888888' : '#666666' }}
+            suppressHydrationWarning
+          >
+            {eventsError
+              ? 'DB not configured.'
+              : 'No events yet.'}
+          </div>
+        ) : (
+          events.map((e) => <EventCard key={e.id} e={e} variant={variant} />)
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const [lang, setLang] = useState<Language>('fr');
-  const [politicalFilter, setPoliticalFilter] = useState(false);
+  const [splitMode, setSplitMode] = useState<SplitMode>('split');
 
   const timelineRef = useRef<HTMLDivElement>(null);
-  const categoryRef = useRef<HTMLDivElement>(null);
-  const sourceRef = useRef<HTMLDivElement>(null);
+  const categoryLumiereRef = useRef<HTMLDivElement>(null);
+  const categoryOmbreRef = useRef<HTMLDivElement>(null);
   const lbpRef = useRef<HTMLDivElement>(null);
 
   const timelineSize = useContainerSize(timelineRef);
-  const categorySize = useContainerSize(categoryRef);
-  const sourceSize = useContainerSize(sourceRef);
+  const categoryLumiereSize = useContainerSize(categoryLumiereRef);
+  const categoryOmbreSize = useContainerSize(categoryOmbreRef);
   const lbpSize = useContainerSize(lbpRef);
 
-  const eventsUrl = `/api/v2/events?lang=${lang}${politicalFilter ? '&political=true' : ''}`;
-  const { data: eventsRes, error: eventsError } = useSWR<{ data: V2Event[]; meta: { total: number } }>(
-    eventsUrl,
+  const eventsLumiereUrl = `/api/v2/events?lang=${lang}&classification=lumiere&limit=50`;
+  const eventsOmbreUrl = `/api/v2/events?lang=${lang}&classification=ombre&limit=50`;
+
+  const { data: lumiereRes, error: lumiereError } = useSWR<{ data: V2Event[]; meta: { total: number } }>(
+    eventsLumiereUrl,
     fetcher,
     { refreshInterval: 30_000 }
   );
-  const { data: clustersData } = useSWR<{ clusters: V2Cluster[] }>('/api/v2/clusters', fetcher, { refreshInterval: 60_000 });
-  const { data: stats } = useSWR<V2StatsFull>('/api/v2/stats', fetcher, { refreshInterval: 60_000 });
-  const { data: indicators } = useSWR<V2Indicators>('/api/v2/indicators', fetcher, { refreshInterval: 60_000 });
-  const { data: timelineData } = useSWR<Array<{ hour: string; count: number; ombre: number; lumiere: number }>>(
-    '/api/v2/timeline',
+  const { data: ombreRes, error: ombreError } = useSWR<{ data: V2Event[]; meta: { total: number } }>(
+    eventsOmbreUrl,
     fetcher,
-    { refreshInterval: 60_000 }
+    { refreshInterval: 30_000 }
   );
 
-  const events = Array.isArray(eventsRes?.data) ? eventsRes.data : [];
-  const total = eventsRes?.meta?.total ?? 0;
+  const { data: stats } = useSWR<V2Stats>('/api/v2/stats', fetcher, { refreshInterval: 60_000 });
+  const { data: indicators } = useSWR<V2Indicators>('/api/v2/indicators', fetcher, {
+    refreshInterval: 60_000,
+  });
+  const { data: clustersData } = useSWR<{ clusters: V2Cluster[] }>('/api/v2/clusters', fetcher, {
+    refreshInterval: 60_000,
+  });
+  const { data: timelineData } = useSWR<
+    Array<{ hour: string; count: number; ombre: number; lumiere: number }>
+  >('/api/v2/timeline', fetcher, { refreshInterval: 60_000 });
+
+  const lumiereEvents = Array.isArray(lumiereRes?.data) ? lumiereRes.data : [];
+  const ombreEvents = Array.isArray(ombreRes?.data) ? ombreRes.data : [];
   const timelineArray = Array.isArray(timelineData) ? timelineData : [];
 
+  const lumiereCategories = (stats?.topCategories ?? []).filter((c) =>
+    ['institutional_progress', 'neutral', 'culture', 'reconstruction', 'diplomacy'].some(
+      (p) => c.code.startsWith(p) || c.code === p
+    )
+  );
+  const ombreCategories = (stats?.topCategories ?? []).filter((c) =>
+    ['armed_conflict', 'political_tension', 'violence', 'economic_crisis', 'displacement'].some(
+      (p) => c.code.startsWith(p) || c.code === p
+    )
+  );
+
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
+    <div className="min-h-screen" style={{ background: '#000000' }}>
       <Header
         lang={lang}
         onLangChange={setLang}
         lbp={indicators?.lbp}
         weatherBeirut={indicators?.weatherBeirut}
         aqi={indicators?.aqi}
-        eventCount={stats?.eventsToday ?? total}
+        eventCount={(lumiereRes?.meta?.total ?? 0) + (ombreRes?.meta?.total ?? 0)}
+        splitMode={splitMode}
+        onSplitModeChange={setSplitMode}
       />
-      <NorgramDashboard>
-        <StatsStrip>
-          <Stat value={stats?.eventsToday ?? total} label="events today" />
-          <Stat value={`${stats?.ombreRatio ?? 0}%`} label="ombre" />
-          <Stat value={(stats?.topSources ?? []).length || 12} label="sources" />
-          <div className="flex-1" />
-          <div className="text-[11px] uppercase tracking-[0.08em]" style={{ color: '#666666' }}>
-            GDELT · ACLED · USGS · NASA · ReliefWeb — MAJ il y a 2 min
-          </div>
-        </StatsStrip>
-        <MainContentRow
-          mapSlot={<MapWidget events={events} className="h-full w-full" />}
-          feedSlot={
-            <div className="flex flex-col h-full">
-              <div className="flex items-center justify-between gap-2 px-6 py-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                <button
-                  type="button"
-                  onClick={() => setPoliticalFilter((p) => !p)}
-                  className="text-[11px] transition-colors duration-150"
-                  style={{
-                    color: politicalFilter ? '#FFFFFF' : '#666666',
-                  }}
-                >
-                  Political
-                </button>
-                <a
-                  href={`/api/v2/export?format=csv&lang=${lang}${politicalFilter ? '&political=true' : ''}`}
-                  download
-                  className="text-[11px] transition-colors duration-150 hover:text-[#FFFFFF]"
-                  style={{ color: '#666666' }}
-                >
-                  Export CSV
-                </a>
-              </div>
-              <div className="flex-1 overflow-y-auto">
-                {events.length === 0 ? (
-                  <div className="flex items-center justify-center h-full px-6" style={{ color: '#666666' }} suppressHydrationWarning>
-                    {eventsError
-                      ? 'DB not configured. Set DATABASE_URL and run worker.'
-                      : eventsRes
-                        ? 'No events yet. Run: npm run worker'
-                        : '—'}
-                  </div>
-                ) : (
-                  events.map((e) => <EventCard key={e.id} e={e} />)
-                )}
-              </div>
-            </div>
-          }
-        />
-        <ChartsStrip
-          timelineSlot={
-            <div ref={timelineRef} className="w-full h-full min-h-[160px]">
-              <div className="text-[11px] uppercase tracking-[0.08em] mb-2" style={{ color: '#666666' }}>
-                Timeline
-              </div>
-              <TimelineChart
-                width={timelineSize.width}
-                height={Math.max(120, timelineSize.height - 24)}
-                data={timelineArray}
-              />
-            </div>
-          }
-          categoriesSlot={
-            <div ref={categoryRef} className="w-full h-full min-h-[160px]">
-              <div className="text-[11px] uppercase tracking-[0.08em] mb-2" style={{ color: '#666666' }}>
-                Categories
-              </div>
-              <CategoryBars
-                width={categorySize.width}
-                height={Math.max(100, categorySize.height - 24)}
-                data={
-                  (Array.isArray(stats?.topCategories) ? stats.topCategories : []).map((c) => ({
-                    code: c.code,
-                    count: c.count,
-                    isOmbre: ['armed_conflict', 'economic_crisis', 'political_tension', 'violence'].includes(c.code),
-                  }))
-                }
-              />
-            </div>
-          }
-          liveSlot={
-            <div className="w-full h-full min-h-[160px]">
-              <CCTVWidget />
-            </div>
-          }
-        />
-        <SecondaryStrip
-          lbpSlot={
-            <div ref={lbpRef} className="w-full h-full min-h-[120px]">
-              <div className="text-[11px] uppercase tracking-[0.08em] mb-2" style={{ color: '#666666' }}>
-                LBP trend
-              </div>
-              <LBPSparkline
-                width={lbpSize.width}
-                height={Math.max(60, lbpSize.height - 24)}
-                data={
-                  indicators?.history?.lbp
-                    ?.filter((d) => d.value != null)
-                    .map((d) => ({ at: new Date(d.at).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' }), value: d.value ?? 0 }))
-                    .slice(-14) ?? []
-                }
-                current={indicators?.lbp ?? 0}
-                trend="stable"
-              />
-            </div>
-          }
-          sourcesSlot={
-            <div ref={sourceRef} className="w-full h-full min-h-[120px]">
-              <div className="text-[11px] uppercase tracking-[0.08em] mb-2" style={{ color: '#666666' }}>
-                Sources
-              </div>
-              <SourceDonut
-                width={sourceSize.width}
-                height={Math.max(80, sourceSize.height - 24)}
-                data={stats?.topSources ?? []}
-                total={stats?.eventsToday ?? 0}
-              />
-            </div>
-          }
-          trendingSlot={
-            <div className="w-full h-full overflow-y-auto">
-              <div className="text-[11px] uppercase tracking-[0.08em] mb-2" style={{ color: '#666666' }}>
-                Trending
-              </div>
-              {(Array.isArray(clustersData?.clusters) ? clustersData.clusters : []).slice(0, 5).map((c) => (
+      <SplitContainer mode={splitMode}>
+        <Panel variant="lumiere">
+          <div className="flex flex-col h-full">
+            <div
+              className="flex items-baseline gap-8 px-6 pt-4 pb-2"
+              style={{ minHeight: 60, borderBottom: '1px solid rgba(0,0,0,0.06)' }}
+            >
+              <div>
                 <div
-                  key={c.code}
-                  className="flex justify-between items-center text-[11px] py-0.5"
-                  style={{ color: '#666666' }}
+                  className="text-[48px] font-light leading-none tabular-nums"
+                  style={{ color: '#1A1A1A' }}
                 >
-                  <span>{getCategoryLabel(c.code)}</span>
-                  <span className="tabular-nums flex items-center gap-1">
-                    {c.count}
-                    {c.trend === 'up' && <span style={{ color: '#E53935' }}>↗</span>}
-                    {c.trend === 'down' && <span style={{ color: '#43A047' }}>↘</span>}
-                  </span>
+                  {lumiereRes?.meta?.total ?? 0}
                 </div>
-              ))}
-              {(!clustersData?.clusters || clustersData.clusters.length === 0) && (
-                <span className="text-[11px]" style={{ color: '#666666' }}>
-                  —
-                </span>
-              )}
-            </div>
-          }
-          aqiSlot={
-            <div className="w-full h-full">
-              <div className="text-[11px] uppercase tracking-[0.08em] mb-2" style={{ color: '#666666' }}>
-                Air quality
-              </div>
-              <div className="text-[48px] font-light leading-none tabular-nums" style={{ color: '#FFFFFF' }} suppressHydrationWarning>
-                {indicators?.aqi ?? '—'}
-              </div>
-              <div className="text-[11px] mt-1" style={{ color: '#666666' }}>
-                AQI Beyrouth
+                <div className="text-[11px] uppercase tracking-[0.08em]" style={{ color: '#888888' }}>
+                  Lumière
+                </div>
               </div>
             </div>
-          }
+            <div className="grid gap-px flex-1" style={{ gridTemplateRows: '40% 1fr' }}>
+              <div className="overflow-hidden">
+                <MapWidget events={lumiereEvents} variant="lumiere" className="h-full w-full" />
+              </div>
+              <div className="overflow-hidden">
+                <PanelEventFeed
+                  events={lumiereEvents}
+                  variant="lumiere"
+                  eventsError={lumiereError}
+                  isLoading={!lumiereRes && !lumiereError}
+                />
+              </div>
+            </div>
+            <div
+              className="grid gap-px"
+              style={{
+                gridTemplateColumns: '2fr 1fr 1fr',
+                height: 180,
+                borderTop: '1px solid rgba(0,0,0,0.06)',
+              }}
+            >
+              <div className="p-4 overflow-hidden">
+                <div className="text-[11px] uppercase tracking-[0.08em] mb-2" style={{ color: '#888888' }}>
+                  Timeline
+                </div>
+                <div ref={timelineRef} className="w-full h-full min-h-[100px]">
+                  <TimelineChart
+                    width={timelineSize.width}
+                    height={Math.max(80, timelineSize.height - 24)}
+                    data={timelineArray}
+                  />
+                </div>
+              </div>
+              <div className="p-4 overflow-hidden">
+                <div className="text-[11px] uppercase tracking-[0.08em] mb-2" style={{ color: '#888888' }}>
+                  Catégories
+                </div>
+                <div ref={categoryLumiereRef} className="w-full h-full min-h-[80px]">
+                  <CategoryBars
+                    width={categoryLumiereSize.width}
+                    height={Math.max(60, categoryLumiereSize.height - 24)}
+                    data={lumiereCategories.map((c) => ({
+                      code: c.code,
+                      count: c.count,
+                      isOmbre: false,
+                    }))}
+                  />
+                </div>
+              </div>
+              <div className="p-4 overflow-hidden">
+                <CCTVWidget />
+              </div>
+            </div>
+          </div>
+        </Panel>
+        <div
+          className="split-divider"
+          style={{
+            width: 1,
+            background: 'rgba(128,128,128,0.2)',
+            flexShrink: 0,
+          }}
         />
-      </NorgramDashboard>
-      <footer className="py-3 px-4 text-center text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
-        GDELT · ACLED · USGS · NASA · ReliefWeb — Mis à jour il y a 2 min
-      </footer>
+        <Panel variant="ombre">
+          <div className="flex flex-col h-full">
+            <div
+              className="flex items-baseline gap-8 px-6 pt-4 pb-2"
+              style={{ minHeight: 60, borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+            >
+              <div>
+                <div
+                  className="text-[48px] font-light leading-none tabular-nums"
+                  style={{ color: '#FFFFFF' }}
+                >
+                  {ombreRes?.meta?.total ?? 0}
+                </div>
+                <div className="text-[11px] uppercase tracking-[0.08em]" style={{ color: '#666666' }}>
+                  Ombre
+                </div>
+              </div>
+            </div>
+            <div className="grid gap-px flex-1" style={{ gridTemplateRows: '40% 1fr' }}>
+              <div className="overflow-hidden">
+                <MapWidget events={ombreEvents} variant="ombre" className="h-full w-full" />
+              </div>
+              <div className="overflow-hidden">
+                <PanelEventFeed
+                  events={ombreEvents}
+                  variant="ombre"
+                  eventsError={ombreError}
+                  isLoading={!ombreRes && !ombreError}
+                />
+              </div>
+            </div>
+            <div
+              className="grid gap-px"
+              style={{
+                gridTemplateColumns: '2fr 1fr 1fr',
+                height: 180,
+                borderTop: '1px solid rgba(255,255,255,0.04)',
+              }}
+            >
+              <div className="p-4 overflow-hidden">
+                <div className="text-[11px] uppercase tracking-[0.08em] mb-2" style={{ color: '#666666' }}>
+                  Timeline
+                </div>
+                <div className="w-full h-full min-h-[100px]">
+                  <TimelineChart
+                    width={timelineSize.width}
+                    height={Math.max(80, timelineSize.height - 24)}
+                    data={timelineArray}
+                  />
+                </div>
+              </div>
+              <div className="p-4 overflow-hidden">
+                <div className="text-[11px] uppercase tracking-[0.08em] mb-2" style={{ color: '#666666' }}>
+                  Catégories
+                </div>
+                <div ref={categoryOmbreRef} className="w-full h-full min-h-[80px]">
+                  <CategoryBars
+                    width={categoryOmbreSize.width}
+                    height={Math.max(60, categoryOmbreSize.height - 24)}
+                    data={ombreCategories.map((c) => ({
+                      code: c.code,
+                      count: c.count,
+                      isOmbre: true,
+                    }))}
+                  />
+                </div>
+              </div>
+              <div className="p-4 overflow-hidden">
+                <PolymarketWidget />
+              </div>
+            </div>
+          </div>
+        </Panel>
+        <div
+          className="split-divider"
+          style={{
+            width: 1,
+            background: 'rgba(128,128,128,0.2)',
+            flexShrink: 0,
+          }}
+        />
+        <Panel variant="ombre">
+          <div className="flex flex-col h-full">
+            <div
+              className="flex items-baseline gap-8 px-6 pt-4 pb-2"
+              style={{ minHeight: 60, borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+            >
+              <div>
+                <div
+                  className="text-[48px] font-light leading-none tabular-nums"
+                  style={{ color: '#FFFFFF' }}
+                >
+                  {ombreRes?.meta?.total ?? 0}
+                </div>
+                <div className="text-[11px] uppercase tracking-[0.08em]" style={{ color: '#666666' }}>
+                  Ombre
+                </div>
+              </div>
+            </div>
+            <div className="grid gap-px flex-1" style={{ gridTemplateRows: '40% 1fr' }}>
+              <div className="overflow-hidden">
+                <MapWidget events={ombreEvents} variant="ombre" className="h-full w-full" />
+              </div>
+              <div className="overflow-hidden">
+                <PanelEventFeed
+                  events={ombreEvents}
+                  variant="ombre"
+                  eventsError={ombreError}
+                  isLoading={!ombreRes && !ombreError}
+                />
+              </div>
+            </div>
+            <div
+              className="grid gap-px"
+              style={{
+                gridTemplateColumns: '2fr 1fr 1fr',
+                height: 180,
+                borderTop: '1px solid rgba(255,255,255,0.04)',
+              }}
+            >
+              <div className="p-4 overflow-hidden">
+                <div className="text-[11px] uppercase tracking-[0.08em] mb-2" style={{ color: '#666666' }}>
+                  Timeline
+                </div>
+                <div className="w-full h-full min-h-[100px]">
+                  <TimelineChart
+                    width={timelineSize.width}
+                    height={Math.max(80, timelineSize.height - 24)}
+                    data={timelineArray}
+                  />
+                </div>
+              </div>
+              <div className="p-4 overflow-hidden">
+                <div className="text-[11px] uppercase tracking-[0.08em] mb-2" style={{ color: '#666666' }}>
+                  Catégories
+                </div>
+                <div ref={categoryOmbreRef} className="w-full h-full min-h-[80px]">
+                  <CategoryBars
+                    width={categoryOmbreSize.width}
+                    height={Math.max(60, categoryOmbreSize.height - 24)}
+                    data={ombreCategories.map((c) => ({
+                      code: c.code,
+                      count: c.count,
+                      isOmbre: true,
+                    }))}
+                  />
+                </div>
+              </div>
+              <div className="p-4 overflow-hidden">
+                <PolymarketWidget />
+              </div>
+            </div>
+          </div>
+        </Panel>
+      </SplitContainer>
     </div>
   );
 }

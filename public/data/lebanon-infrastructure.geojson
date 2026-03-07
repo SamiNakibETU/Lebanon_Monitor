@@ -1,0 +1,40 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "Beirut Rafic Hariri Intl", "type": "airport" },
+      "geometry": { "type": "Point", "coordinates": [35.488, 33.821] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Port of Beirut", "type": "port" },
+      "geometry": { "type": "Point", "coordinates": [35.518, 33.897] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Port of Tripoli", "type": "port" },
+      "geometry": { "type": "Point", "coordinates": [35.821, 34.439] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "AUBMC", "type": "hospital" },
+      "geometry": { "type": "Point", "coordinates": [35.482, 33.898] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Rafik Hariri Univ Hospital", "type": "hospital" },
+      "geometry": { "type": "Point", "coordinates": [35.483, 33.854] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Zouk Power Plant", "type": "power" },
+      "geometry": { "type": "Point", "coordinates": [35.60, 33.97] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Jiyyeh Power Plant", "type": "power" },
+      "geometry": { "type": "Point", "coordinates": [35.42, 33.72] }
+    }
+  ]
+}

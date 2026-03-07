@@ -101,3 +101,41 @@ body {
   padding: 5px 9px !important;
   font-size: 11px !important;
 }
+
+/* V3 — Custom scrollbar for event feed */
+.event-feed::-webkit-scrollbar {
+  width: 4px;
+}
+.event-feed::-webkit-scrollbar-track {
+  background: transparent;
+}
+.event-feed::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.2);
+  border-radius: 2px;
+}
+.panel--lumiere .event-feed::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+/* V3 — Split Lumière/Ombre (Norgram-style) */
+.split-container {
+  transition: none;
+}
+.split-container .panel {
+  transition: flex 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.split-container:has(.panel--lumiere:hover) .panel--lumiere { flex: 1.85; }
+.split-container:has(.panel--lumiere:hover) .panel--ombre { flex: 1; }
+.split-container:has(.panel--ombre:hover) .panel--ombre { flex: 1.85; }
+.split-container:has(.panel--ombre:hover) .panel--lumiere { flex: 1; }
+.split-container[data-mode="lumiere"] .panel--lumiere { flex: 1; }
+.split-container[data-mode="lumiere"] .panel--ombre { flex: 0; overflow: hidden; min-width: 0; }
+.split-container[data-mode="ombre"] .panel--ombre { flex: 1; }
+.split-container[data-mode="ombre"] .panel--lumiere { flex: 0; overflow: hidden; min-width: 0; }
+.split-container[data-mode="twothirds"] .panel--lumiere { flex: 2; }
+.split-container[data-mode="twothirds"] .panel--ombre { flex: 1; }
+.split-divider {
+  width: 1px;
+  background: rgba(128, 128, 128, 0.2);
+  flex-shrink: 0;
+}

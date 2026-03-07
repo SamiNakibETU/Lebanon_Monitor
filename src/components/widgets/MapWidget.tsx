@@ -5,7 +5,21 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { LEBANON_BBOX } from '@/config/lebanon';
 
-const TILE_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+const TILE_STYLES = {
+  lumiere: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+  ombre: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+} as const;
+
+const LAYER_LABELS: Record<string, string> = {
+  events: 'Events',
+  heatmap: 'Heatmap',
+  terrain: 'Terrain',
+  unifil: 'UNIFIL',
+  infrastructure: 'Infrastructure',
+};
+
+const LAYERS = ['events', 'heatmap', 'terrain', 'unifil', 'infrastructure'] as const;
+type LayerId = (typeof LAYERS)[number];
 
 function escapeHtml(s: string): string {
   return s
@@ -22,6 +36,7 @@ interface MapEvent {
   title: string;
   classification: string;
   source?: string | null;
+  severity?: string;
   occurredAt: string;
   latitude?: number | null;
   longitude?: number | null;
@@ -29,7 +44,9 @@ interface MapEvent {
 
 interface MapWidgetProps {
   events: MapEvent[];
+  variant?: 'lumiere' | 'ombre';
   className?: string;
+  showLayerToggles?: boolean;
 }
 
 function toGeoJSON(evts: MapEvent[]): GeoJSON.FeatureCollection {
@@ -59,17 +76,33 @@ function toGeoJSON(evts: MapEvent[]): GeoJSON.FeatureCollection {
   return { type: 'FeatureCollection', features };
 }
 
-export function MapWidget({ events, className = '' }: MapWidgetProps) {
+export function MapWidget({
+  events,
+  variant = 'ombre',
+  className = '',
+  showLayerToggles = true,
+}: MapWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const [styleLoaded, setStyleLoaded] = useState(false);
+  const [layers, setLayers] = useState<Record<LayerId, boolean>>({
+    events: true,
+    heatmap: false,
+    terrain: false,
+    unifil: false,
+    infrastructure: false,
+  });
+
+  const toggleLayer = (id: LayerId) => {
+    setLayers((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   useEffect(() => {
     if (!containerRef.current) return;
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: TILE_STYLE,
+      style: TILE_STYLES[variant],
       center: LEBANON_CENTER,
       zoom: 8.2,
       maxBounds: [
@@ -87,7 +120,7 @@ export function MapWidget({ events, className = '' }: MapWidgetProps) {
       mapRef.current = null;
       setStyleLoaded(false);
     };
-  }, []);
+  }, [variant]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -181,12 +214,165 @@ export function MapWidget({ events, className = '' }: MapWidgetProps) {
     map.on('mouseleave', 'events-unclustered', () => {
       map.getCanvas().style.cursor = '';
     });
-  }, [events, styleLoaded]);
+
+    if (!map.getSource('events-heatmap')) {
+      map.addSource('events-heatmap', {
+        type: 'geojson',
+        data: geojson,
+      });
+      map.addLayer({
+        id: 'conflict-heatmap',
+        type: 'heatmap',
+        source: 'events-heatmap',
+        minzoom: 6,
+        paint: {
+          'heatmap-weight': 1,
+          'heatmap-intensity': 0.6,
+          'heatmap-color': [
+            'interpolate',
+            ['linear'],
+            ['heatmap-density'],
+            0,
+            'rgba(0,0,0,0)',
+            0.2,
+            'rgba(198,40,40,0.2)',
+            0.4,
+            'rgba(198,40,40,0.4)',
+            0.6,
+            'rgba(198,40,40,0.6)',
+            1,
+            'rgba(198,40,40,0.9)',
+          ],
+          'heatmap-radius': 30,
+        },
+        layout: { visibility: 'none' },
+      });
+    } else {
+      (map.getSource('events-heatmap') as maplibregl.GeoJSONSource).setData(geojson);
+    }
+
+    if (!map.getSource('terrain-dem')) {
+      try {
+        map.addSource('terrain-dem', {
+          type: 'raster-dem',
+          url: 'https://demotiles.maplibre.org/terrain-tiles/tiles.json',
+          tileSize: 256,
+        });
+        map.addLayer({
+          id: 'hillshade',
+          type: 'hillshade',
+          source: 'terrain-dem',
+          paint: {
+            'hillshade-shadow-color': '#000000',
+            'hillshade-highlight-color': '#ffffff',
+            'hillshade-exaggeration': 0.3,
+          },
+          layout: { visibility: 'none' },
+        });
+      } catch {
+        //
+      }
+    }
+
+    if (!map.getSource('unifil-zone')) {
+      fetch('/data/unifil-zone.geojson')
+        .then((r) => r.json())
+        .then((geojson) => {
+          if (!mapRef.current || map.getSource('unifil-zone')) return;
+          map.addSource('unifil-zone', { type: 'geojson', data: geojson });
+          map.addLayer({
+            id: 'unifil-fill',
+            type: 'fill',
+            source: 'unifil-zone',
+            paint: {
+              'fill-color': variant === 'ombre' ? '#1565C0' : '#42A5F5',
+              'fill-opacity': 0.15,
+              'fill-outline-color': variant === 'ombre' ? 'rgba(21,101,192,0.5)' : 'rgba(25,118,210,0.5)',
+            },
+            layout: { visibility: 'none' },
+          });
+        })
+        .catch(() => {});
+    }
+
+    if (!map.getSource('infrastructure')) {
+      fetch('/data/lebanon-infrastructure.geojson')
+        .then((r) => r.json())
+        .then((geojson) => {
+          if (!mapRef.current || map.getSource('infrastructure')) return;
+          map.addSource('infrastructure', { type: 'geojson', data: geojson });
+          map.addLayer({
+            id: 'infrastructure-points',
+            type: 'circle',
+            source: 'infrastructure',
+            paint: {
+              'circle-radius': 6,
+              'circle-color': [
+                'match',
+                ['get', 'type'],
+                'airport',
+                variant === 'ombre' ? '#9C27B0' : '#7B1FA2',
+                'port',
+                variant === 'ombre' ? '#009688' : '#00796B',
+                'hospital',
+                variant === 'ombre' ? '#E53935' : '#C62828',
+                'power',
+                variant === 'ombre' ? '#FF9800' : '#F57C00',
+                '#666666',
+              ],
+              'circle-stroke-width': 1.5,
+              'circle-stroke-color': 'rgba(255,255,255,0.3)',
+            },
+            layout: { visibility: 'none' },
+          });
+        })
+        .catch(() => {});
+    }
+  }, [events, styleLoaded, variant]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !styleLoaded) return;
+    const v = (id: string) => (layers[id as LayerId] ? 'visible' : 'none');
+    if (map.getLayer('clusters')) map.setLayoutProperty('clusters', 'visibility', v('events'));
+    if (map.getLayer('cluster-count')) map.setLayoutProperty('cluster-count', 'visibility', v('events'));
+    if (map.getLayer('events-unclustered')) map.setLayoutProperty('events-unclustered', 'visibility', v('events'));
+    if (map.getLayer('conflict-heatmap')) map.setLayoutProperty('conflict-heatmap', 'visibility', v('heatmap'));
+    if (map.getLayer('hillshade')) map.setLayoutProperty('hillshade', 'visibility', v('terrain'));
+    if (map.getLayer('unifil-fill')) map.setLayoutProperty('unifil-fill', 'visibility', v('unifil'));
+    if (map.getLayer('infrastructure-points')) map.setLayoutProperty('infrastructure-points', 'visibility', v('infrastructure'));
+  }, [layers, styleLoaded]);
 
   return (
-    <div
-      ref={containerRef}
-      className={`w-full h-full min-h-[200px] overflow-hidden ${className}`}
-    />
+    <div className={`relative w-full h-full min-h-[200px] ${className}`}>
+      <div ref={containerRef} className="absolute inset-0" />
+      {showLayerToggles && (
+        <div
+          className="absolute bottom-2 left-2 flex gap-1 z-10"
+          style={{
+            fontSize: 10,
+            fontFamily: 'inherit',
+          }}
+        >
+          {LAYERS.map((id) => {
+            const isDark = variant === 'ombre';
+            const btnBg = layers[id] ? (isDark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)') : 'transparent';
+            const btnColor = isDark ? '#fff' : '#1a1a1a';
+            const btnBorder = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)';
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => toggleLayer(id)}
+                className="px-2 py-1 border transition-colors"
+                style={{ background: btnBg, color: btnColor, borderColor: btnBorder }}
+              >
+                {LAYER_LABELS[id]}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }

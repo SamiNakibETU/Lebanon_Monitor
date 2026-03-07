@@ -14,36 +14,45 @@ export interface CctvSource {
   alwaysAvailable?: boolean;
 }
 
+/**
+ * V3 — Ombre panel: Al Jazeera → Al Arabiya → Al Jadeed → France 24 (24/7 news).
+ * Lumière panel: SkylineWebcams → LBCI → MTV (paisible / culturel).
+ * Fallback: SkylineWebcams always available.
+ */
 export const CCTV_SOURCES: CctvSource[] = [
+  {
+    id: 'aljazeera',
+    name: 'Al Jazeera Arabic',
+    type: 'youtube',
+    youtubeHandle: '@AlJazeeraArabic',
+    videoId: 'gCNeDWCI0vo',
+    priority: 1,
+    alwaysAvailable: true,
+  },
+  {
+    id: 'alarabiya',
+    name: 'Al Arabiya',
+    type: 'youtube',
+    youtubeHandle: '@AlArabiya',
+    videoId: 'sC2vVHrPTD0',
+    priority: 2,
+    alwaysAvailable: true,
+  },
   {
     id: 'aljadeed',
     name: 'Al Jadeed',
     type: 'youtube',
     youtubeHandle: '@AlJadeedTv',
-    priority: 1,
-  },
-  {
-    id: 'mtv',
-    name: 'MTV Lebanon',
-    type: 'youtube',
-    youtubeHandle: '@MTVLebanon',
-    priority: 2,
-  },
-  {
-    id: 'lbci',
-    name: 'LBCI',
-    type: 'direct',
-    url: 'https://www.lbcgroup.tv/live/en',
-    embedUrl: 'https://www.lbcgroup.tv/live-watch/LBCI/video/en',
     priority: 3,
   },
   {
-    id: 'otv',
-    name: 'OTV Lebanon',
-    type: 'direct',
-    url: 'https://otv.com.lb/live',
-    embedUrl: 'https://otv.com.lb/live',
+    id: 'france24-ar',
+    name: 'France 24 Arabic',
+    type: 'youtube',
+    youtubeHandle: '@France24Arabic',
+    videoId: 'h3MuIUNCCzI',
     priority: 4,
+    alwaysAvailable: true,
   },
   {
     id: 'beirut-webcam',
@@ -54,30 +63,26 @@ export const CCTV_SOURCES: CctvSource[] = [
     alwaysAvailable: true,
   },
   {
-    id: 'aljazeera',
-    name: 'Al Jazeera Arabic',
-    type: 'youtube',
-    youtubeHandle: '@AlJazeeraArabic',
-    videoId: 'gCNeDWCI0vo',
+    id: 'lbci',
+    name: 'LBCI',
+    type: 'direct',
+    url: 'https://www.lbcgroup.tv/live/en',
+    embedUrl: 'https://www.lbcgroup.tv/live-watch/LBCI/video/en',
     priority: 6,
-    alwaysAvailable: true,
   },
   {
-    id: 'alarabiya',
-    name: 'Al Arabiya',
+    id: 'mtv',
+    name: 'MTV Lebanon',
     type: 'youtube',
-    youtubeHandle: '@AlArabiya',
-    videoId: 'sC2vVHrPTD0',
+    youtubeHandle: '@MTVLebanon',
     priority: 7,
-    alwaysAvailable: true,
   },
   {
-    id: 'france24-ar',
-    name: 'France 24 Arabic',
-    type: 'youtube',
-    youtubeHandle: '@France24Arabic',
-    videoId: 'h3MuIUNCCzI',
+    id: 'otv',
+    name: 'OTV Lebanon',
+    type: 'direct',
+    url: 'https://otv.com.lb/live',
+    embedUrl: 'https://otv.com.lb/live',
     priority: 8,
-    alwaysAvailable: true,
   },
 ];

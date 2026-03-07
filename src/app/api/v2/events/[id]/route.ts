@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withClient } from '@/db/client';
 import { getEventById } from '@/db/repositories/event-repository';
 import { getEventTranslations } from '@/db/repositories/event-translation-repository';
+import { getSourceTier } from '@/config/source-tiers';
 import type { Lang } from '@/db/repositories/event-translation-repository';
 
 function mapSeverityScore(score: number | null): string {
@@ -60,6 +61,9 @@ export async function GET(
     const title = transByLang.get(lang) ?? event.canonical_title;
     const meta = (event.metadata ?? {}) as Record<string, unknown>;
 
+    const source = (meta.source as string | null) ?? null;
+    const sourceCount = observations.length;
+
     return NextResponse.json(
       {
         id: event.id,
@@ -73,6 +77,9 @@ export async function GET(
         latitude: meta.latitude ?? null,
         longitude: meta.longitude ?? null,
         sources: observations.map((o: { source_name: string }) => o.source_name),
+        verification_status: event.verification_status,
+        sourceCount,
+        sourceTier: getSourceTier(source),
         translations: Object.fromEntries(translations.map((t) => [t.language, t.title])),
       },
       {

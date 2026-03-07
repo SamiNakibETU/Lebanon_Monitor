@@ -1,0 +1,27 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "UNIFIL AoO",
+        "description": "UNIFIL area of operations (south of Litani)"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [35.08, 33.15],
+            [35.55, 33.15],
+            [35.62, 33.35],
+            [35.55, 33.50],
+            [35.35, 33.55],
+            [35.15, 33.50],
+            [35.08, 33.35],
+            [35.08, 33.15]
+          ]
+        ]
+      }
+    }
+  ]
+}

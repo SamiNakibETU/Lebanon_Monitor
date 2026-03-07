@@ -52,6 +52,25 @@ export async function createEventObservation(
 }
 
 /**
+ * Get observation counts for a list of event IDs.
+ * Returns a map of event_id -> count.
+ */
+export async function getObservationCountByEventIds(
+  client: PoolClient,
+  eventIds: string[]
+): Promise<Map<string, number>> {
+  if (eventIds.length === 0) return new Map();
+  const { rows } = await client.query<{ event_id: string; cnt: string }>(
+    `SELECT event_id, COUNT(*)::int as cnt
+     FROM event_observation
+     WHERE event_id = ANY($1::uuid[])
+     GROUP BY event_id`,
+    [eventIds]
+  );
+  return new Map(rows.map((r) => [r.event_id, parseInt(r.cnt, 10) || 0]));
+}
+
+/**
  * Get events with their source observations for dedup matching.
  */
 export async function getRecentEventTitles(

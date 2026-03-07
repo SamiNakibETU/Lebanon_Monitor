@@ -67,6 +67,7 @@ export const OMBRE_KEYWORDS = {
   `),
 };
 
+/** V3 — Enriched per brief (culture, reconstruction, diplomacy, economy, education, environment). */
 export const LUMIERE_KEYWORDS = {
   ar: parse(`
     افتتاح, تدشين, مهرجان, حفل, جائزة, تكريم, إنجاز,
@@ -75,7 +76,8 @@ export const LUMIERE_KEYWORDS = {
     اتفاق, سلام, هدنة, مصالحة, حوار,
     انتخابات, إصلاح, قانون, تشريع, حكومة جديدة,
     استثمار, نمو, وظائف, فرص عمل,
-    ثقافة, فن, معرض, مؤتمر, ندوة
+    ثقافة, فن, معرض, مؤتمر, ندوة,
+    تشجير, زراعة, شهادة, منحة, جائزة, تضامن, تطوع, تراث, عودة, نهضة
   `),
   fr: parse(`
     inauguration, cérémonie, festival, concert, exposition, prix, récompense,
@@ -84,7 +86,8 @@ export const LUMIERE_KEYWORDS = {
     accord, paix, trêve, cessez-le-feu, réconciliation, dialogue,
     élection, réforme, loi, législation, nouveau gouvernement,
     investissement, croissance, emploi, embauche,
-    culture, art, spectacle, musée, conférence
+    culture, art, spectacle, musée, conférence,
+    reforestation, plantation, diplôme, bourse, victoire, bénévolat, patrimoine, renaissance
   `),
   en: parse(`
     inauguration, ceremony, festival, concert, exhibition, award, prize,
@@ -93,7 +96,8 @@ export const LUMIERE_KEYWORDS = {
     agreement, peace, ceasefire, truce, reconciliation, dialogue,
     election, reform, law, legislation, new government,
     investment, growth, job, employment, opportunity,
-    culture, art, show, museum, conference, summit
+    culture, art, show, museum, conference, summit,
+    reforestation, planting, graduation, scholarship, victory, volunteering, heritage, return, renaissance
   `),
 };
 

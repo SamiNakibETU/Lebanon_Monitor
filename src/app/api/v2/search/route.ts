@@ -6,6 +6,8 @@ import { NextResponse } from 'next/server';
 import { withClient } from '@/db/client';
 import { searchEvents } from '@/db/repositories/event-repository';
 import { getTranslationsForEvents } from '@/db/repositories/event-translation-repository';
+import { getObservationCountByEventIds } from '@/db/repositories/event-observation-repository';
+import { getSourceTier } from '@/config/source-tiers';
 import { z } from 'zod';
 
 const querySchema = z.object({
@@ -39,15 +41,17 @@ export async function GET(request: Request) {
 
     const { q, lang, limit } = parsed.data;
 
-    const { events, total, translations } = await withClient(async (client) => {
+    const { events, total, translations, observationCounts } = await withClient(async (client) => {
       const out = await searchEvents(client, q, limit);
       const trans = await getTranslationsForEvents(client, out.events.map((e) => e.id), lang);
-      return { ...out, translations: trans };
+      const counts = await getObservationCountByEventIds(client, out.events.map((e) => e.id));
+      return { ...out, translations: trans, observationCounts: counts };
     });
 
     const data = events.map((e) => {
       const translatedTitle = translations.get(e.id) ?? e.canonical_title;
       const meta = (e.metadata ?? {}) as Record<string, unknown>;
+      const source = (meta.source as string | null) ?? null;
       return {
         id: e.id,
         title: translatedTitle,
@@ -58,7 +62,10 @@ export async function GET(request: Request) {
         occurredAt: e.occurred_at,
         latitude: meta.latitude ?? null,
         longitude: meta.longitude ?? null,
-        source: meta.source ?? null,
+        source,
+        sourceTier: getSourceTier(source),
+        sourceCount: observationCounts.get(e.id) ?? 1,
+        verification_status: e.verification_status,
       };
     });
 

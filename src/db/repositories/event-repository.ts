@@ -256,6 +256,28 @@ export async function getRecentUnclusteredEvents(
 }
 
 /**
+ * Update event confidence and verification_status based on multi-source convergence.
+ * Called when a new observation is linked to an existing event.
+ */
+export async function updateEventConvergence(
+  client: PoolClient,
+  eventId: string,
+  observationCount: number,
+  baseConfidence: number | null
+): Promise<void> {
+  const boost = Math.min(0.2, (observationCount - 1) * 0.05);
+  const newConfidence = Math.min(1, (baseConfidence ?? 0.5) + boost);
+  const verificationStatus: VerificationStatus =
+    observationCount >= 3 ? 'verified' : observationCount >= 2 ? 'partially_verified' : 'unverified';
+
+  await client.query(
+    `UPDATE event SET confidence_score = $1, verification_status = $2, updated_at = now()
+     WHERE id = $3`,
+    [newConfidence, verificationStatus, eventId]
+  );
+}
+
+/**
  * Update event's primary_cluster_id.
  */
 export async function updateEventPrimaryCluster(
