@@ -62,12 +62,12 @@ export function TimelineChart({ width, height, data = [] }: TimelineChartProps) 
 
     g.append('path')
       .datum(data)
-      .attr('fill', 'rgba(248, 113, 113, 0.3)')
+      .attr('fill', 'rgba(229, 57, 53, 0.3)')
       .attr('d', areaOmbre as never);
 
     g.append('path')
       .datum(data)
-      .attr('fill', 'rgba(74, 222, 128, 0.3)')
+      .attr('fill', 'rgba(67, 160, 71, 0.3)')
       .attr('d', areaLumiere as never);
 
     g.append('g')

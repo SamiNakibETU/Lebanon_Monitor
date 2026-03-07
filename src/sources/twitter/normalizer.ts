@@ -13,6 +13,15 @@ function stripHtml(html: string): string {
   return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
+/** Decode URL-encoded Arabic/Unicode in titles (e.g. %D8%A7%D8%AA...). */
+function decodeTitle(s: string): string {
+  try {
+    return decodeURIComponent(s.replace(/\+/g, ' '));
+  } catch {
+    return s;
+  }
+}
+
 function extractTweetId(link: string | undefined, guid: string | undefined): string {
   if (link?.includes('/status/')) {
     const match = link.match(/\/status\/(\d+)/);
@@ -29,7 +38,8 @@ export function normalize(
 
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
-    const title = item.title ?? stripHtml(item.content ?? '') ?? 'Tweet';
+    const rawTitle = item.title ?? stripHtml(item.content ?? '') ?? 'Tweet';
+    const title = decodeTitle(rawTitle);
     const text = `${title} ${item.contentSnippet ?? ''} ${item.content ?? ''}`;
     const { classification, confidence, category } = classifyByKeywords(text);
     const tweetId = extractTweetId(item.link, item.guid);

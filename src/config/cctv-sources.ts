@@ -42,6 +42,7 @@ export const CCTV_SOURCES: CctvSource[] = [
     name: 'OTV Lebanon',
     type: 'direct',
     url: 'https://otv.com.lb/live',
+    embedUrl: 'https://otv.com.lb/live',
     priority: 4,
   },
   {

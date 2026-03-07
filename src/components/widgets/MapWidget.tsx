@@ -146,10 +146,10 @@ export function MapWidget({ events, className = '' }: MapWidgetProps) {
           'match',
           ['get', 'classification'],
           'ombre',
-          '#F87171',
+          '#E53935',
           'lumiere',
-          '#4ADE80',
-          '#A1A1AA',
+          '#43A047',
+          '#666666',
         ],
         'circle-radius': 6,
         'circle-stroke-width': 1.5,
@@ -186,7 +186,7 @@ export function MapWidget({ events, className = '' }: MapWidgetProps) {
   return (
     <div
       ref={containerRef}
-      className={`w-full h-full min-h-[200px] rounded-xl overflow-hidden ${className}`}
+      className={`w-full h-full min-h-[200px] overflow-hidden ${className}`}
     />
   );
 }

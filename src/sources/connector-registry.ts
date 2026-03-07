@@ -43,6 +43,9 @@ import { ACLED_CONFIG } from "./acled/config";
 import { fetchUcdp } from "./ucdp";
 import { normalize as normalizeUcdp } from "./ucdp";
 import { UCDP_CONFIG } from "./ucdp/config";
+import { fetchTelegram, type TelegramFetchResult } from "./telegram";
+import { normalize as normalizeTelegram } from "./telegram";
+import { TELEGRAM_CONFIG } from "./telegram/config";
 import type { ConnectorDescriptor } from "./connector-types";
 
 function isNotConfigured(msg: string): boolean {
@@ -205,6 +208,22 @@ export const CONNECTORS: ConnectorDescriptor[] = [
     normalize: (raw, fetchedAt) =>
       normalizeUcdp(
         raw as { Results?: import("./ucdp/types").UCDPEvent[] },
+        fetchedAt
+      ),
+    isSkipped: (msg) => msg.includes("not configured"),
+  }),
+  createConnector({
+    name: "telegram",
+    category: "news",
+    eventSource: true,
+    indicatorSource: false,
+    ttlSeconds: TELEGRAM_CONFIG.ttlSeconds,
+    reliability: "medium",
+    costClass: "free",
+    fetch: fetchTelegram,
+    normalize: (raw, fetchedAt) =>
+      normalizeTelegram(
+        ((raw as TelegramFetchResult)?.items ?? []) as TelegramFetchResult['items'],
         fetchedAt
       ),
     isSkipped: (msg) => msg.includes("not configured"),

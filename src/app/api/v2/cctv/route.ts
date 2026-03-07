@@ -1,8 +1,9 @@
 /**
  * CCTV resolution — try sources in priority order, return first available.
+ * ?source=id forces a specific source.
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { CCTV_SOURCES } from '@/config/cctv-sources';
 
 async function resolveYouTubeLive(handle: string): Promise<{ videoId: string | null; isLive: boolean }> {
@@ -29,7 +30,50 @@ async function resolveYouTubeLive(handle: string): Promise<{ videoId: string | n
   return { videoId: null, isLive: false };
 }
 
-export async function GET() {
+function buildResponse(
+  source: (typeof CCTV_SOURCES)[0],
+  type: 'youtube' | 'webcam' | 'direct',
+  opts: { videoId?: string; isLive?: boolean; embedUrl: string }
+) {
+  return NextResponse.json({
+    source: { id: source.id, name: source.name },
+    type,
+    videoId: opts.videoId,
+    isLive: opts.isLive ?? false,
+    embedUrl: opts.embedUrl,
+    sources: CCTV_SOURCES.map((s) => ({ id: s.id, name: s.name })),
+  });
+}
+
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const forceId = searchParams.get('source');
+
+  if (forceId) {
+    const source = CCTV_SOURCES.find((s) => s.id === forceId);
+    if (source) {
+      if (source.type === 'youtube' && (source.youtubeHandle || source.videoId)) {
+        const { videoId, isLive } = source.youtubeHandle
+          ? await resolveYouTubeLive(source.youtubeHandle)
+          : { videoId: source.videoId, isLive: false };
+        const finalId = videoId ?? source.videoId;
+        if (finalId) {
+          return buildResponse(source, 'youtube', {
+            videoId: finalId,
+            isLive,
+            embedUrl: `https://www.youtube.com/embed/${finalId}?autoplay=0&mute=1`,
+          });
+        }
+      }
+      if (source.type === 'webcam' && source.embedUrl) {
+        return buildResponse(source, 'webcam', { embedUrl: source.embedUrl });
+      }
+      if (source.type === 'direct' && source.embedUrl) {
+        return buildResponse(source, 'direct', { embedUrl: source.embedUrl });
+      }
+    }
+  }
+
   const sorted = [...CCTV_SOURCES].sort((a, b) => a.priority - b.priority);
 
   for (const source of sorted) {
@@ -37,9 +81,7 @@ export async function GET() {
       const { videoId, isLive } = await resolveYouTubeLive(source.youtubeHandle);
       const finalId = videoId ?? source.videoId;
       if (finalId) {
-        return NextResponse.json({
-          source: { id: source.id, name: source.name },
-          type: 'youtube',
+        return buildResponse(source, 'youtube', {
           videoId: finalId,
           isLive,
           embedUrl: `https://www.youtube.com/embed/${finalId}?autoplay=0&mute=1`,
@@ -47,35 +89,24 @@ export async function GET() {
       }
     }
     if (source.type === 'webcam' && source.embedUrl) {
-      return NextResponse.json({
-        source: { id: source.id, name: source.name },
-        type: 'webcam',
-        embedUrl: source.embedUrl,
-      });
+      return buildResponse(source, 'webcam', { embedUrl: source.embedUrl });
     }
     if (source.type === 'direct' && source.embedUrl) {
-      return NextResponse.json({
-        source: { id: source.id, name: source.name },
-        type: 'direct',
-        embedUrl: source.embedUrl,
-      });
+      return buildResponse(source, 'direct', { embedUrl: source.embedUrl });
     }
   }
 
   const fallback = CCTV_SOURCES.find((s) => s.alwaysAvailable && s.videoId);
   if (fallback?.videoId) {
-    return NextResponse.json({
-      source: { id: fallback.id, name: fallback.name },
-      type: 'youtube',
+    return buildResponse(fallback, 'youtube', {
       videoId: fallback.videoId,
       isLive: false,
       embedUrl: `https://www.youtube.com/embed/${fallback.videoId}?autoplay=0&mute=1`,
     });
   }
 
-  return NextResponse.json({
-    source: { id: 'aljazeera', name: 'Al Jazeera' },
-    type: 'youtube',
+  const aljazeera = CCTV_SOURCES.find((s) => s.id === 'aljazeera') ?? CCTV_SOURCES[0]!;
+  return buildResponse(aljazeera, 'youtube', {
     videoId: 'gCNeDWCI0vo',
     isLive: false,
     embedUrl: 'https://www.youtube.com/embed/gCNeDWCI0vo?autoplay=0&mute=1',

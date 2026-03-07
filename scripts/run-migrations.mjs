@@ -6,11 +6,22 @@
  */
 
 import { readdir, readFile } from 'fs/promises';
+import { readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import pg from 'pg';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// Load .env.local if present
+const envPath = join(__dirname, '..', '.env.local');
+if (existsSync(envPath)) {
+  const content = readFileSync(envPath, 'utf-8');
+  for (const line of content.split('\n')) {
+    const m = line.match(/^([^#=]+)=(.*)$/);
+    if (m) process.env[m[1].trim()] = m[2].trim().replace(/^["']|["']$/g, '');
+  }
+}
 const MIGRATIONS_DIR = join(__dirname, '..', 'src', 'db', 'migrations');
 
 async function getMigrationFiles() {

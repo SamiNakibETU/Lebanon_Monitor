@@ -65,7 +65,7 @@ export function LBPSparkline({
       .y((d) => yScale(d.value))
       .curve(d3.curveMonotoneX);
 
-    const color = trend === 'up' ? '#F87171' : trend === 'down' ? '#4ADE80' : 'var(--text-secondary)';
+    const color = trend === 'up' ? '#E53935' : trend === 'down' ? '#43A047' : 'var(--text-secondary)';
 
     g.append('path')
       .datum(data)

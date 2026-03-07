@@ -4,6 +4,22 @@ Guide pas à pas pour déployer sur Railway.
 
 ---
 
+## ⚡ Quick fix : 0 événements en prod
+
+Si ton dashboard affiche 0 événements alors que Web + Postgres sont déployés :
+
+1. **Push ce commit** (endpoint `/api/admin/ingest` + doc)
+2. **Railway** → service Web → **Variables** → ajouter :
+   - `INGEST_SECRET` = `openssl rand -hex 24` (génère une clé)
+3. **cron-job.org** (gratuit) : créer un job toutes les 5 min :
+   - URL : `https://lebanonmonitor-production.up.railway.app/api/admin/ingest`
+   - Méthode : **POST**
+   - Header : `X-Ingest-Secret: <ta valeur INGEST_SECRET>`
+
+Après 5–10 min, les événements apparaîtront.
+
+---
+
 ## 🔗 Connexion base de données — Guide simplifié
 
 La base de données (PostgreSQL) stocke les événements. Sans elle, l'app affiche "DB not configured" et aucun événement.
@@ -209,6 +225,8 @@ Dans **Web Service** → **Variables** :
 | `UCDP_ACCESS_TOKEN` | Non | UCDP API (conflits) |
 | `RELIEFWEB_APPNAME` | Non | ReliefWeb appname approuvé (ex. `SNakib-lebanonmonitor-sn7k2`) |
 | `OPENAQ_API_KEY` | Non | Qualité de l’air (OpenAQ v3) |
+| `INGEST_SECRET` | Non | Secret pour `POST /api/admin/ingest` (cron-job.org). Générer : `openssl rand -hex 24` |
+| `ANTHROPIC_API_KEY` | Non | Claude API pour classification des titres ambigus |
 
 \* Si `DATABASE_URL` est absent, l’app fonctionne en mode dégradé (sans persistance).
 
@@ -264,18 +282,26 @@ Configurer dans Railway : **Settings** → **Health Check** → Path: `/api/heal
 
 ## 8. Worker (ingestion)
 
-Pour que les événements soient ingérés en production, déployer un **service Worker** séparé :
+Sans worker, le dashboard affiche 0 événement. Deux options :
 
-1. **+ New** → **Empty Service** (ou **Deploy from GitHub** avec le même repo)
-2. **Settings** → **Build** : désactiver le build (ou utiliser le même build que le Web)
-3. **Settings** → **Deploy** → **Custom Start Command** :
-   ```bash
-   npm run worker
-   ```
-4. **Variables** : référencer `DATABASE_URL` depuis PostgreSQL (comme le service Web)
-5. **Variables** : ajouter les clés optionnelles (ANTHROPIC_API_KEY, HF_API_TOKEN, ACLED_*, etc.) si besoin
+### Option A : Endpoint cron (recommandé — pas de service supplémentaire)
 
-Le worker tourne en boucle (intervalle 5 min). Pour un cron externe à la place : utiliser **Railway Cron** ou un service type cron-job.org qui appelle un endpoint dédié.
+1. **Générer un secret** : `openssl rand -hex 24`
+2. **Railway** → service Web → **Variables** → ajouter :
+   - `INGEST_SECRET` = la valeur générée
+3. **cron-job.org** (gratuit) : créer un job qui appelle toutes les 5 min :
+   - URL : `https://ton-app.railway.app/api/admin/ingest`
+   - Méthode : POST
+   - Header : `X-Ingest-Secret: <ta valeur INGEST_SECRET>`
+
+### Option B : Service Worker Railway
+
+1. **+ New** → **Empty Service** → même repo GitHub
+2. **Settings** → **Deploy** → **Custom Start Command** : `npm run worker`
+3. **Variables** : `DATABASE_URL` = `${{ Postgres.DATABASE_URL }}`
+4. Optionnel : ANTHROPIC_API_KEY, HF_API_TOKEN, etc.
+
+Le worker tourne en boucle (5 min). Pour un run unique : `npm run worker:once`.
 
 ---
 

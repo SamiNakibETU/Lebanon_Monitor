@@ -1,11 +1,17 @@
 'use client';
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState } from 'react';
 import useSWR from 'swr';
+import Link from 'next/link';
 import { Header } from '@/components/layout/Header';
-import { AlertToast } from '@/components/AlertToast';
-import { BentoDashboard } from '@/components/layout/BentoDashboard';
-import { BentoCard } from '@/components/ui/BentoCard';
+import {
+  NorgramDashboard,
+  StatsStrip,
+  Stat,
+  MainContentRow,
+  ChartsStrip,
+  SecondaryStrip,
+} from '@/components/layout/NorgramDashboard';
 import { TimelineChart, CategoryBars, SourceDonut, OmbreGauge, LBPSparkline } from '@/components/charts';
 import { MapWidget } from '@/components/widgets/MapWidget';
 import { CCTVWidget } from '@/components/widgets/CCTVWidget';
@@ -63,11 +69,11 @@ interface V2Cluster {
 }
 
 function ClassificationDot({ c }: { c: string }) {
-  const color = c === 'ombre' ? 'var(--ombre)' : c === 'lumiere' ? 'var(--lumiere)' : 'var(--neutre)';
+  const color = c === 'ombre' ? '#E53935' : c === 'lumiere' ? '#43A047' : '#666666';
   return (
     <span
-      className="inline-block w-2 h-2 rounded-full shrink-0"
-      style={{ background: color }}
+      className="inline-block shrink-0 rounded-full"
+      style={{ width: 6, height: 6, background: color }}
     />
   );
 }
@@ -77,26 +83,31 @@ function EventCard({ e }: { e: V2Event }) {
   const rel = time > new Date(Date.now() - 60 * 60 * 1000)
     ? `${Math.round((Date.now() - time.getTime()) / 60000)} min ago`
     : time.toLocaleDateString();
+  const categoryLabel = e.category ? getCategoryLabel(e.category) : e.classification;
 
   return (
-    <div
-      className="flex gap-3 py-2 px-3 rounded-xl transition-colors hover:bg-white/[0.04]"
-      style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+    <a
+      href={`/event/${e.id}`}
+      className="flex gap-3 py-4 px-6 transition-colors cursor-pointer block no-underline"
+      style={{
+        borderBottom: '1px solid rgba(255,255,255,0.04)',
+      }}
+      onMouseEnter={(ev) => { ev.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.02)'; }}
+      onMouseLeave={(ev) => { ev.currentTarget.style.backgroundColor = 'transparent'; }}
     >
       <ClassificationDot c={e.classification} />
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap text-[11px] mb-0.5" style={{ color: 'var(--text-secondary)' }}>
-          <span className="uppercase">{e.classification}</span>
+        <div className="flex items-center gap-2 flex-wrap text-[11px] mb-1.5 uppercase tracking-[0.04em]" style={{ color: '#666666' }}>
+          <span>{categoryLabel}</span>
           <span>·</span>
-          {e.source && <span className="uppercase">{e.source}</span>}
-          <span>·</span>
-          <span suppressHydrationWarning>{rel}</span>
+          {e.source && <span>{e.source}</span>}
+          <span className="ml-auto" suppressHydrationWarning>{rel}</span>
         </div>
-        <div className="text-sm" style={{ color: 'var(--text-primary)' }}>
+        <div className="text-[14px] font-normal leading-snug" style={{ color: '#FFFFFF' }}>
           {e.title}
         </div>
       </div>
-    </div>
+    </a>
   );
 }
 
@@ -107,13 +118,11 @@ export default function Home() {
   const timelineRef = useRef<HTMLDivElement>(null);
   const categoryRef = useRef<HTMLDivElement>(null);
   const sourceRef = useRef<HTMLDivElement>(null);
-  const gaugeRef = useRef<HTMLDivElement>(null);
   const lbpRef = useRef<HTMLDivElement>(null);
 
   const timelineSize = useContainerSize(timelineRef);
   const categorySize = useContainerSize(categoryRef);
   const sourceSize = useContainerSize(sourceRef);
-  const gaugeSize = useContainerSize(gaugeRef);
   const lbpSize = useContainerSize(lbpRef);
 
   const eventsUrl = `/api/v2/events?lang=${lang}${politicalFilter ? '&political=true' : ''}`;
@@ -145,140 +154,167 @@ export default function Home() {
         aqi={indicators?.aqi}
         eventCount={stats?.eventsToday ?? total}
       />
-      <BentoDashboard>
-        <BentoCard span="sm" label="EVENTS TODAY" value={String(stats?.eventsToday ?? total)} trend="up" key="events-today">
-          <div className="text-3xl font-medium tabular-nums pt-1" style={{ color: 'var(--text-primary)' }}>
-            {stats?.totalEvents ?? 0}
+      <NorgramDashboard>
+        <StatsStrip>
+          <Stat value={stats?.eventsToday ?? total} label="events today" />
+          <Stat value={`${stats?.ombreRatio ?? 0}%`} label="ombre" />
+          <Stat value={(stats?.topSources ?? []).length || 12} label="sources" />
+          <div className="flex-1" />
+          <div className="text-[11px] uppercase tracking-[0.08em]" style={{ color: '#666666' }}>
+            GDELT · ACLED · USGS · NASA · ReliefWeb — MAJ il y a 2 min
           </div>
-          <div className="text-[11px] mt-1" style={{ color: 'var(--text-secondary)' }}>
-            total in DB
-          </div>
-        </BentoCard>
-        <BentoCard span="xl" label="MAP">
-          <MapWidget events={events} className="min-h-[300px]" />
-        </BentoCard>
-        <BentoCard span="sm" label="OMBRE RATIO">
-          <div ref={gaugeRef} className="w-full h-full min-h-[100px]">
-            <OmbreGauge
-              width={gaugeSize.width}
-              height={gaugeSize.height}
-              ombreRatio={stats?.ombreRatio ?? 0}
-            />
-          </div>
-        </BentoCard>
-        <BentoCard span="lg" label="TIMELINE">
-          <div ref={timelineRef} className="w-full h-full min-h-[120px]">
-            <TimelineChart
-              width={timelineSize.width}
-              height={timelineSize.height}
-              data={timelineArray}
-            />
-          </div>
-        </BentoCard>
-        <BentoCard span="sm" label="SOURCES">
-          <div ref={sourceRef} className="w-full h-full min-h-[100px]">
-            <SourceDonut
-              width={sourceSize.width}
-              height={sourceSize.height}
-              data={stats?.topSources ?? []}
-              total={stats?.eventsToday ?? 0}
-            />
-          </div>
-        </BentoCard>
-        <BentoCard span="sm" label="CATEGORIES">
-          <div ref={categoryRef} className="w-full h-full min-h-[100px]">
-            <CategoryBars
-              width={categorySize.width}
-              height={categorySize.height}
-              data={
-                (Array.isArray(stats?.topCategories) ? stats.topCategories : []).map((c) => ({
-                  code: c.code,
-                  count: c.count,
-                  isOmbre: ['armed_conflict', 'economic_crisis', 'political_tension', 'violence'].includes(c.code),
-                }))
-              }
-            />
-          </div>
-        </BentoCard>
-        <BentoCard span="sm" label="LBP TREND">
-          <div ref={lbpRef} className="w-full h-full min-h-[60px]">
-            <LBPSparkline
-              width={lbpSize.width}
-              height={lbpSize.height}
-              data={
-                indicators?.history?.lbp
-                  ?.filter((d) => d.value != null)
-                  .map((d) => ({ at: new Date(d.at).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' }), value: d.value ?? 0 }))
-                  .slice(-14) ?? []
-              }
-              current={indicators?.lbp ?? 0}
-              trend="stable"
-            />
-          </div>
-        </BentoCard>
-        <BentoCard span="sm" label="TRENDING">
-          <div className="flex flex-col gap-1.5 overflow-y-auto max-h-[160px]">
-            {(Array.isArray(clustersData?.clusters) ? clustersData.clusters : []).slice(0, 8).map((c) => (
-              <div
-                key={c.code}
-                className="flex justify-between items-center text-[11px] py-0.5"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                <span>{getCategoryLabel(c.code)}</span>
-                <span className="tabular-nums flex items-center gap-1">
-                  {c.count}
-                  {c.trend === 'up' && <span style={{ color: 'var(--ombre)' }}>↗</span>}
-                  {c.trend === 'down' && <span style={{ color: 'var(--lumiere)' }}>↘</span>}
+        </StatsStrip>
+        <MainContentRow
+          mapSlot={<MapWidget events={events} className="h-full w-full" />}
+          feedSlot={
+            <div className="flex flex-col h-full">
+              <div className="flex items-center justify-between gap-2 px-6 py-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                <button
+                  type="button"
+                  onClick={() => setPoliticalFilter((p) => !p)}
+                  className="text-[11px] transition-colors duration-150"
+                  style={{
+                    color: politicalFilter ? '#FFFFFF' : '#666666',
+                  }}
+                >
+                  Political
+                </button>
+                <a
+                  href={`/api/v2/export?format=csv&lang=${lang}${politicalFilter ? '&political=true' : ''}`}
+                  download
+                  className="text-[11px] transition-colors duration-150 hover:text-[#FFFFFF]"
+                  style={{ color: '#666666' }}
+                >
+                  Export CSV
+                </a>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                {events.length === 0 ? (
+                  <div className="flex items-center justify-center h-full px-6" style={{ color: '#666666' }} suppressHydrationWarning>
+                    {eventsError
+                      ? 'DB not configured. Set DATABASE_URL and run worker.'
+                      : eventsRes
+                        ? 'No events yet. Run: npm run worker'
+                        : '—'}
+                  </div>
+                ) : (
+                  events.map((e) => <EventCard key={e.id} e={e} />)
+                )}
+              </div>
+            </div>
+          }
+        />
+        <ChartsStrip
+          timelineSlot={
+            <div ref={timelineRef} className="w-full h-full min-h-[160px]">
+              <div className="text-[11px] uppercase tracking-[0.08em] mb-2" style={{ color: '#666666' }}>
+                Timeline
+              </div>
+              <TimelineChart
+                width={timelineSize.width}
+                height={Math.max(120, timelineSize.height - 24)}
+                data={timelineArray}
+              />
+            </div>
+          }
+          categoriesSlot={
+            <div ref={categoryRef} className="w-full h-full min-h-[160px]">
+              <div className="text-[11px] uppercase tracking-[0.08em] mb-2" style={{ color: '#666666' }}>
+                Categories
+              </div>
+              <CategoryBars
+                width={categorySize.width}
+                height={Math.max(100, categorySize.height - 24)}
+                data={
+                  (Array.isArray(stats?.topCategories) ? stats.topCategories : []).map((c) => ({
+                    code: c.code,
+                    count: c.count,
+                    isOmbre: ['armed_conflict', 'economic_crisis', 'political_tension', 'violence'].includes(c.code),
+                  }))
+                }
+              />
+            </div>
+          }
+          liveSlot={
+            <div className="w-full h-full min-h-[160px]">
+              <CCTVWidget />
+            </div>
+          }
+        />
+        <SecondaryStrip
+          lbpSlot={
+            <div ref={lbpRef} className="w-full h-full min-h-[120px]">
+              <div className="text-[11px] uppercase tracking-[0.08em] mb-2" style={{ color: '#666666' }}>
+                LBP trend
+              </div>
+              <LBPSparkline
+                width={lbpSize.width}
+                height={Math.max(60, lbpSize.height - 24)}
+                data={
+                  indicators?.history?.lbp
+                    ?.filter((d) => d.value != null)
+                    .map((d) => ({ at: new Date(d.at).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' }), value: d.value ?? 0 }))
+                    .slice(-14) ?? []
+                }
+                current={indicators?.lbp ?? 0}
+                trend="stable"
+              />
+            </div>
+          }
+          sourcesSlot={
+            <div ref={sourceRef} className="w-full h-full min-h-[120px]">
+              <div className="text-[11px] uppercase tracking-[0.08em] mb-2" style={{ color: '#666666' }}>
+                Sources
+              </div>
+              <SourceDonut
+                width={sourceSize.width}
+                height={Math.max(80, sourceSize.height - 24)}
+                data={stats?.topSources ?? []}
+                total={stats?.eventsToday ?? 0}
+              />
+            </div>
+          }
+          trendingSlot={
+            <div className="w-full h-full overflow-y-auto">
+              <div className="text-[11px] uppercase tracking-[0.08em] mb-2" style={{ color: '#666666' }}>
+                Trending
+              </div>
+              {(Array.isArray(clustersData?.clusters) ? clustersData.clusters : []).slice(0, 5).map((c) => (
+                <div
+                  key={c.code}
+                  className="flex justify-between items-center text-[11px] py-0.5"
+                  style={{ color: '#666666' }}
+                >
+                  <span>{getCategoryLabel(c.code)}</span>
+                  <span className="tabular-nums flex items-center gap-1">
+                    {c.count}
+                    {c.trend === 'up' && <span style={{ color: '#E53935' }}>↗</span>}
+                    {c.trend === 'down' && <span style={{ color: '#43A047' }}>↘</span>}
+                  </span>
+                </div>
+              ))}
+              {(!clustersData?.clusters || clustersData.clusters.length === 0) && (
+                <span className="text-[11px]" style={{ color: '#666666' }}>
+                  —
                 </span>
+              )}
+            </div>
+          }
+          aqiSlot={
+            <div className="w-full h-full">
+              <div className="text-[11px] uppercase tracking-[0.08em] mb-2" style={{ color: '#666666' }}>
+                Air quality
               </div>
-            ))}
-            {(!clustersData?.clusters || clustersData.clusters.length === 0) && (
-              <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
-                Last 24h
-              </span>
-            )}
-          </div>
-        </BentoCard>
-        <BentoCard span="lg" label="LIVE">
-          <CCTVWidget />
-        </BentoCard>
-        <BentoCard span="full" label="EVENT FEED">
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <button
-              type="button"
-              onClick={() => setPoliticalFilter((p) => !p)}
-              className="px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors"
-              style={{
-                background: politicalFilter ? 'rgba(122,81,99,0.3)' : 'rgba(255,255,255,0.06)',
-                color: politicalFilter ? 'var(--ombre)' : 'var(--text-secondary)',
-              }}
-            >
-              Political
-            </button>
-            <a
-              href={`/api/v2/export?format=csv&lang=${lang}${politicalFilter ? '&political=true' : ''}`}
-              download
-              className="px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors hover:bg-white/[0.08]"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              Export CSV
-            </a>
-          </div>
-          <div className="h-[280px] overflow-y-auto">
-            {events.length === 0 ? (
-              <div className="flex items-center justify-center h-full" style={{ color: 'var(--text-tertiary)' }} suppressHydrationWarning>
-                {eventsError
-                  ? 'DB not configured. Set DATABASE_URL and run worker.'
-                  : eventsRes
-                    ? 'No events yet. Run: npm run worker'
-                    : 'Loading…'}
+              <div className="text-[48px] font-light leading-none tabular-nums" style={{ color: '#FFFFFF' }} suppressHydrationWarning>
+                {indicators?.aqi ?? '—'}
               </div>
-            ) : (
-              events.map((e) => <EventCard key={e.id} e={e} />)
-            )}
-          </div>
-        </BentoCard>
-      </BentoDashboard>
+              <div className="text-[11px] mt-1" style={{ color: '#666666' }}>
+                AQI Beyrouth
+              </div>
+            </div>
+          }
+        />
+      </NorgramDashboard>
       <footer className="py-3 px-4 text-center text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
         GDELT · ACLED · USGS · NASA · ReliefWeb — Mis à jour il y a 2 min
       </footer>

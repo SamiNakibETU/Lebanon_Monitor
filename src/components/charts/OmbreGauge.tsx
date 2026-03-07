@@ -46,7 +46,7 @@ export function OmbreGauge({ width, height, ombreRatio = 0 }: OmbreGaugeProps) {
           endAngle: lumiereEnd,
         }) ?? ''
       )
-      .attr('fill', '#4ADE80');
+      .attr('fill', '#43A047');
 
     g.append('path')
       .attr(
@@ -56,7 +56,7 @@ export function OmbreGauge({ width, height, ombreRatio = 0 }: OmbreGaugeProps) {
           endAngle: 0,
         }) ?? ''
       )
-      .attr('fill', '#F87171');
+      .attr('fill', '#E53935');
 
     g.append('text')
       .attr('text-anchor', 'middle')

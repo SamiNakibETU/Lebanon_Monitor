@@ -53,9 +53,8 @@ export function CategoryBars({ width, height, data = [] }: CategoryBarsProps) {
       .attr('x', 0)
       .attr('width', (d) => xScale(d.count))
       .attr('fill', (d) =>
-        d.isOmbre ? 'rgba(248, 113, 113, 0.6)' : 'rgba(74, 222, 128, 0.6)'
-      )
-      .attr('rx', 2);
+        d.isOmbre ? '#E53935' : '#43A047'
+      );
 
     g.selectAll('.label')
       .data(data)

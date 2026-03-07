@@ -1,16 +1,11 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
+import { DM_Sans } from "next/font/google";
 import "./globals.css";
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
-});
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  weight: ["300", "400", "500"],
+  variable: "--font-dm-sans",
 });
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://lebanon-monitor.railway.app";
@@ -23,7 +18,7 @@ export const metadata: Metadata = {
   description:
     "Real-time intelligence dashboard for Lebanon. Events, maps, indicators, CCTV, and trending topics. Lumière & Ombre classification.",
   keywords: ["Lebanon", "OSINT", "dashboard", "events", "monitoring", "intelligence"],
-  authors: [{ name: "Lebanon Monitor" }],
+  authors: [{ name: "Sami Nakib", url: "mailto:sami.nakib@etu.cyu.fr" }],
   openGraph: {
     type: "website",
     url: baseUrl,
@@ -49,8 +44,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link
+          href="https://fonts.googleapis.com/css2?family=IBM+Plex+Arabic:wght@300;400&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${dmSans.variable} font-sans antialiased`}
+        style={{ fontFamily: '"DM Sans", "Helvetica Neue", Helvetica, Arial, sans-serif' }}
         suppressHydrationWarning
       >
         {children}

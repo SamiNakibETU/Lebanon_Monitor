@@ -2,6 +2,7 @@
   "name": "lebanon-monitor",
   "version": "0.1.0",
   "private": true,
+  "author": "Sami Nakib <sami.nakib@etu.cyu.fr>",
   "engines": {
     "node": ">=20.9.0"
   },
@@ -17,7 +18,9 @@
     "db:migrate": "node scripts/run-migrations.mjs",
     "db:seed": "node scripts/run-seed.mjs",
     "db:check": "node -e \"const{Pool}=require('pg');const p=new Pool({connectionString:process.env.DATABASE_URL});p.query('SELECT 1').then(()=>{console.log('DB OK');process.exit(0)}).catch(e=>{console.error(e.message);process.exit(1)}).finally(()=>p.end())\"",
-    "worker": "tsx src/worker/index.ts"
+    "worker": "tsx src/worker/index.ts",
+    "worker:once": "tsx src/worker/index.ts --once",
+    "railway:ingest": "node scripts/railway-ingest-once.mjs"
   },
   "dependencies": {
     "cheerio": "^1.2.0",

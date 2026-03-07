@@ -21,8 +21,10 @@ function getCityCoords(title: string, snippet?: string): { lat: number; lng: num
   return LEBANON_CITIES.Beirut;
 }
 
+type TelegramItem = TelegramFetchResult['items'][number];
+
 export function normalize(
-  items: TelegramFetchResult['items'],
+  items: Array<Partial<TelegramItem> & { feedName?: string }>,
   fetchedAt: Date
 ): LebanonEvent[] {
   const events: LebanonEvent[] = [];
