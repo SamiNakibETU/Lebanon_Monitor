@@ -5,7 +5,7 @@
 import { NextResponse } from 'next/server';
 import { withClient } from '@/db/client';
 
-export async function GET(request: Request) {
+export async function GET() {
   if (!process.env.DATABASE_URL) {
     return NextResponse.json(
       { error: 'Database not configured', code: 500 },
@@ -18,32 +18,30 @@ export async function GET(request: Request) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      const [totalRes, polarityRes, categoryRes, sourceRes] = await Promise.all([
-        client.query<{ count: string }>(
-          `SELECT COUNT(*)::int as count FROM event WHERE is_active = true`
-        ),
-        client.query<{ polarity_ui: string; count: string }>(
-          `SELECT polarity_ui, COUNT(*)::int as count FROM event 
-           WHERE is_active = true AND occurred_at >= $1 
-           GROUP BY polarity_ui`,
-          [today]
-        ),
-        client.query<{ event_type: string; count: string }>(
-          `SELECT event_type, COUNT(*)::int as count FROM event 
-           WHERE is_active = true AND occurred_at >= $1 
-           GROUP BY event_type HAVING event_type IS NOT NULL ORDER BY count DESC LIMIT 8`,
-          [today]
-        ),
-        client.query<{ source_name: string; count: string }>(
-          `SELECT si.source_name, COUNT(*)::int as count 
-           FROM event e 
-           JOIN event_observation eo ON eo.event_id = e.id 
-           JOIN source_item si ON si.id = eo.source_item_id 
-           WHERE e.is_active = true AND e.occurred_at >= $1 
-           GROUP BY si.source_name ORDER BY count DESC LIMIT 8`,
-          [today]
-        ),
-      ]);
+      const totalRes = await client.query<{ count: string }>(
+        `SELECT COUNT(*)::int as count FROM event WHERE is_active = true`
+      );
+      const polarityRes = await client.query<{ polarity_ui: string; count: string }>(
+        `SELECT polarity_ui, COUNT(*)::int as count FROM event 
+         WHERE is_active = true AND occurred_at >= $1 
+         GROUP BY polarity_ui`,
+        [today]
+      );
+      const categoryRes = await client.query<{ event_type: string; count: string }>(
+        `SELECT event_type, COUNT(*)::int as count FROM event 
+         WHERE is_active = true AND occurred_at >= $1 
+         GROUP BY event_type HAVING event_type IS NOT NULL ORDER BY count DESC LIMIT 8`,
+        [today]
+      );
+      const sourceRes = await client.query<{ source_name: string; count: string }>(
+        `SELECT si.source_name, COUNT(*)::int as count 
+         FROM event e 
+         JOIN event_observation eo ON eo.event_id = e.id 
+         JOIN source_item si ON si.id = eo.source_item_id 
+         WHERE e.is_active = true AND occurred_at >= $1 
+         GROUP BY si.source_name ORDER BY count DESC LIMIT 8`,
+        [today]
+      );
 
       const total = parseInt(totalRes.rows[0]?.count ?? '0', 10);
       const byPolarity = Object.fromEntries(

@@ -59,8 +59,8 @@ function parseOutcomePrices(outcomePrices?: string): { yes: number; no: number }
 export async function GET() {
   try {
     const res = await fetch(
-      `${GAMMA_URL}?active=true&closed=false&limit=150&order=volume24hr&ascending=false`,
-      { next: { revalidate: 300 } }
+      `${GAMMA_URL}?active=true&closed=false&limit=50&order=volume24hr&ascending=false`,
+      { cache: 'no-store' }
     );
     if (!res.ok) {
       return NextResponse.json({ markets: [] }, { status: 200 });

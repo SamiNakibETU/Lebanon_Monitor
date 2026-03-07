@@ -45,7 +45,12 @@ export async function fetchRss(): Promise<
 
       allItems.push(...filtered);
     } catch (e) {
-      logger.warn('RSS feed failed', { source: SOURCE, feed: feed.name, message: (e as Error).message });
+      logger.warn('RSS feed failed', {
+        source: SOURCE,
+        feed: feed.name,
+        url: feed.url,
+        message: (e as Error).message,
+      });
     }
   }
 

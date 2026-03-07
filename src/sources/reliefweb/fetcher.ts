@@ -11,7 +11,7 @@ const SOURCE = 'reliefweb';
 const APPROVED_APPNAME = 'SNakib-lebanonmonitor-sn7k2';
 
 function buildUrl(): string {
-  const base = 'https://api.reliefweb.int/v1/reports';
+  const base = 'https://api.reliefweb.int/v2/reports';
   const params = new URLSearchParams();
   params.set('appname', process.env.RELIEFWEB_APPNAME ?? APPROVED_APPNAME);
   params.set('filter[field]', 'country');
@@ -40,7 +40,11 @@ export async function fetchReliefWeb(): Promise<
   const timeoutId = setTimeout(() => controller.abort(), 15_000);
 
   try {
-    const response = await fetch(url, { headers: RELIEFWEB_HEADERS, signal: controller.signal });
+    let response = await fetch(url, { headers: RELIEFWEB_HEADERS, signal: controller.signal });
+    if (response.status === 404 && url.includes('/v2/')) {
+      const v1Url = url.replace('/v2/', '/v1/');
+      response = await fetch(v1Url, { headers: RELIEFWEB_HEADERS, signal: controller.signal });
+    }
     clearTimeout(timeoutId);
 
     if (!response.ok) {

@@ -19,22 +19,20 @@ export async function GET() {
       const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       const prior24h = new Date(now.getTime() - 48 * 60 * 60 * 1000);
 
-      const [curr, prev] = await Promise.all([
-        client.query<{ event_type: string; count: string }>(
-          `SELECT event_type, COUNT(*)::int as count FROM event
-           WHERE is_active = true AND event_type IS NOT NULL
-             AND occurred_at >= $1 AND occurred_at < $2
-           GROUP BY event_type ORDER BY count DESC LIMIT 12`,
-          [last24h, now]
-        ),
-        client.query<{ event_type: string; count: string }>(
-          `SELECT event_type, COUNT(*)::int as count FROM event
-           WHERE is_active = true AND event_type IS NOT NULL
-             AND occurred_at >= $1 AND occurred_at < $2
-           GROUP BY event_type`,
-          [prior24h, last24h]
-        ),
-      ]);
+      const curr = await client.query<{ event_type: string; count: string }>(
+        `SELECT event_type, COUNT(*)::int as count FROM event
+         WHERE is_active = true AND event_type IS NOT NULL
+           AND occurred_at >= $1 AND occurred_at < $2
+         GROUP BY event_type ORDER BY count DESC LIMIT 12`,
+        [last24h, now]
+      );
+      const prev = await client.query<{ event_type: string; count: string }>(
+        `SELECT event_type, COUNT(*)::int as count FROM event
+         WHERE is_active = true AND event_type IS NOT NULL
+           AND occurred_at >= $1 AND occurred_at < $2
+         GROUP BY event_type`,
+        [prior24h, last24h]
+      );
 
       const prevByType = new Map(prev.rows.map((r) => [r.event_type, parseInt(r.count, 10)]));
       const clusters = curr.rows.map((r) => {
