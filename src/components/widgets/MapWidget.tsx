@@ -5,13 +5,11 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { LEBANON_BBOX } from '@/config/lebanon';
 
+/** Use nolabels styles to avoid font loading (Montserrat/Open Sans Bold 404 on demotiles) */
 const TILE_STYLES = {
-  lumiere: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
-  ombre: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+  lumiere: 'https://basemaps.cartocdn.com/gl/positron-nolabels-gl-style/style.json',
+  ombre: 'https://basemaps.cartocdn.com/gl/dark-matter-nolabels-gl-style/style.json',
 } as const;
-
-/** CORS-enabled font server (Carto fonts blocked by CORS from production) */
-const GLYPHS_URL = 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf';
 
 const LAYER_LABELS: Record<string, string> = {
   events: 'Events',
@@ -103,45 +101,21 @@ export function MapWidget({
   useEffect(() => {
     if (!containerRef.current) return;
 
-    let cancelled = false;
-    fetch(TILE_STYLES[variant])
-      .then((r) => r.json())
-      .then((style) => {
-        if (cancelled || !containerRef.current) return;
-        (style as { glyphs?: string }).glyphs = GLYPHS_URL;
-        const map = new maplibregl.Map({
-          container: containerRef.current!,
-          style,
-          center: LEBANON_CENTER,
-          zoom: 8.2,
-          maxBounds: [
-            [LEBANON_BBOX.minLng, LEBANON_BBOX.minLat],
-            [LEBANON_BBOX.maxLng, LEBANON_BBOX.maxLat],
-          ] as [[number, number], [number, number]],
-          attributionControl: false,
-        });
-        map.on('load', () => setStyleLoaded(true));
-        mapRef.current = map;
-      })
-      .catch(() => {
-        if (cancelled || !containerRef.current) return;
-        const map = new maplibregl.Map({
-          container: containerRef.current,
-          style: TILE_STYLES[variant],
-          center: LEBANON_CENTER,
-          zoom: 8.2,
-          maxBounds: [
-            [LEBANON_BBOX.minLng, LEBANON_BBOX.minLat],
-            [LEBANON_BBOX.maxLng, LEBANON_BBOX.maxLat],
-          ] as [[number, number], [number, number]],
-          attributionControl: false,
-        });
-        map.on('load', () => setStyleLoaded(true));
-        mapRef.current = map;
-      });
+    const map = new maplibregl.Map({
+      container: containerRef.current,
+      style: TILE_STYLES[variant],
+      center: LEBANON_CENTER,
+      zoom: 8.2,
+      maxBounds: [
+        [LEBANON_BBOX.minLng, LEBANON_BBOX.minLat],
+        [LEBANON_BBOX.maxLng, LEBANON_BBOX.maxLat],
+      ] as [[number, number], [number, number]],
+      attributionControl: false,
+    });
+    map.on('load', () => setStyleLoaded(true));
+    mapRef.current = map;
 
     return () => {
-      cancelled = true;
       const map = mapRef.current;
       if (map) {
         map.remove();
@@ -180,21 +154,6 @@ export function MapWidget({
         'circle-radius': ['step', ['get', 'point_count'], 15, 10, 20, 30, 25],
         'circle-stroke-width': 1,
         'circle-stroke-color': 'rgba(255,255,255,0.2)',
-      },
-    });
-
-    map.addLayer({
-      id: 'cluster-count',
-      type: 'symbol',
-      source: 'events',
-      filter: ['has', 'point_count'],
-      layout: {
-        'text-field': ['get', 'point_count_abbreviated'],
-        'text-font': ['Open Sans Regular', 'Arial Unicode MS Regular'],
-        'text-size': 12,
-      },
-      paint: {
-        'text-color': '#0a0a0a',
       },
     });
 
@@ -364,7 +323,6 @@ export function MapWidget({
     if (!map || !styleLoaded) return;
     const v = (id: string) => (layers[id as LayerId] ? 'visible' : 'none');
     if (map.getLayer('clusters')) map.setLayoutProperty('clusters', 'visibility', v('events'));
-    if (map.getLayer('cluster-count')) map.setLayoutProperty('cluster-count', 'visibility', v('events'));
     if (map.getLayer('events-unclustered')) map.setLayoutProperty('events-unclustered', 'visibility', v('events'));
     if (map.getLayer('conflict-heatmap')) map.setLayoutProperty('conflict-heatmap', 'visibility', v('heatmap'));
     if (map.getLayer('hillshade')) map.setLayoutProperty('hillshade', 'visibility', v('terrain'));
