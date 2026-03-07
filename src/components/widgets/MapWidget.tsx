@@ -10,6 +10,9 @@ const TILE_STYLES = {
   ombre: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
 } as const;
 
+/** CORS-enabled font server (Carto fonts blocked by CORS from production) */
+const GLYPHS_URL = 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf';
+
 const LAYER_LABELS: Record<string, string> = {
   events: 'Events',
   heatmap: 'Heatmap',
@@ -100,24 +103,50 @@ export function MapWidget({
   useEffect(() => {
     if (!containerRef.current) return;
 
-    const map = new maplibregl.Map({
-      container: containerRef.current,
-      style: TILE_STYLES[variant],
-      center: LEBANON_CENTER,
-      zoom: 8.2,
-      maxBounds: [
-        [LEBANON_BBOX.minLng, LEBANON_BBOX.minLat],
-        [LEBANON_BBOX.maxLng, LEBANON_BBOX.maxLat],
-      ] as [[number, number], [number, number]],
-      attributionControl: false,
-    });
-
-    map.on('load', () => setStyleLoaded(true));
-    mapRef.current = map;
+    let cancelled = false;
+    fetch(TILE_STYLES[variant])
+      .then((r) => r.json())
+      .then((style) => {
+        if (cancelled || !containerRef.current) return;
+        (style as { glyphs?: string }).glyphs = GLYPHS_URL;
+        const map = new maplibregl.Map({
+          container: containerRef.current!,
+          style,
+          center: LEBANON_CENTER,
+          zoom: 8.2,
+          maxBounds: [
+            [LEBANON_BBOX.minLng, LEBANON_BBOX.minLat],
+            [LEBANON_BBOX.maxLng, LEBANON_BBOX.maxLat],
+          ] as [[number, number], [number, number]],
+          attributionControl: false,
+        });
+        map.on('load', () => setStyleLoaded(true));
+        mapRef.current = map;
+      })
+      .catch(() => {
+        if (cancelled || !containerRef.current) return;
+        const map = new maplibregl.Map({
+          container: containerRef.current,
+          style: TILE_STYLES[variant],
+          center: LEBANON_CENTER,
+          zoom: 8.2,
+          maxBounds: [
+            [LEBANON_BBOX.minLng, LEBANON_BBOX.minLat],
+            [LEBANON_BBOX.maxLng, LEBANON_BBOX.maxLat],
+          ] as [[number, number], [number, number]],
+          attributionControl: false,
+        });
+        map.on('load', () => setStyleLoaded(true));
+        mapRef.current = map;
+      });
 
     return () => {
-      map.remove();
-      mapRef.current = null;
+      cancelled = true;
+      const map = mapRef.current;
+      if (map) {
+        map.remove();
+        mapRef.current = null;
+      }
       setStyleLoaded(false);
     };
   }, [variant]);
@@ -161,7 +190,7 @@ export function MapWidget({
       filter: ['has', 'point_count'],
       layout: {
         'text-field': ['get', 'point_count_abbreviated'],
-        'text-font': ['DIN Pro Medium', 'Arial Unicode MS Bold'],
+        'text-font': ['Open Sans Regular', 'Arial Unicode MS Regular'],
         'text-size': 12,
       },
       paint: {
