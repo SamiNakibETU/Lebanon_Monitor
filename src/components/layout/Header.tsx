@@ -66,19 +66,19 @@ export function Header({
           </div>
         </div>
 
-        <div className="flex items-center gap-4 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+        <div className="flex items-center gap-4 text-[11px]" style={{ color: 'var(--text-secondary)' }} suppressHydrationWarning>
           {lbp != null && (
-            <span className="tabular-nums">
+            <span className="tabular-nums" suppressHydrationWarning>
               LBP {lbp.toLocaleString()} <span className="text-[10px]">↓</span>
             </span>
           )}
           {weatherBeirut && (
-            <span>
+            <span suppressHydrationWarning>
               Beyrouth {weatherBeirut}
             </span>
           )}
           {aqi != null && (
-            <span>
+            <span suppressHydrationWarning>
               AQI {aqi}{' '}
               <span
                 className="inline-block w-2 h-2 rounded-full"
@@ -88,8 +88,8 @@ export function Header({
               />
             </span>
           )}
-          <span className="tabular-nums">{eventCount} events</span>
-          <span>{eetTime} EET</span>
+          <span className="tabular-nums" suppressHydrationWarning>{eventCount} events</span>
+          <span suppressHydrationWarning>{eetTime} EET</span>
         </div>
       </div>
     </header>

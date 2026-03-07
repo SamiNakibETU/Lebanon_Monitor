@@ -54,7 +54,7 @@ export function BentoCard({
             </span>
           )}
           {(value || trend) && (
-            <span className="flex items-center gap-1.5 text-[11px] tabular-nums" style={{ color: 'var(--text-secondary)' }}>
+            <span className="flex items-center gap-1.5 text-[11px] tabular-nums" style={{ color: 'var(--text-secondary)' }} suppressHydrationWarning>
               {value}
               {trend && <span>{trendIcon}</span>}
             </span>

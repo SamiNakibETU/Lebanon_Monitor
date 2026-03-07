@@ -90,7 +90,7 @@ function EventCard({ e }: { e: V2Event }) {
           <span>·</span>
           {e.source && <span className="uppercase">{e.source}</span>}
           <span>·</span>
-          <span>{rel}</span>
+          <span suppressHydrationWarning>{rel}</span>
         </div>
         <div className="text-sm" style={{ color: 'var(--text-primary)' }}>
           {e.title}
@@ -146,7 +146,7 @@ export default function Home() {
         eventCount={stats?.eventsToday ?? total}
       />
       <BentoDashboard>
-        <BentoCard span="sm" label="EVENTS TODAY" value={String(stats?.eventsToday ?? total)} trend="up">
+        <BentoCard span="sm" label="EVENTS TODAY" value={String(stats?.eventsToday ?? total)} trend="up" key="events-today">
           <div className="text-3xl font-medium tabular-nums pt-1" style={{ color: 'var(--text-primary)' }}>
             {stats?.totalEvents ?? 0}
           </div>
@@ -266,7 +266,7 @@ export default function Home() {
           </div>
           <div className="h-[280px] overflow-y-auto">
             {events.length === 0 ? (
-              <div className="flex items-center justify-center h-full" style={{ color: 'var(--text-tertiary)' }}>
+              <div className="flex items-center justify-center h-full" style={{ color: 'var(--text-tertiary)' }} suppressHydrationWarning>
                 {eventsError
                   ? 'DB not configured. Set DATABASE_URL and run worker.'
                   : eventsRes
