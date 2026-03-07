@@ -34,6 +34,12 @@ export interface PolymarketItem {
   volume?: number;
 }
 
+const LEBANON_KEYWORDS = ['lebanon', 'lebanese', 'beirut', 'hezbollah', 'litani'];
+const MIDDLE_EAST_KEYWORDS = [
+  'iran', 'israel', 'hezbollah', 'gaza', 'hamas', 'ceasefire',
+  'middle east', 'military action', 'strike', 'conflict',
+];
+
 function matchesLebanon(ev: GammaEvent): boolean {
   const haystack = [
     ev.title ?? '',
@@ -42,7 +48,18 @@ function matchesLebanon(ev: GammaEvent): boolean {
   ]
     .join(' ')
     .toLowerCase();
-  return haystack.includes('lebanon') || haystack.includes('lebanese');
+  return LEBANON_KEYWORDS.some((k) => haystack.includes(k));
+}
+
+function matchesMiddleEastGeopolitics(ev: GammaEvent): boolean {
+  const haystack = [
+    ev.title ?? '',
+    ev.slug ?? '',
+    ev.description ?? '',
+  ]
+    .join(' ')
+    .toLowerCase();
+  return MIDDLE_EAST_KEYWORDS.some((k) => haystack.includes(k));
 }
 
 function parseOutcomePrices(outcomePrices?: string): { yes: number; no: number } {
@@ -59,7 +76,7 @@ function parseOutcomePrices(outcomePrices?: string): { yes: number; no: number }
 export async function GET() {
   try {
     const res = await fetch(
-      `${GAMMA_URL}?active=true&closed=false&limit=50&order=volume24hr&ascending=false`,
+      `${GAMMA_URL}?active=true&closed=false&limit=100&order=volume24hr&ascending=false`,
       { cache: 'no-store' }
     );
     if (!res.ok) {
@@ -69,21 +86,23 @@ export async function GET() {
     const items: PolymarketItem[] = [];
 
     for (const ev of events) {
-      if (!matchesLebanon(ev) || !Array.isArray(ev.markets)) continue;
+      if (!Array.isArray(ev.markets)) continue;
       const openMarket = ev.markets.find((m) => !m.closed);
       if (!openMarket) continue;
-      const { yes, no } = parseOutcomePrices(openMarket.outcomePrices);
+      if (!matchesLebanon(ev) && !matchesMiddleEastGeopolitics(ev)) continue;
+      const { yes } = parseOutcomePrices(openMarket.outcomePrices);
       items.push({
         id: openMarket.id,
         question: openMarket.question,
         slug: openMarket.slug,
         yesProb: yes,
-        noProb: no,
+        noProb: 1 - yes,
         eventSlug: ev.slug,
         volume: typeof openMarket.volume === 'string' ? parseFloat(openMarket.volume) : openMarket.volume,
       });
     }
 
+    items.sort((a, b) => (b.volume ?? 0) - (a.volume ?? 0));
     return NextResponse.json({ markets: items.slice(0, 6) });
   } catch {
     return NextResponse.json({ markets: [] }, { status: 200 });

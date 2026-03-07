@@ -7,8 +7,7 @@ import { SplitContainer, type SplitMode } from '@/components/layout/SplitContain
 import { Panel } from '@/components/layout/Panel';
 import { MapWidget } from '@/components/widgets/MapWidget';
 import { CCTVWidget } from '@/components/widgets/CCTVWidget';
-import { PolymarketWidget } from '@/components/widgets/PolymarketWidget';
-import { TimelineChart, CategoryBars, LBPSparkline } from '@/components/charts';
+import { TimelineChart, CategoryBars } from '@/components/charts';
 import { useContainerSize } from '@/hooks/useContainerSize';
 import { CATEGORY_LABELS } from '@/lib/labels';
 
@@ -105,33 +104,7 @@ function EventCard({
         >
           <span>{categoryLabel}</span>
           <span>·</span>
-          {e.source && (
-            <span className="flex items-center gap-1">
-              {e.source}
-              {e.sourceTier && (
-                <span
-                  className="inline-flex items-center px-1 rounded"
-                  style={{
-                    fontSize: 9,
-                    background: isLumiere ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)',
-                    color: metaColor,
-                  }}
-                  title={e.sourceTier === 'T1' ? 'Source fiable' : e.sourceTier === 'T2' ? 'Source moyenne' : 'Source faible'}
-                >
-                  {e.sourceTier}
-                </span>
-              )}
-            </span>
-          )}
-          {e.confidence != null && e.confidence >= 0 && (
-            <span
-              className="tabular-nums"
-              style={{ opacity: 0.85 }}
-              title="Confiance classification"
-            >
-              {Math.round(e.confidence * 100)}%
-            </span>
-          )}
+          {e.source && <span>{e.source}</span>}
           {e.sourceCount != null && e.sourceCount > 1 && (
             <span
               className="tabular-nums"
@@ -166,25 +139,10 @@ function PanelEventFeed({
   isLoading: boolean;
   lang: Language;
 }) {
-  const label = variant === 'lumiere' ? 'Lumière' : 'Ombre';
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-[200px]">
       <div
-        className="flex items-center justify-between gap-2 px-6 py-2"
-        style={{
-          borderBottom:
-            variant === 'lumiere' ? '1px solid rgba(0,0,0,0.06)' : '1px solid rgba(255,255,255,0.04)',
-        }}
-      >
-        <span
-          className="text-[11px] uppercase tracking-[0.08em]"
-          style={{ color: variant === 'lumiere' ? '#888888' : '#666666' }}
-        >
-          {label}
-        </span>
-      </div>
-      <div
-        className="flex-1 overflow-y-auto event-feed"
+        className="flex-1 overflow-y-auto event-feed feed-zone-with-fade min-h-[200px]"
         style={{
           scrollbarWidth: 'thin',
         }}
@@ -316,7 +274,7 @@ export default function Home() {
               <div className="relative overflow-hidden min-h-[240px]" style={{ minHeight: 240 }}>
                 <MapWidget events={lumiereEvents} variant="lumiere" className="absolute inset-0" />
               </div>
-              <div className="overflow-hidden">
+              <div className="overflow-hidden" style={{ background: '#FFFFFF' }}>
                 <PanelEventFeed
                   events={lumiereEvents}
                   variant="lumiere"
@@ -333,9 +291,10 @@ export default function Home() {
                 minHeight: 260,
                 height: 260,
                 borderTop: '1px solid rgba(0,0,0,0.06)',
+                background: '#FFFFFF',
               }}
             >
-              <div className="p-4 overflow-hidden">
+              <div className="p-4 overflow-hidden" style={{ background: '#FFFFFF' }}>
                 <div className="text-[11px] uppercase tracking-[0.08em] mb-2" style={{ color: '#888888' }}>
                   Timeline
                 </div>
@@ -344,10 +303,11 @@ export default function Home() {
                     width={timelineSize.width}
                     height={Math.max(80, timelineSize.height - 24)}
                     data={timelineArray}
+                    variant="lumiere"
                   />
                 </div>
               </div>
-              <div className="p-4 overflow-hidden">
+              <div className="p-4 overflow-hidden" style={{ background: '#FFFFFF' }}>
                 <div className="text-[11px] uppercase tracking-[0.08em] mb-2" style={{ color: '#888888' }}>
                   Catégories
                 </div>
@@ -356,15 +316,15 @@ export default function Home() {
                     width={categoryLumiereSize.width}
                     height={Math.max(60, categoryLumiereSize.height - 24)}
                     data={lumiereCategories.map((c) => ({
-                      code: c.code,
+                      code: getCategoryLabel(c.code),
                       count: c.count,
                       isOmbre: false,
                     }))}
                   />
                 </div>
               </div>
-              <div className="p-4 overflow-hidden">
-                <CCTVWidget />
+              <div className="p-4 overflow-hidden" style={{ background: '#FFFFFF' }}>
+                <CCTVWidget variant="lumiere" />
               </div>
             </div>
           </div>
@@ -416,6 +376,7 @@ export default function Home() {
                 minHeight: 260,
                 height: 260,
                 borderTop: '1px solid rgba(255,255,255,0.04)',
+                background: '#0A0A0A',
               }}
             >
               <div className="p-4 overflow-hidden">
@@ -427,6 +388,7 @@ export default function Home() {
                     width={timelineOmbreSize.width}
                     height={Math.max(80, timelineOmbreSize.height - 24)}
                     data={timelineArray}
+                    variant="ombre"
                   />
                 </div>
               </div>
@@ -439,7 +401,7 @@ export default function Home() {
                     width={categoryOmbreSize.width}
                     height={Math.max(60, categoryOmbreSize.height - 24)}
                     data={ombreCategories.map((c) => ({
-                      code: c.code,
+                      code: getCategoryLabel(c.code),
                       count: c.count,
                       isOmbre: true,
                     }))}
@@ -447,12 +409,30 @@ export default function Home() {
                 </div>
               </div>
               <div className="p-4 overflow-hidden">
-                <PolymarketWidget />
+                <CCTVWidget variant="ombre" />
               </div>
             </div>
           </div>
         </Panel>
       </SplitContainer>
+      <footer
+        className="shrink-0 flex items-center justify-center gap-4 px-4 py-2 text-[10px]"
+        style={{
+          background: '#000000',
+          color: '#666666',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+        }}
+      >
+        <span>GDELT · ACLED · USGS · NASA · ReliefWeb · Telegram</span>
+        <a
+          href="https://polymarket.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:text-[#888] transition-colors"
+        >
+          Polymarket
+        </a>
+      </footer>
     </div>
   );
 }

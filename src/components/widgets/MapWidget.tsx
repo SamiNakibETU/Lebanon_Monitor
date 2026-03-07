@@ -22,47 +22,49 @@ const LAYER_LABELS: Record<string, string> = {
 const LAYERS = ['events', 'heatmap', 'terrain', 'unifil', 'infrastructure'] as const;
 type LayerId = (typeof LAYERS)[number];
 
-/** Custom MapLibre control for layer toggles — uses addControl so buttons are above canvas and receive clicks */
-function createLayerControl(
-  layers: Record<LayerId, boolean>,
-  onToggle: (id: LayerId) => void,
-  variant: 'lumiere' | 'ombre'
-): maplibregl.IControl {
-  return {
-    onAdd() {
-      const div = document.createElement('div');
-      div.className = 'maplibregl-ctrl maplibregl-ctrl-group';
-      div.style.cssText = 'margin: 8px; padding: 4px; display: flex; flex-direction: row; flex-wrap: wrap; gap: 6px; align-items: center; max-width: 100%;';
-      const isDark = variant === 'ombre';
-      LAYERS.forEach((id) => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.textContent = LAYER_LABELS[id];
-        btn.dataset.layerId = id;
-        btn.style.cssText = `
-          padding: 6px 10px;
-          font-size: 11px;
-          line-height: 1.2;
-          white-space: nowrap;
-          flex-shrink: 0;
-          min-height: 24px;
-          border: 1px solid ${isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.15)'};
-          background: ${layers[id] ? (isDark ? 'rgba(0,0,0,0.9)' : 'rgba(255,255,255,0.95)') : isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)'};
-          color: ${isDark ? '#fff' : '#1a1a1a'};
-          cursor: pointer;
-          border-radius: 4px;
-        `;
-        btn.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onToggle(id);
-        });
-        div.appendChild(btn);
-      });
-      return div;
-    },
-    onRemove() {},
-  };
+/** Layer control overlay — pills, no overflow */
+function LayerControlOverlay({
+  layers,
+  onToggle,
+  variant,
+}: {
+  layers: Record<LayerId, boolean>;
+  onToggle: (id: LayerId) => void;
+  variant: 'lumiere' | 'ombre';
+}) {
+  const isDark = variant === 'ombre';
+  return (
+    <div
+      className="absolute bottom-2 left-2 z-10 flex flex-wrap gap-1"
+      style={{ maxWidth: 'calc(100% - 16px)' }}
+    >
+      {LAYERS.map((id) => (
+        <button
+          key={id}
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onToggle(id);
+          }}
+          className="whitespace-nowrap rounded-sm px-2 py-1 text-[10px] font-medium transition-colors border cursor-pointer"
+          style={{
+            background: layers[id]
+              ? isDark
+                ? '#C62828'
+                : '#2E7D32'
+              : isDark
+                ? 'rgba(0,0,0,0.6)'
+                : 'rgba(255,255,255,0.7)',
+            color: layers[id] ? '#fff' : isDark ? '#ccc' : '#1a1a1a',
+            borderColor: 'rgba(128,128,128,0.3)',
+          }}
+        >
+          {LAYER_LABELS[id]}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 function escapeHtml(s: string): string {
@@ -128,7 +130,6 @@ export function MapWidget({
 }: MapWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
-  const layerControlRef = useRef<maplibregl.IControl | null>(null);
   const [styleLoaded, setStyleLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [layers, setLayers] = useState<Record<LayerId, boolean>>({
@@ -158,7 +159,16 @@ export function MapWidget({
       ] as [[number, number], [number, number]],
       attributionControl: false,
     });
-    map.on('load', () => setStyleLoaded(true));
+    map.on('load', () => {
+      setStyleLoaded(true);
+      map.fitBounds(
+        [
+          [LEBANON_BBOX.minLng, LEBANON_BBOX.minLat],
+          [LEBANON_BBOX.maxLng, LEBANON_BBOX.maxLat],
+        ] as [[number, number], [number, number]],
+        { padding: 20, maxZoom: 10 }
+      );
+    });
     map.on('error', (e) => setLoadError(e.error?.message ?? 'Erreur chargement carte'));
     mapRef.current = map;
 
@@ -214,16 +224,34 @@ export function MapWidget({
       clusterRadius: 50,
     });
 
+    const markerColor = variant === 'lumiere' ? '#2E7D32' : '#C62828';
+    const clusterColor = variant === 'lumiere' ? '#2E7D32' : '#C62828';
+
     map.addLayer({
       id: 'clusters',
       type: 'circle',
       source: 'events',
       filter: ['has', 'point_count'],
       paint: {
-        'circle-color': ['step', ['get', 'point_count'], '#51bbd6', 10, '#f1f075', 30, '#f28cb1'],
-        'circle-radius': ['step', ['get', 'point_count'], 15, 10, 20, 30, 25],
+        'circle-color': clusterColor,
+        'circle-radius': ['step', ['get', 'point_count'], 8, 10, 12, 30, 16],
         'circle-stroke-width': 1,
-        'circle-stroke-color': 'rgba(255,255,255,0.2)',
+        'circle-stroke-color': 'rgba(255,255,255,0.5)',
+      },
+    });
+
+    map.addLayer({
+      id: 'cluster-count',
+      type: 'symbol',
+      source: 'events',
+      filter: ['has', 'point_count'],
+      layout: {
+        'text-field': ['get', 'point_count_abbreviated'],
+        'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+        'text-size': 11,
+      },
+      paint: {
+        'text-color': '#ffffff',
       },
     });
 
@@ -233,18 +261,10 @@ export function MapWidget({
       source: 'events',
       filter: ['!', ['has', 'point_count']],
       paint: {
-        'circle-color': [
-          'match',
-          ['get', 'classification'],
-          'ombre',
-          '#E53935',
-          'lumiere',
-          '#43A047',
-          '#666666',
-        ],
+        'circle-color': markerColor,
         'circle-radius': 6,
-        'circle-stroke-width': 1.5,
-        'circle-stroke-color': 'rgba(255,255,255,0.2)',
+        'circle-stroke-width': 1,
+        'circle-stroke-color': 'rgba(255,255,255,0.5)',
       },
     });
 
@@ -393,6 +413,7 @@ export function MapWidget({
     if (!map || !styleLoaded) return;
     const v = (id: string) => (layers[id as LayerId] ? 'visible' : 'none');
     if (map.getLayer('clusters')) map.setLayoutProperty('clusters', 'visibility', v('events'));
+    if (map.getLayer('cluster-count')) map.setLayoutProperty('cluster-count', 'visibility', v('events'));
     if (map.getLayer('events-unclustered')) map.setLayoutProperty('events-unclustered', 'visibility', v('events'));
     if (map.getLayer('conflict-heatmap')) map.setLayoutProperty('conflict-heatmap', 'visibility', v('heatmap'));
     if (map.getLayer('hillshade')) map.setLayoutProperty('hillshade', 'visibility', v('terrain'));
@@ -400,34 +421,11 @@ export function MapWidget({
     if (map.getLayer('infrastructure-points')) map.setLayoutProperty('infrastructure-points', 'visibility', v('infrastructure'));
   }, [layers, styleLoaded]);
 
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !styleLoaded || !showLayerToggles) return;
-    if (layerControlRef.current) {
-      map.removeControl(layerControlRef.current);
-      layerControlRef.current = null;
-    }
-    const ctrl = createLayerControl(layers, toggleLayer, variant);
-    map.addControl(ctrl, 'bottom-left');
-    layerControlRef.current = ctrl;
-    return () => {
-      if (layerControlRef.current) {
-        try {
-          map.removeControl(layerControlRef.current);
-        } catch {
-          //
-        }
-        layerControlRef.current = null;
-      }
-    };
-  }, [styleLoaded, showLayerToggles, layers, variant]);
-
   return (
     <div
-      className={`relative w-full h-full ${className}`}
+      className={`relative w-full h-full overflow-hidden ${className}`}
       style={{
         background: variant === 'ombre' ? '#0A0A0A' : '#E8E6E3',
-        minHeight: 200,
       }}
     >
       <div
@@ -435,6 +433,9 @@ export function MapWidget({
         className="absolute inset-0 z-[1]"
         style={{ width: '100%', height: '100%' }}
       />
+      {showLayerToggles && (
+        <LayerControlOverlay layers={layers} onToggle={toggleLayer} variant={variant} />
+      )}
       {loadError && (
         <div
           className="absolute inset-0 flex items-center justify-center z-20 px-4 text-center"

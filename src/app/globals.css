@@ -94,12 +94,17 @@ body {
   border-top-color: #0d0d0d;
 }
 
-/* MapLibre layer controls — ensure clickable above overlays */
+/* MapLibre — canvas fills container, no fixed height */
+.maplibregl-map,
+.maplibregl-canvas-container,
+.maplibregl-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: inherit;
+}
 .maplibregl-ctrl-group {
   pointer-events: auto;
   z-index: 2;
-  font-size: 11px;
-  line-height: 1.2;
 }
 .maplibregl-ctrl-group button {
   min-height: 24px;
@@ -127,6 +132,26 @@ body {
 }
 .panel--lumiere .event-feed::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.15);
+}
+
+/* V3 — Feed scroll indicator (fade-out at bottom) */
+.feed-zone-with-fade {
+  position: relative;
+}
+.feed-zone-with-fade::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  pointer-events: none;
+}
+.panel--lumiere .feed-zone-with-fade::after {
+  background: linear-gradient(transparent, #F5F2EE);
+}
+.panel--ombre .feed-zone-with-fade::after {
+  background: linear-gradient(transparent, #0A0A0A);
 }
 
 /* V3 — Split Lumière/Ombre (Norgram-style) */

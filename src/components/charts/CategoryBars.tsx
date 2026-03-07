@@ -18,7 +18,7 @@ export function CategoryBars({ width, height, data = [] }: CategoryBarsProps) {
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
 
-    const margin = { top: 4, right: 8, bottom: 4, left: 80 };
+    const margin = { top: 4, right: 8, bottom: 4, left: 100 };
     const innerWidth = Math.max(0, width - margin.left - margin.right);
     const innerHeight = Math.max(0, height - margin.top - margin.bottom);
 
@@ -45,6 +45,9 @@ export function CategoryBars({ width, height, data = [] }: CategoryBarsProps) {
       .range([0, innerHeight])
       .padding(0.2);
 
+    const isNeutral = (code: string) =>
+      /neutral|neutre/i.test(code);
+
     g.selectAll('rect')
       .data(data)
       .join('rect')
@@ -52,9 +55,10 @@ export function CategoryBars({ width, height, data = [] }: CategoryBarsProps) {
       .attr('height', yScale.bandwidth())
       .attr('x', 0)
       .attr('width', (d) => xScale(d.count))
-      .attr('fill', (d) =>
-        d.isOmbre ? '#E53935' : '#43A047'
-      );
+      .attr('fill', (d) => {
+        if (isNeutral(d.code)) return d.isOmbre ? '#666666' : '#888888';
+        return d.isOmbre ? '#C62828' : '#2E7D32';
+      });
 
     g.selectAll('.label')
       .data(data)
@@ -65,6 +69,8 @@ export function CategoryBars({ width, height, data = [] }: CategoryBarsProps) {
       .attr('dy', '0.32em')
       .attr('text-anchor', 'end')
       .style('font-size', '10px')
+      .style('text-overflow', 'ellipsis')
+      .style('overflow', 'hidden')
       .attr('fill', 'var(--text-secondary)')
       .text((d) => d.code.replace(/\./g, '/'));
   }, [width, height, data]);

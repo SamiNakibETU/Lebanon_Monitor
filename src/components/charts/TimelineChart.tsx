@@ -7,9 +7,11 @@ interface TimelineChartProps {
   width: number;
   height: number;
   data?: Array<{ hour: string; count: number; ombre: number; lumiere: number }>;
+  /** Lumière panel: green fill. Ombre panel: red fill. */
+  variant?: 'lumiere' | 'ombre';
 }
 
-export function TimelineChart({ width, height, data = [] }: TimelineChartProps) {
+export function TimelineChart({ width, height, data = [], variant = 'lumiere' }: TimelineChartProps) {
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
@@ -43,32 +45,28 @@ export function TimelineChart({ width, height, data = [] }: TimelineChartProps) 
       .range([0, innerWidth])
       .padding(0.1);
 
-    const maxCount = d3.max(data, (d) => d.count) ?? 1;
+    const isOmbre = variant === 'ombre';
+    const fillColor = isOmbre ? '#C62828' : '#2E7D32';
+    const fillOpacity = 0.3;
+    const values = data.map((d) => (isOmbre ? d.ombre : d.lumiere));
+    const maxCount = Math.max(1, ...values);
     const yScale = d3.scaleLinear().domain([0, maxCount]).range([innerHeight, 0]);
 
-    const areaOmbre = d3
-      .area<{ hour: string; ombre: number }>()
+    const area = d3
+      .area<{ hour: string; ombre: number; lumiere: number }>()
       .x((d) => (xScale(d.hour) ?? 0) + xScale.bandwidth() / 2)
       .y0(innerHeight)
-      .y1((d) => yScale(d.ombre))
-      .curve(d3.curveMonotoneX);
-
-    const areaLumiere = d3
-      .area<{ hour: string; lumiere: number }>()
-      .x((d) => (xScale(d.hour) ?? 0) + xScale.bandwidth() / 2)
-      .y0(innerHeight)
-      .y1((d) => yScale(innerHeight) - yScale(d.lumiere))
+      .y1((d) => yScale(isOmbre ? d.ombre : d.lumiere))
       .curve(d3.curveMonotoneX);
 
     g.append('path')
       .datum(data)
-      .attr('fill', 'rgba(229, 57, 53, 0.3)')
-      .attr('d', areaOmbre as never);
-
-    g.append('path')
-      .datum(data)
-      .attr('fill', 'rgba(67, 160, 71, 0.3)')
-      .attr('d', areaLumiere as never);
+      .attr('fill', fillColor)
+      .attr('fill-opacity', fillOpacity)
+      .attr('stroke', fillColor)
+      .attr('stroke-width', 1)
+      .attr('stroke-opacity', 0.6)
+      .attr('d', area as never);
 
     g.append('g')
       .attr('transform', `translate(0,${innerHeight})`)
@@ -82,7 +80,7 @@ export function TimelineChart({ width, height, data = [] }: TimelineChartProps) 
       .attr('fill', 'var(--text-tertiary)');
 
     g.selectAll('.domain, .tick line').attr('stroke', 'rgba(255,255,255,0.06)');
-  }, [width, height, data]);
+  }, [width, height, data, variant]);
 
   return (
     <svg

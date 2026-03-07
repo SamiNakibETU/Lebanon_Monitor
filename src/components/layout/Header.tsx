@@ -41,11 +41,11 @@ export function Header({
     minute: '2-digit',
   });
 
-  const modeLabels: Record<SplitMode, string> = {
-    split: '◐',
-    lumiere: '☀️',
-    ombre: '🌙',
-    twothirds: '⅔',
+  const modeConfig: Record<SplitMode, { icon: string; label: string }> = {
+    split: { icon: '◐', label: 'Split' },
+    lumiere: { icon: '☀', label: 'Lumière' },
+    ombre: { icon: '☽', label: 'Ombre' },
+    twothirds: { icon: '⅔', label: '2/3' },
   };
 
   return (
@@ -62,19 +62,21 @@ export function Header({
           LB · LEBANON MONITOR
         </span>
         {onSplitModeChange && (
-          <div className="flex gap-0 border-l border-r pl-4 pr-4" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+          <div className="flex gap-1 border-l border-r pl-4 pr-4" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
             {(['split', 'lumiere', 'ombre', 'twothirds'] as const).map((m) => (
               <button
                 key={m}
                 type="button"
                 onClick={() => onSplitModeChange(m)}
                 title={m === 'split' ? 'Split 50/50' : m === 'lumiere' ? 'Lumière plein écran' : m === 'ombre' ? 'Ombre plein écran' : '2/3 - 1/3'}
-                className="px-2 py-1 text-[14px] transition-opacity duration-150 cursor-pointer hover:opacity-100"
+                className="px-3 py-1.5 text-[12px] font-medium transition-opacity duration-150 cursor-pointer hover:opacity-100 flex items-center gap-1.5"
                 style={{
                   opacity: splitMode === m ? 1 : 0.5,
+                  color: splitMode === m ? '#FFFFFF' : '#999999',
                 }}
               >
-                {modeLabels[m]}
+                <span style={{ fontSize: 16 }}>{modeConfig[m].icon}</span>
+                <span className="hidden sm:inline">{modeConfig[m].label}</span>
               </button>
             ))}
           </div>

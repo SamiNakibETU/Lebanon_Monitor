@@ -14,10 +14,16 @@ interface CctvState {
   sources?: Array<{ id: string; name: string }>;
 }
 
-export function CCTVWidget() {
+const LUMIERE_SOURCE_IDS = ['beirut-webcam', 'lbci', 'mtv', 'otv'];
+const OMBRE_SOURCE_IDS = ['aljazeera', 'alarabiya', 'aljadeed', 'france24-ar'];
+
+export function CCTVWidget({ variant = 'lumiere' }: { variant?: 'lumiere' | 'ombre' }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const url = selectedId ? `/api/v2/cctv?source=${selectedId}` : '/api/v2/cctv';
+  const variantParam = variant === 'ombre' ? 'ombre' : 'lumiere';
+  const url = selectedId
+    ? `/api/v2/cctv?source=${selectedId}`
+    : `/api/v2/cctv?variant=${variantParam}`;
   const { data, error, mutate } = useSWR<CctvState>(url, fetcher, {
     refreshInterval: 120_000,
   });

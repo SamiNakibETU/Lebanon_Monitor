@@ -30,6 +30,13 @@ async function resolveYouTubeLive(handle: string): Promise<{ videoId: string | n
   return { videoId: null, isLive: false };
 }
 
+const LUMIERE_IDS = ['beirut-webcam', 'lbci', 'mtv', 'otv'];
+const OMBRE_IDS = ['aljazeera', 'alarabiya', 'aljadeed', 'france24-ar'];
+
+function youtubeEmbedUrl(videoId: string): string {
+  return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&playsinline=1&controls=0`;
+}
+
 function buildResponse(
   source: (typeof CCTV_SOURCES)[0],
   type: 'youtube' | 'webcam' | 'direct',
@@ -61,7 +68,7 @@ export async function GET(req: NextRequest) {
           return buildResponse(source, 'youtube', {
             videoId: finalId,
             isLive,
-            embedUrl: `https://www.youtube.com/embed/${finalId}?autoplay=0&mute=1`,
+            embedUrl: youtubeEmbedUrl(finalId),
           });
         }
       }
@@ -74,9 +81,13 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const sorted = [...CCTV_SOURCES].sort((a, b) => a.priority - b.priority);
+  const variant = searchParams.get('variant') === 'ombre' ? 'ombre' : 'lumiere';
+  const priorityIds = variant === 'ombre' ? OMBRE_IDS : LUMIERE_IDS;
+  const sorted = [...CCTV_SOURCES].filter((s) => priorityIds.includes(s.id));
+  const fallbackSorted = [...CCTV_SOURCES].filter((s) => !priorityIds.includes(s.id));
+  const allSorted = [...sorted, ...fallbackSorted].sort((a, b) => a.priority - b.priority);
 
-  for (const source of sorted) {
+  for (const source of allSorted) {
     if (source.type === 'youtube' && source.youtubeHandle) {
       const { videoId, isLive } = await resolveYouTubeLive(source.youtubeHandle);
       const finalId = videoId ?? source.videoId;
@@ -84,7 +95,7 @@ export async function GET(req: NextRequest) {
         return buildResponse(source, 'youtube', {
           videoId: finalId,
           isLive,
-          embedUrl: `https://www.youtube.com/embed/${finalId}?autoplay=0&mute=1`,
+          embedUrl: youtubeEmbedUrl(finalId),
         });
       }
     }
@@ -101,14 +112,29 @@ export async function GET(req: NextRequest) {
     return buildResponse(fallback, 'youtube', {
       videoId: fallback.videoId,
       isLive: false,
-      embedUrl: `https://www.youtube.com/embed/${fallback.videoId}?autoplay=0&mute=1`,
+      embedUrl: youtubeEmbedUrl(fallback.videoId),
     });
   }
 
+  const defaultSource =
+    variant === 'ombre'
+      ? CCTV_SOURCES.find((s) => s.id === 'aljazeera')
+      : CCTV_SOURCES.find((s) => s.id === 'beirut-webcam');
+  const final = defaultSource ?? CCTV_SOURCES[0]!;
+  if (final.type === 'youtube' && final.videoId) {
+    return buildResponse(final, 'youtube', {
+      videoId: final.videoId,
+      isLive: false,
+      embedUrl: youtubeEmbedUrl(final.videoId),
+    });
+  }
+  if (final.type === 'webcam' && final.embedUrl) {
+    return buildResponse(final, 'webcam', { embedUrl: final.embedUrl });
+  }
   const aljazeera = CCTV_SOURCES.find((s) => s.id === 'aljazeera') ?? CCTV_SOURCES[0]!;
   return buildResponse(aljazeera, 'youtube', {
     videoId: 'gCNeDWCI0vo',
     isLive: false,
-    embedUrl: 'https://www.youtube.com/embed/gCNeDWCI0vo?autoplay=0&mute=1',
+    embedUrl: youtubeEmbedUrl('gCNeDWCI0vo'),
   });
 }
