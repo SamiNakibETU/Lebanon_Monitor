@@ -31,10 +31,14 @@ export function getPool(): Pool {
     const sslConfig = isInternal
       ? false
       : { rejectUnauthorized: false };
-    if (!isInternal && !url.includes('sslmode=')) {
-      const sep = url.includes('?') ? '&' : '?';
-      // uselibpqcompat=true: sslmode=require = use SSL without cert verification (avoids SELF_SIGNED_CERT_IN_CHAIN with Railway proxy)
-      url = `${url}${sep}uselibpqcompat=true&sslmode=require`;
+    // For public URLs: strip sslmode from URL — pg treats sslmode=require as verify-full and overrides
+    // our rejectUnauthorized. We rely only on ssl: { rejectUnauthorized: false } for Railway's proxy.
+    if (!isInternal) {
+      url = url
+        .replace(/[?&]sslmode=[^&]*/g, '')
+        .replace(/[?&]uselibpqcompat=[^&]*/g, '')
+        .replace(/\?&/, '?')
+        .replace(/\?$/, '');
     }
     pool = new Pool({
       connectionString: url,
