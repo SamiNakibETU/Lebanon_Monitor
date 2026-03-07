@@ -409,8 +409,13 @@ export function MapWidget({
   }, [styleLoaded, showLayerToggles, layers, variant]);
 
   return (
-    <div className={`relative w-full h-full min-h-[200px] ${className}`}>
-      <div ref={containerRef} className="absolute inset-0 z-0" />
+    <div
+      className={`relative w-full h-full min-h-[200px] ${className}`}
+      style={{
+        background: variant === 'ombre' ? '#0A0A0A' : '#E8E6E3',
+      }}
+    >
+      <div ref={containerRef} className="absolute inset-0 z-[1]" style={{ minHeight: 200 }} />
       {loadError && (
         <div
           className="absolute inset-0 flex items-center justify-center z-20 px-4 text-center"

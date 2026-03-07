@@ -312,8 +312,8 @@ export default function Home() {
                 </div>
               </div>
             </div>
-            <div className="grid gap-px flex-1" style={{ gridTemplateRows: '40% 1fr' }}>
-              <div className="overflow-hidden">
+            <div className="grid gap-px flex-1" style={{ gridTemplateRows: 'minmax(220px, 40%) 1fr' }}>
+              <div className="overflow-hidden min-h-[220px]">
                 <MapWidget events={lumiereEvents} variant="lumiere" className="h-full w-full" />
               </div>
               <div className="overflow-hidden">
@@ -395,8 +395,8 @@ export default function Home() {
                 </div>
               </div>
             </div>
-            <div className="grid gap-px flex-1" style={{ gridTemplateRows: '40% 1fr' }}>
-              <div className="overflow-hidden">
+            <div className="grid gap-px flex-1" style={{ gridTemplateRows: 'minmax(220px, 40%) 1fr' }}>
+              <div className="overflow-hidden min-h-[220px]">
                 <MapWidget events={ombreEvents} variant="ombre" className="h-full w-full" />
               </div>
               <div className="overflow-hidden">
