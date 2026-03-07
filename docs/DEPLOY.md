@@ -10,30 +10,76 @@ La base de données (PostgreSQL) stocke les événements. Sans elle, l'app affic
 
 ### Option A : En local (sur ton PC)
 
-1. **Installer PostgreSQL**  
-   - Windows : [postgresql.org/download/windows](https://www.postgresql.org/download/windows)  
-   - Ou via [Docker](https://www.docker.com/) : `docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres`
+#### A1. Installer PostgreSQL
 
-2. **Créer une base**  
-   - Ouvre pgAdmin ou la ligne de commande  
-   - Crée une base nommée `lebanon_monitor`
+- Windows : [postgresql.org/download/windows](https://www.postgresql.org/download/windows)  
+- Ou via [Docker](https://www.docker.com/) : `docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres`
 
-3. **Configurer `.env.local`** à la racine du projet :
-   ```
-   DATABASE_URL=postgresql://postgres:postgres@localhost:5432/lebanon_monitor
-   ```
-   Remplace `postgres:postgres` par ton utilisateur:mot_de_passe si différent.
+#### A2. Créer la base (Windows — pas de PostGIS requis)
 
-4. **Lancer les migrations** :
-   ```bash
-   npm run db:migrate
-   npm run db:seed
-   ```
+Le projet utilise `lat`/`lng` (pas PostGIS). Suis ces étapes **dans l’ordre** :
 
-5. **Lancer le worker** (pour remplir la base) :
-   ```bash
-   npm run worker
-   ```
+**1. Démarrer PostgreSQL** (si le service n’est pas lancé) :
+
+```powershell
+# Chemin typique : D:\app\postgresql ou D:\Program Files\PostgreSQL\18\bin
+& "D:\app\postgresql\bin\pg_ctl.exe" -D "D:\app\postgresql\data" start
+```
+
+Si le chemin diffère, cherche `pg_ctl.exe` dans ton dossier d’installation.
+
+**2. Se connecter avec psql** (utilise le chemin complet si `psql` n’est pas dans le PATH) :
+
+```powershell
+& "D:\app\postgresql\bin\psql.exe" -U postgres -h localhost -d postgres
+```
+
+> **Si tu vois « le rôle postgres n'existe pas »** : sous Windows, le super-utilisateur est souvent ton compte Windows. Essaie :
+> ```powershell
+> & "D:\app\postgresql\bin\psql.exe" -U Proprietaire -h localhost -d postgres
+> ```
+> (remplace `Proprietaire` par ton nom d’utilisateur Windows)
+
+**3. Quand tu vois `postgres=#`**, tape une commande à la fois (ne tape rien quand psql demande Server/Database/Port/Username — appuie sur Entrée pour accepter les valeurs par défaut) :
+
+```sql
+CREATE DATABASE lebanon_monitor;
+\c lebanon_monitor
+\q
+```
+
+> **PostGIS** : le projet n’en a pas besoin. Pas de `CREATE EXTENSION postgis`.
+
+**4. Configurer `.env.local`** à la racine du projet :
+
+```
+DATABASE_URL=postgresql://Proprietaire@localhost:5432/lebanon_monitor
+```
+
+Remplace `Proprietaire` par l’utilisateur qui a créé la base. Si mot de passe : `postgresql://Proprietaire:TON_MOT_DE_PASSE@localhost:5432/lebanon_monitor`.
+
+**5. Lancer les migrations** :
+
+```powershell
+cd D:\Users\Proprietaire\Desktop\Projet_perso\LEBANON_MONITOR
+npm run db:migrate
+npm run db:seed
+```
+
+**6. Lancer le worker** (pour remplir la base) :
+
+```powershell
+npm run worker
+```
+
+#### Pièges courants (Windows)
+
+| Erreur | Cause | Solution |
+|--------|-------|----------|
+| `psql n'est pas reconnu` | `psql` pas dans le PATH | Utiliser le chemin complet : `& "D:\app\postgresql\bin\psql.exe"` |
+| `Connection refused` | PostgreSQL pas démarré | `pg_ctl -D "D:\app\postgresql\data" start` |
+| `le rôle postgres n'existe pas` | Super-utilisateur = compte Windows | Utiliser `-U Proprietaire` (ou ton nom Windows) |
+| `option supplémentaire « CREATE » ignorée` | SQL tapé au mauvais moment | Quand psql demande Server/Database/Port/Username, appuie **uniquement sur Entrée**. Tape les commandes SQL **seulement** quand tu vois `postgres=#` |
 
 ### Option B : Sur Railway (déploiement en ligne)
 

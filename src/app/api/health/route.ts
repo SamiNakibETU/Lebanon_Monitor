@@ -2,7 +2,11 @@ import { NextResponse } from 'next/server';
 import { fetchAll } from '@/sources/registry';
 import { healthCheck as dbHealthCheck } from '@/db/client';
 
-const hasDbUrl = !!(process.env.DATABASE_URL || process.env.DATABASE_PRIVATE_URL);
+const hasDbUrl = !!(
+  process.env.DATABASE_URL ||
+  process.env.DATABASE_PRIVATE_URL ||
+  process.env.DATABASE_PUBLIC_URL
+);
 
 export async function GET() {
   try {

@@ -64,6 +64,8 @@
 40. Doc de déploiement
 41. Durcissement final
 
+**Connexion DB locale (Windows)** : voir [DEPLOY.md](./DEPLOY.md) section « Option A » — pièges courants (psql hors PATH, rôle `postgres` absent, PostgreSQL non démarré, prompts psql).
+
 ---
 
 ## 2. Ordre des premiers commits (Phase B)
