@@ -32,7 +32,7 @@ function createLayerControl(
     onAdd() {
       const div = document.createElement('div');
       div.className = 'maplibregl-ctrl maplibregl-ctrl-group';
-      div.style.cssText = 'margin: 8px; padding: 4px; display: flex; gap: 4px; flex-wrap: wrap;';
+      div.style.cssText = 'margin: 8px; padding: 4px; display: flex; flex-direction: row; flex-wrap: wrap; gap: 6px; align-items: center; max-width: 100%;';
       const isDark = variant === 'ombre';
       LAYERS.forEach((id) => {
         const btn = document.createElement('button');
@@ -44,6 +44,7 @@ function createLayerControl(
           font-size: 11px;
           line-height: 1.2;
           white-space: nowrap;
+          flex-shrink: 0;
           min-height: 24px;
           border: 1px solid ${isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.15)'};
           background: ${layers[id] ? (isDark ? 'rgba(0,0,0,0.9)' : 'rgba(255,255,255,0.95)') : isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)'};
@@ -177,13 +178,20 @@ export function MapWidget({
     const container = containerRef.current;
     if (!map || !container) return;
 
-    const resize = () => map.resize();
-    const ro = new ResizeObserver(resize);
+    const resize = () => {
+      map.resize();
+    };
+    resize();
+    const ro = new ResizeObserver(() => {
+      resize();
+    });
     ro.observe(container);
-    const t = setTimeout(resize, 150);
+    const t1 = setTimeout(resize, 100);
+    const t2 = setTimeout(resize, 400);
     return () => {
       ro.disconnect();
-      clearTimeout(t);
+      clearTimeout(t1);
+      clearTimeout(t2);
     };
   }, [styleLoaded]);
 
@@ -416,12 +424,17 @@ export function MapWidget({
 
   return (
     <div
-      className={`relative w-full h-full min-h-[200px] ${className}`}
+      className={`relative w-full h-full ${className}`}
       style={{
         background: variant === 'ombre' ? '#0A0A0A' : '#E8E6E3',
+        minHeight: 200,
       }}
     >
-      <div ref={containerRef} className="absolute inset-0 z-[1]" />
+      <div
+        ref={containerRef}
+        className="absolute inset-0 z-[1]"
+        style={{ width: '100%', height: '100%' }}
+      />
       {loadError && (
         <div
           className="absolute inset-0 flex items-center justify-center z-20 px-4 text-center"

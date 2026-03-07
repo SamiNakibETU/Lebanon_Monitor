@@ -295,9 +295,9 @@ export default function Home() {
       />
       <SplitContainer mode={splitMode}>
         <Panel variant="lumiere">
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col h-full min-h-0">
             <div
-              className="flex items-baseline gap-8 px-6 pt-4 pb-2"
+              className="flex items-baseline gap-8 px-6 pt-4 pb-2 shrink-0"
               style={{ minHeight: 60, borderBottom: '1px solid rgba(0,0,0,0.06)' }}
             >
               <div>
@@ -312,9 +312,9 @@ export default function Home() {
                 </div>
               </div>
             </div>
-            <div className="grid gap-px flex-1" style={{ gridTemplateRows: 'minmax(200px, 38%) 1fr' }}>
-              <div className="overflow-hidden min-h-[200px]">
-                <MapWidget events={lumiereEvents} variant="lumiere" className="h-full w-full" />
+            <div className="grid gap-px flex-1 min-h-0" style={{ gridTemplateRows: 'minmax(240px, 45%) 1fr' }}>
+              <div className="relative overflow-hidden min-h-[240px]" style={{ minHeight: 240 }}>
+                <MapWidget events={lumiereEvents} variant="lumiere" className="absolute inset-0" />
               </div>
               <div className="overflow-hidden">
                 <PanelEventFeed
@@ -378,9 +378,9 @@ export default function Home() {
           }}
         />
         <Panel variant="ombre">
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col h-full min-h-0">
             <div
-              className="flex items-baseline gap-8 px-6 pt-4 pb-2"
+              className="flex items-baseline gap-8 px-6 pt-4 pb-2 shrink-0"
               style={{ minHeight: 60, borderBottom: '1px solid rgba(255,255,255,0.04)' }}
             >
               <div>
@@ -395,9 +395,9 @@ export default function Home() {
                 </div>
               </div>
             </div>
-            <div className="grid gap-px flex-1" style={{ gridTemplateRows: 'minmax(200px, 38%) 1fr' }}>
-              <div className="overflow-hidden min-h-[200px]">
-                <MapWidget events={ombreEvents} variant="ombre" className="h-full w-full" />
+            <div className="grid gap-px flex-1 min-h-0" style={{ gridTemplateRows: 'minmax(240px, 45%) 1fr' }}>
+              <div className="relative overflow-hidden min-h-[240px]" style={{ minHeight: 240 }}>
+                <MapWidget events={ombreEvents} variant="ombre" className="absolute inset-0" />
               </div>
               <div className="overflow-hidden">
                 <PanelEventFeed
