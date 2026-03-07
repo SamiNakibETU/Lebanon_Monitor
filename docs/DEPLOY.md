@@ -284,6 +284,7 @@ Le worker tourne en boucle (intervalle 5 min). Pour un cron externe à la place 
 | Problème | Piste |
 |----------|--------|
 | Build échoue (Turbopack) | Le script utilise `--webpack` |
+| **`ENOTFOUND postgres.railway.internal`** | L’URL interne Railway ne se résout pas. **Solution** : sur le service Web, ajouter `DATABASE_PUBLIC_URL` = `${{ Postgres.DATABASE_PUBLIC_URL }}`. Le client DB utilise cette variable en priorité. Redéployer. |
 | DB non connectée | 1) Vérifier `/api/health` : si `dbError` est présent, il indique la cause (ex. `ECONNREFUSED`, `ETIMEDOUT`). 2) Sur Railway : utiliser la référence `${{ Postgres.DATABASE_URL }}` (pas une copie manuelle). 3) Si tu as copié l’URL : utiliser `DATABASE_PUBLIC_URL` du service Postgres (le client ajoute `sslmode=require` automatiquement). 4) Vérifier que Web et Postgres sont dans le même projet Railway. |
 | Timeout healthcheck | Utiliser `/api/health/live` pour le healthcheck Railway |
 | **`extension "postgis" is not available`** | La migration actuelle n’utilise **pas** PostGIS (lat/lng uniquement). Si tu vois cette erreur, une ancienne version est déployée. Pull le dernier code, push, redéploie. Puis réinitialise la DB : supprimer le service PostgreSQL Railway et en recréer un, ou `DROP SCHEMA public CASCADE; CREATE SCHEMA public;` puis `npm run db:migrate` et `npm run db:seed`. |

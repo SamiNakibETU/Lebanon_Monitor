@@ -131,8 +131,9 @@ export default function Home() {
     { refreshInterval: 60_000 }
   );
 
-  const events = eventsRes?.data ?? [];
+  const events = Array.isArray(eventsRes?.data) ? eventsRes.data : [];
   const total = eventsRes?.meta?.total ?? 0;
+  const timelineArray = Array.isArray(timelineData) ? timelineData : [];
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
@@ -170,7 +171,7 @@ export default function Home() {
             <TimelineChart
               width={timelineSize.width}
               height={timelineSize.height}
-              data={timelineData}
+              data={timelineArray}
             />
           </div>
         </BentoCard>
@@ -190,11 +191,11 @@ export default function Home() {
               width={categorySize.width}
               height={categorySize.height}
               data={
-                stats?.topCategories?.map((c) => ({
+                (Array.isArray(stats?.topCategories) ? stats.topCategories : []).map((c) => ({
                   code: c.code,
                   count: c.count,
                   isOmbre: ['armed_conflict', 'economic_crisis', 'political_tension', 'violence'].includes(c.code),
-                })) ?? []
+                }))
               }
             />
           </div>
@@ -217,7 +218,7 @@ export default function Home() {
         </BentoCard>
         <BentoCard span="sm" label="TRENDING">
           <div className="flex flex-col gap-1.5 overflow-y-auto max-h-[160px]">
-            {(clustersData?.clusters ?? []).slice(0, 8).map((c) => (
+            {(Array.isArray(clustersData?.clusters) ? clustersData.clusters : []).slice(0, 8).map((c) => (
               <div
                 key={c.code}
                 className="flex justify-between items-center text-[11px] py-0.5"
