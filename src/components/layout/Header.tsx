@@ -50,14 +50,14 @@ export function Header({
 
   return (
     <header
-      className="sticky top-0 z-50 w-full flex items-center justify-between h-12 px-6 border-b"
+      className="sticky top-0 z-50 w-full flex items-center justify-between gap-2 min-h-12 h-12 px-4 sm:px-6 border-b overflow-x-auto overflow-y-hidden"
       style={{
         background: '#0A0A0A',
         borderColor: 'rgba(255,255,255,0.06)',
         fontSize: 13,
       }}
     >
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-4 sm:gap-6 shrink-0">
         <span className="font-medium tracking-[0.02em]" style={{ color: '#FFFFFF', fontSize: 13 }}>
           LB · LEBANON MONITOR
         </span>
@@ -96,7 +96,7 @@ export function Header({
         </div>
       </div>
 
-      <div className="flex items-center gap-6 text-[11px] tabular-nums" style={{ color: '#666666' }} suppressHydrationWarning>
+      <div className="flex items-center gap-3 sm:gap-6 text-[11px] tabular-nums shrink-0" style={{ color: '#666666' }} suppressHydrationWarning>
         {lbp != null && (
           <span suppressHydrationWarning>
             LBP {lbp.toLocaleString()} ↓

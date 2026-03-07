@@ -215,14 +215,14 @@ export default function Home() {
   const [splitMode, setSplitMode] = useState<SplitMode>('split');
 
   const timelineRef = useRef<HTMLDivElement>(null);
+  const timelineOmbreRef = useRef<HTMLDivElement>(null);
   const categoryLumiereRef = useRef<HTMLDivElement>(null);
   const categoryOmbreRef = useRef<HTMLDivElement>(null);
-  const lbpRef = useRef<HTMLDivElement>(null);
 
   const timelineSize = useContainerSize(timelineRef);
+  const timelineOmbreSize = useContainerSize(timelineOmbreRef);
   const categoryLumiereSize = useContainerSize(categoryLumiereRef);
   const categoryOmbreSize = useContainerSize(categoryOmbreRef);
-  const lbpSize = useContainerSize(lbpRef);
 
   const eventsLumiereUrl = `/api/v2/events?lang=${lang}&classification=lumiere&limit=50`;
   const eventsOmbreUrl = `/api/v2/events?lang=${lang}&classification=ombre&limit=50`;
@@ -401,91 +401,10 @@ export default function Home() {
                 <div className="text-[11px] uppercase tracking-[0.08em] mb-2" style={{ color: '#666666' }}>
                   Timeline
                 </div>
-                <div className="w-full h-full min-h-[100px]">
+                <div ref={timelineOmbreRef} className="w-full h-full min-h-[100px]">
                   <TimelineChart
-                    width={timelineSize.width}
-                    height={Math.max(80, timelineSize.height - 24)}
-                    data={timelineArray}
-                  />
-                </div>
-              </div>
-              <div className="p-4 overflow-hidden">
-                <div className="text-[11px] uppercase tracking-[0.08em] mb-2" style={{ color: '#666666' }}>
-                  Catégories
-                </div>
-                <div ref={categoryOmbreRef} className="w-full h-full min-h-[80px]">
-                  <CategoryBars
-                    width={categoryOmbreSize.width}
-                    height={Math.max(60, categoryOmbreSize.height - 24)}
-                    data={ombreCategories.map((c) => ({
-                      code: c.code,
-                      count: c.count,
-                      isOmbre: true,
-                    }))}
-                  />
-                </div>
-              </div>
-              <div className="p-4 overflow-hidden">
-                <PolymarketWidget />
-              </div>
-            </div>
-          </div>
-        </Panel>
-        <div
-          className="split-divider"
-          style={{
-            width: 1,
-            background: 'rgba(128,128,128,0.2)',
-            flexShrink: 0,
-          }}
-        />
-        <Panel variant="ombre">
-          <div className="flex flex-col h-full">
-            <div
-              className="flex items-baseline gap-8 px-6 pt-4 pb-2"
-              style={{ minHeight: 60, borderBottom: '1px solid rgba(255,255,255,0.04)' }}
-            >
-              <div>
-                <div
-                  className="text-[48px] font-light leading-none tabular-nums"
-                  style={{ color: '#FFFFFF' }}
-                >
-                  {ombreRes?.meta?.total ?? 0}
-                </div>
-                <div className="text-[11px] uppercase tracking-[0.08em]" style={{ color: '#666666' }}>
-                  Ombre
-                </div>
-              </div>
-            </div>
-            <div className="grid gap-px flex-1" style={{ gridTemplateRows: '40% 1fr' }}>
-              <div className="overflow-hidden">
-                <MapWidget events={ombreEvents} variant="ombre" className="h-full w-full" />
-              </div>
-              <div className="overflow-hidden">
-                <PanelEventFeed
-                  events={ombreEvents}
-                  variant="ombre"
-                  eventsError={ombreError}
-                  isLoading={!ombreRes && !ombreError}
-                />
-              </div>
-            </div>
-            <div
-              className="grid gap-px"
-              style={{
-                gridTemplateColumns: '2fr 1fr 1fr',
-                height: 180,
-                borderTop: '1px solid rgba(255,255,255,0.04)',
-              }}
-            >
-              <div className="p-4 overflow-hidden">
-                <div className="text-[11px] uppercase tracking-[0.08em] mb-2" style={{ color: '#666666' }}>
-                  Timeline
-                </div>
-                <div className="w-full h-full min-h-[100px]">
-                  <TimelineChart
-                    width={timelineSize.width}
-                    height={Math.max(80, timelineSize.height - 24)}
+                    width={timelineOmbreSize.width}
+                    height={Math.max(80, timelineOmbreSize.height - 24)}
                     data={timelineArray}
                   />
                 </div>

@@ -86,6 +86,7 @@ export function MapWidget({
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const [styleLoaded, setStyleLoaded] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [layers, setLayers] = useState<Record<LayerId, boolean>>({
     events: true,
     heatmap: false,
@@ -100,6 +101,7 @@ export function MapWidget({
 
   useEffect(() => {
     if (!containerRef.current) return;
+    setLoadError(null);
 
     const map = new maplibregl.Map({
       container: containerRef.current,
@@ -113,17 +115,31 @@ export function MapWidget({
       attributionControl: false,
     });
     map.on('load', () => setStyleLoaded(true));
+    map.on('error', (e) => setLoadError(e.error?.message ?? 'Erreur chargement carte'));
     mapRef.current = map;
 
     return () => {
-      const map = mapRef.current;
-      if (map) {
-        map.remove();
+      const m = mapRef.current;
+      if (m) {
+        m.remove();
         mapRef.current = null;
       }
       setStyleLoaded(false);
+      setLoadError(null);
     };
   }, [variant]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const container = containerRef.current;
+    if (!map || !container) return;
+
+    const ro = new ResizeObserver(() => {
+      map.resize();
+    });
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, [styleLoaded]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -333,7 +349,19 @@ export function MapWidget({
   return (
     <div className={`relative w-full h-full min-h-[200px] ${className}`}>
       <div ref={containerRef} className="absolute inset-0" />
-      {showLayerToggles && (
+      {loadError && (
+        <div
+          className="absolute inset-0 flex items-center justify-center z-20 px-4 text-center"
+          style={{
+            background: variant === 'ombre' ? '#0A0A0A' : '#F5F2EE',
+            color: variant === 'ombre' ? '#9E9E9E' : '#666666',
+            fontSize: 12,
+          }}
+        >
+          Carte indisponible
+        </div>
+      )}
+      {showLayerToggles && !loadError && (
         <div
           className="absolute bottom-2 left-2 flex gap-1 z-10"
           style={{

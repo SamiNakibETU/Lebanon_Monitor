@@ -15,13 +15,15 @@ interface PolymarketItem {
 }
 
 export function PolymarketWidget() {
-  const { data, error } = useSWR<{ markets: PolymarketItem[] }>(
+  const { data, error, isValidating } = useSWR<{ markets: PolymarketItem[] }>(
     '/api/v2/polymarket',
     fetcher,
     { refreshInterval: 120_000 }
   );
 
   const markets = data?.markets ?? [];
+  const isLoading = !data && !error;
+  const isEmpty = data && markets.length === 0;
 
   return (
     <div className="flex flex-col h-full min-h-[140px]">
@@ -44,12 +46,23 @@ export function PolymarketWidget() {
           >
             <span className="text-[10px]">Marchés indisponibles</span>
           </div>
-        ) : markets.length === 0 ? (
+        ) : isLoading ? (
+          <div
+            className="flex flex-col items-center justify-center gap-2 p-2 min-h-[80px]"
+            style={{ color: '#666666' }}
+          >
+            <span
+              className="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"
+              aria-hidden
+            />
+            <span className="text-[10px]">Chargement…</span>
+          </div>
+        ) : isEmpty ? (
           <div
             className="flex flex-col items-center gap-2 p-2"
             style={{ color: '#666666' }}
           >
-            <span className="text-[10px]">Chargement…</span>
+            <span className="text-[10px]">Aucun marché Liban</span>
           </div>
         ) : (
           <div className="flex flex-col gap-2">
