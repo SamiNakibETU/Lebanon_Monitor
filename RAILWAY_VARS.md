@@ -47,8 +47,13 @@
 3. Attends le redéploiement
 4. Réinitialise la DB si besoin : en local, avec `DATABASE_PUBLIC_URL` dans `.env.local` : `npm run db:reset`
 
+## Premier déploiement (base vide)
+
+Si tu viens d'ajouter Postgres au projet, la base est vide. **Les migrations s'exécutent automatiquement au démarrage** depuis le dernier push. Redéploie une fois : les tables seront créées au lancement.
+
 ## Vérifier que tout marche
 
 Après déploiement, ouvre :
 - `https://ton-app.railway.app/api/v2/health` — indique `env.DATABASE_URL: "ok"` ou `"missing"`
-- Si `"missing"` : ajoute une **variable référence** sur le service Web : **Add Variable** → **Add Reference** → Postgres → `DATABASE_URL` (nom de la variable : `DATABASE_URL`)
+- `https://ton-app.railway.app/api/v2/events?limit=3` — doit renvoyer `{"events":[],...}` et non "Database not configured"
+- Si `relation "event" does not exist` dans les logs : les migrations n'ont pas tourné. Vérifie que `DATABASE_URL` (référence Postgres) est bien sur le service Web. (nom de la variable : `DATABASE_URL`)

@@ -10,7 +10,7 @@
     "clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\"",
     "dev": "next dev",
     "build": "next build --webpack",
-    "start": "next start",
+    "start": "node scripts/start-with-migrate.mjs",
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest",

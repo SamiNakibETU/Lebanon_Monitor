@@ -36,15 +36,27 @@ async function runMigration(client, filename) {
 }
 
 async function main() {
-  const url = process.env.DATABASE_PUBLIC_URL || process.env.DATABASE_URL;
+  const url =
+    process.env.DATABASE_URL ||
+    process.env.DATABASE_PUBLIC_URL ||
+    process.env.DATABASE_PRIVATE_URL;
   if (!url) {
     console.error('DATABASE_URL or DATABASE_PUBLIC_URL is not set');
     process.exit(1);
   }
 
+  const isInternal = url.includes('railway.internal');
+  let connUrl = url;
+  if (!isInternal) {
+    connUrl = url
+      .replace(/[?&]sslmode=[^&]*/g, '')
+      .replace(/[?&]uselibpqcompat=[^&]*/g, '')
+      .replace(/\?&/g, '?')
+      .replace(/\?$/g, '');
+  }
   const pool = new pg.Pool({
-    connectionString: url,
-    ssl: url.includes('railway') ? { rejectUnauthorized: false } : undefined,
+    connectionString: connUrl,
+    ssl: isInternal ? false : (url.includes('railway') ? { rejectUnauthorized: false } : undefined),
   });
   const client = await pool.connect();
 
