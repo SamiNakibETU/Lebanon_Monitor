@@ -49,7 +49,12 @@
 
 ## Premier déploiement (base vide)
 
-Si tu viens d'ajouter Postgres au projet, la base est vide. **Les migrations s'exécutent automatiquement au démarrage** depuis le dernier push. Redéploie une fois : les tables seront créées au lancement.
+Si tu viens d'ajouter Postgres au projet, la base est vide. **Les migrations s'exécutent automatiquement au démarrage.** Redéploie une fois : les tables seront créées au lancement.
+
+**Migrations manuelles** (si l'auto-migrate échoue) : Postgres → Variables → copie `DATABASE_PUBLIC_URL`, puis en local :
+```bash
+node scripts/run-migrations.mjs --url="postgresql://user:pass@host:port/railway"
+```
 
 ## Vérifier que tout marche
 

@@ -19,7 +19,10 @@ if (existsSync(envPath)) {
   const content = readFileSync(envPath, 'utf-8');
   for (const line of content.split('\n')) {
     const m = line.match(/^([^#=]+)=(.*)$/);
-    if (m) process.env[m[1].trim()] = m[2].trim().replace(/^["']|["']$/g, '');
+    if (m) {
+      const key = m[1].trim();
+      if (!(key in process.env)) process.env[key] = m[2].trim().replace(/^["']|["']$/g, '');
+    }
   }
 }
 const MIGRATIONS_DIR = join(__dirname, '..', 'src', 'db', 'migrations');
@@ -36,7 +39,10 @@ async function runMigration(client, filename) {
 }
 
 async function main() {
+  const explicitUrl = process.argv.find((a) => a.startsWith('--url='))?.slice(6);
   const url =
+    explicitUrl ||
+    process.env.MIGRATE_URL ||
     process.env.DATABASE_URL ||
     process.env.DATABASE_PUBLIC_URL ||
     process.env.DATABASE_PRIVATE_URL;
