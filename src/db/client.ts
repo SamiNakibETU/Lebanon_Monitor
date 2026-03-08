@@ -8,16 +8,22 @@ import { Pool, type PoolClient } from 'pg';
 let pool: Pool | null = null;
 
 /**
- * Resolve DB URL. Prefer DATABASE_PUBLIC_URL when set (avoids ENOTFOUND with
- * postgres.railway.internal). Else use DATABASE_PRIVATE_URL or DATABASE_URL.
+ * Resolve DB URL.
+ * - On Railway: prefer DATABASE_URL (internal ref) or DATABASE_PRIVATE_URL.
+ * - External (local migrations): prefer DATABASE_PUBLIC_URL (proxy rlwy.net).
+ * Internal = postgres.railway.internal, avoids ENOTFOUND when resolving.
  */
 function getConnectionUrl(): string {
   const publicUrl = process.env.DATABASE_PUBLIC_URL;
   const privateUrl = process.env.DATABASE_PRIVATE_URL;
   const url = process.env.DATABASE_URL;
-  if (publicUrl) return publicUrl;
-  if (privateUrl) return privateUrl;
+  // If we have internal URL (Railway network), use it first for perf
+  if (url && url.includes('railway.internal')) return url;
+  if (privateUrl && privateUrl.includes('railway.internal')) return privateUrl;
+  // Else use whatever is available (public for external, or same URL)
   if (url) return url;
+  if (privateUrl) return privateUrl;
+  if (publicUrl) return publicUrl;
   throw new Error('DATABASE_URL, DATABASE_PUBLIC_URL or DATABASE_PRIVATE_URL is not set');
 }
 

@@ -1,8 +1,6 @@
 # Variables Railway — Tout configurer pour que ça marche
 
-**Railway Dashboard** → Projet `shimmering-alignment` → Service **Web** → **Variables** → **Add Variable**
-
-Copie-colle ces paires (remplace les valeurs entre `...` par tes vrais tokens).
+**Railway Dashboard** → Ton projet → Service **Web** → **Variables**
 
 ---
 
@@ -10,9 +8,11 @@ Copie-colle ces paires (remplace les valeurs entre `...` par tes vrais tokens).
 
 | Variable | Valeur |
 |----------|--------|
-| `DATABASE_URL` | `${{ Postgres.DATABASE_URL }}` (Add Reference → Postgres) |
+| `DATABASE_URL` | **Add Reference** → Postgres → `DATABASE_URL` (donne `${{ Postgres.DATABASE_URL }}`) |
 | `RELIEFWEB_APPNAME` | `SNakib-lebanonmonitor-sn7k2` |
 | `ANTHROPIC_API_KEY` | `sk-ant-api03-...` (clé depuis https://console.anthropic.com/) |
+
+**⚠️ Ne mets PAS DATABASE_PUBLIC_URL** sur le service Web — c’est pour les migrations en local uniquement.
 
 ---
 
@@ -29,13 +29,14 @@ Copie-colle ces paires (remplace les valeurs entre `...` par tes vrais tokens).
 
 ---
 
-## Synthèse + cache (optionnel mais recommandé)
+## Synthèse + cache + ingest
 
 | Variable | Valeur | Rôle |
 |----------|--------|------|
 | `UPSTASH_REDIS_REST_URL` | `https://...upstash.io` | Cache synthèse |
 | `UPSTASH_REDIS_REST_TOKEN` | `...` | https://upstash.com/ |
-| `NEXT_PUBLIC_APP_URL` | `https://ton-app.railway.app` | URL publique de l’app |
+| `NEXT_PUBLIC_APP_URL` | URL réelle du service (Settings → Networking) | SEO, sitemap |
+| `INGEST_SECRET` | `openssl rand -hex 24` | Protection cron. **Pas de `,` `*` etc.** |
 
 ---
 
