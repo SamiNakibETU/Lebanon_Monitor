@@ -43,6 +43,12 @@ export async function GET() {
          GROUP BY si.source_name ORDER BY count DESC LIMIT 8`,
         [today]
       );
+      const cultureRes = await client.query<{ count: string }>(
+        `SELECT COUNT(*)::int as count FROM event 
+         WHERE is_active = true AND occurred_at >= $1 
+         AND polarity_ui = 'lumiere' AND (event_type LIKE 'culture%' OR event_type = 'culture')`,
+        [today]
+      );
 
       const total = parseInt(totalRes.rows[0]?.count ?? '0', 10);
       const byPolarity = Object.fromEntries(
@@ -59,6 +65,7 @@ export async function GET() {
         eventsToday: totalToday,
         ombreRatio,
         byClassification: { ombre, lumiere, neutre },
+        cultureEventsToday: parseInt(cultureRes.rows[0]?.count ?? '0', 10),
         topCategories: categoryRes.rows.map((r) => ({
           code: r.event_type,
           count: parseInt(r.count, 10),

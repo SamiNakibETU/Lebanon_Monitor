@@ -33,10 +33,15 @@
 
 | Variable | Valeur | Rôle |
 |----------|--------|------|
-| `UPSTASH_REDIS_REST_URL` | `https://...upstash.io` | Cache synthèse |
+| `UPSTASH_REDIS_REST_URL` | `https://...upstash.io` | Cache synthèse (obligatoire pour /api/v2/synthesis) |
 | `UPSTASH_REDIS_REST_TOKEN` | `...` | https://upstash.com/ |
 | `NEXT_PUBLIC_APP_URL` | URL réelle du service (Settings → Networking) | SEO, sitemap |
 | `INGEST_SECRET` | `openssl rand -hex 24` | Protection cron. **Pas de `,` `*` etc.** |
+
+**Synthèse AI** : Pour pré-remplir le cache (éviter "en cours de génération"), déclenche manuellement ou via cron :
+```bash
+curl -X POST -H "x-ingest-secret: TON_INGEST_SECRET" https://ton-app.railway.app/api/admin/synthesis
+```
 
 ---
 

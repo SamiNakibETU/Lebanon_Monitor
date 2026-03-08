@@ -48,6 +48,8 @@ export async function callAnthropic(req: AnthropicRequest): Promise<string | nul
   }
 
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 90000); // 90s for synthesis
     const res = await fetch(ANTHROPIC_API, {
       method: 'POST',
       headers: {
@@ -56,7 +58,9 @@ export async function callAnthropic(req: AnthropicRequest): Promise<string | nul
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify(body),
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
 
     if (!res.ok) {
       const text = await res.text();

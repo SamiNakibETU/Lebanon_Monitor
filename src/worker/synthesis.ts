@@ -105,11 +105,14 @@ function parseSynthesisJson(text: string): Partial<SynthesisResult> | null {
     .replace(/^```json\s*/i, '')
     .replace(/^```\s*/g, '')
     .replace(/\s*```$/g, '')
+    .replace(/^Here's? the (JSON|response):\s*/i, '')
     .trim();
   const match = cleaned.match(/\{[\s\S]*\}/);
   if (!match) return null;
   try {
-    return JSON.parse(match[0]) as Partial<SynthesisResult>;
+    const parsed = JSON.parse(match[0]) as Partial<SynthesisResult>;
+    if (parsed && (typeof parsed.lumiere === 'string' || typeof parsed.ombre === 'string')) return parsed;
+    return null;
   } catch {
     return null;
   }
