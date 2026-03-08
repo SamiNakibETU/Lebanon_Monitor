@@ -35,11 +35,10 @@ export interface PolymarketItem {
 }
 
 const LEBANON_KEYWORDS = ['lebanon', 'lebanese', 'beirut', 'hezbollah', 'litani'];
-const MIDDLE_EAST_KEYWORDS = [
-  'iran', 'israel', 'hezbollah', 'gaza', 'hamas', 'ceasefire',
-  'middle east', 'military action', 'strike', 'conflict',
-  'nuclear', 'sanctions', 'trump', 'netanyahu', 'war', 'attack',
-  'bombing', 'invasion', 'oil', 'crude', 'opec',
+const GEOPOLITICAL_KEYWORDS = [
+  'lebanon', 'hezbollah', 'israel', 'iran', 'ceasefire', 'middle east',
+  'war', 'nuclear', 'trump', 'netanyahu', 'sanctions', 'oil', 'attack',
+  'bombing', 'invasion', 'syria', 'unifil', 'hamas', 'gaza',
 ];
 
 function matchesLebanon(ev: GammaEvent): boolean {
@@ -53,7 +52,7 @@ function matchesLebanon(ev: GammaEvent): boolean {
   return LEBANON_KEYWORDS.some((k) => haystack.includes(k));
 }
 
-function matchesMiddleEastGeopolitics(ev: GammaEvent): boolean {
+function matchesGeopolitics(ev: GammaEvent): boolean {
   const haystack = [
     ev.title ?? '',
     ev.slug ?? '',
@@ -61,7 +60,7 @@ function matchesMiddleEastGeopolitics(ev: GammaEvent): boolean {
   ]
     .join(' ')
     .toLowerCase();
-  return MIDDLE_EAST_KEYWORDS.some((k) => haystack.includes(k));
+  return GEOPOLITICAL_KEYWORDS.some((k) => haystack.includes(k));
 }
 
 function parseOutcomePrices(outcomePrices?: string): { yes: number; no: number } {
@@ -91,7 +90,7 @@ export async function GET() {
       if (!Array.isArray(ev.markets)) continue;
       const openMarket = ev.markets.find((m) => !m.closed);
       if (!openMarket) continue;
-      if (!matchesLebanon(ev) && !matchesMiddleEastGeopolitics(ev)) continue;
+      if (!matchesLebanon(ev) && !matchesGeopolitics(ev)) continue;
       const { yes } = parseOutcomePrices(openMarket.outcomePrices);
       items.push({
         id: openMarket.id,

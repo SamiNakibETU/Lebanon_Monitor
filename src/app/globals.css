@@ -177,3 +177,12 @@ body {
   background: rgba(128, 128, 128, 0.2);
   flex-shrink: 0;
 }
+
+/* V4 — Hero heatmap pulse */
+@keyframes heroHeatmapPulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+.hero-heatmap-pulse {
+  animation: heroHeatmapPulse 3s ease-in-out infinite;
+}

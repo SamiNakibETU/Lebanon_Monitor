@@ -62,11 +62,7 @@ function SearchContent() {
 
   return (
     <div className="min-h-screen" style={{ background: '#000000' }}>
-      <Header
-        lang={lang}
-        onLangChange={handleLangChange}
-        eventCount={total}
-      />
+      <Header lang={lang} onLangChange={handleLangChange} />
       <main className="max-w-[720px] mx-auto px-6 py-8">
         <div className="mb-6">
           <h1 className="text-[24px] font-light" style={{ color: '#FFFFFF' }}>
