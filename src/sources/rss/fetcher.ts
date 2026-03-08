@@ -13,7 +13,11 @@ const parser = new Parser({
   headers: { 'User-Agent': RSS_USER_AGENT },
 });
 
-const LEBANON_KEYWORDS = ['lebanon', 'lebanese', 'beirut', 'tripoli', 'tyre', 'sidon', 'baalbek'];
+const LEBANON_KEYWORDS = [
+  'lebanon', 'lebanese', 'beirut', 'tripoli', 'tyre', 'sidon', 'saida', 'baalbek',
+  'hezbollah', 'liban', 'unifil', 'naqoura',
+  'bekaa', 'chouf', 'metn', 'baabda', 'zahle', 'jounieh', 'nabatiyeh',
+];
 
 function mentionsLebanon(text: string): boolean {
   const lower = text.toLowerCase();
@@ -38,7 +42,10 @@ export async function fetchRss(): Promise<
         feedName: feed.name,
       }));
 
-      const isLebaneseSource = ['L\'Orient Today', 'NNA', 'Daily Star Lebanon', 'MTV Lebanon', 'Agenda Culturel'].includes(feed.name);
+      const isLebaneseSource = [
+        "L'Orient Today", 'NNA', 'Daily Star Lebanon', 'MTV Lebanon', 'Agenda Culturel',
+        'Beirut.com', 'Executive Magazine',
+      ].includes(feed.name);
       const filtered = isLebaneseSource
         ? items
         : items.filter((i) => mentionsLebanon(i.title ?? '') || mentionsLebanon(i.contentSnippet ?? ''));

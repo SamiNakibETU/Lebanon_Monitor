@@ -9,6 +9,7 @@ import { SectionEconomie } from '@/components/sections/SectionEconomie';
 import { SectionGeopolitique } from '@/components/sections/SectionGeopolitique';
 import { SectionLumiere } from '@/components/sections/SectionLumiere';
 import { SectionLive } from '@/components/sections/SectionLive';
+import { Footer } from '@/components/layout/Footer';
 import { useScrollPosition } from '@/hooks/useScrollPosition';
 
 const LANG_STORAGE_KEY = 'lebanon-monitor-lang';
@@ -45,24 +46,7 @@ export default function Home() {
       <SectionGeopolitique />
       <SectionLumiere />
       <SectionLive />
-      <footer
-        className="flex items-center justify-center gap-4 px-4 py-3 text-[10px]"
-        style={{
-          background: '#000000',
-          color: '#666666',
-          borderTop: '1px solid rgba(255,255,255,0.06)',
-        }}
-      >
-        <span>GDELT · ACLED · USGS · NASA · ReliefWeb · Telegram</span>
-        <a
-          href="https://polymarket.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="hover:text-[#888] transition-colors"
-        >
-          Polymarket
-        </a>
-      </footer>
+      <Footer />
     </div>
   );
 }

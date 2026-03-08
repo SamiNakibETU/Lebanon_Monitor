@@ -6,6 +6,7 @@ import { runIngest } from './ingest';
 import { runNormalize } from './normalize';
 import { classifyEvent, needsLlmClassification } from './classify';
 import { classifyWithClaude } from './classify-llm';
+import { getSanitizedAnthropicKey } from '@/lib/anthropic';
 import { findDuplicate } from './deduplicate';
 import { storeNewEvent, linkToExistingEvent } from './store';
 import { translateAndStore } from './translate';
@@ -51,7 +52,7 @@ export async function runPipeline(): Promise<PipelineResult> {
       .filter(({ event }) => needsLlmClassification(event.title));
 
     const llmResults =
-      needsLlm.length > 0 && process.env.ANTHROPIC_API_KEY
+      needsLlm.length > 0 && getSanitizedAnthropicKey()
         ? await classifyWithClaude(needsLlm)
         : new Map<number, never>();
 

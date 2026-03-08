@@ -1,31 +1,36 @@
 /**
  * AI Synthesis — Claude Haiku generates daily Lumière/Ombre briefings.
  * Called 2x/day (8h and 20h Beirut) via cron or POST /api/admin/synthesis.
+ * Uses centralized Anthropic client and best-practice prompts.
  */
 
 import { withClient } from '@/db/client';
 import { listEvents } from '@/db/repositories/event-repository';
 import { getTranslationsForEvents } from '@/db/repositories/event-translation-repository';
 import { redisSet, redisGet, isRedisConfigured } from '@/lib/redis';
+import { getSanitizedAnthropicKey } from '@/lib/anthropic';
+import { callAnthropic } from '@/lib/anthropic-client';
 
 const SYNTHESIS_REDIS_KEY = 'lebanon-monitor:synthesis';
 const SYNTHESIS_TTL = 12 * 60 * 60; // 12 hours
 
-const SYNTHESIS_PROMPT = `Tu es un analyste OSINT qui rédige un briefing quotidien sur le Liban.
-À partir des événements ci-dessous, rédige DEUX résumés de 3-4 phrases chacun :
+const SYNTHESIS_SYSTEM = `Tu es un analyste OSINT spécialisé sur le Liban. Tu rédiges des briefings quotidiens pour le tableau de bord Lebanon Monitor.
 
-1. LUMIÈRE : les développements positifs (reconstruction, culture, diplomatie réussie, aide arrivée)
-2. OMBRE : les développements négatifs (sécurité, crises, tensions, infrastructure défaillante)
+Chaque briefing est affiché tel quel à l'utilisateur. Tu dois être factuel, dense, sans formules creuses. Style câble diplomatique : chiffres et noms de lieux quand disponibles.
 
-Style : factuel, dense, comme un câble diplomatique. Pas de formules creuses.
-Inclure des chiffres et noms de lieux quand disponibles.
-Langue : français.
+Le dashboard affiche deux colonnes : Lumière (positif) et Ombre (négatif). Tu produis exactement deux résumés de 3 à 4 phrases chacun.`;
 
-Événements des dernières 24h :
+const SYNTHESIS_USER_TEMPLATE = `À partir des événements des dernières 24h ci-dessous, rédige deux résumés :
+
+1. lumiere : développements positifs (reconstruction, culture, diplomatie réussie, aide humanitaire arrivée, progrès économiques, solidarité, reconnaissance internationale).
+
+2. ombre : développements négatifs (sécurité, crises, tensions, infrastructure défaillante, violences, déplacements, échecs diplomatiques).
+
+Événements :
 {EVENTS_JSON}
 
-Réponds en JSON uniquement, pas de markdown :
-{ "lumiere": "...", "ombre": "...", "generated_at": "ISO8601" }`;
+Tu DOIS répondre par un seul objet JSON valide. Aucun texte avant ou après. Aucun markdown. Format exact :
+{"lumiere":"phrase1. phrase2. phrase3.","ombre":"phrase1. phrase2. phrase3.","generated_at":"2025-03-08T12:00:00.000Z"}`;
 
 export interface SynthesisResult {
   lumiere: string;
@@ -34,8 +39,7 @@ export interface SynthesisResult {
 }
 
 export async function generateSynthesis(): Promise<SynthesisResult | null> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return null;
+  if (!getSanitizedAnthropicKey()) return null;
 
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
@@ -69,51 +73,39 @@ export async function generateSynthesis(): Promise<SynthesisResult | null> {
   }
 
   const eventsJson = JSON.stringify(events, null, 0);
-  const prompt = SYNTHESIS_PROMPT.replace('{EVENTS_JSON}', eventsJson);
+  const userContent = SYNTHESIS_USER_TEMPLATE.replace('{EVENTS_JSON}', eventsJson);
 
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-3-5-haiku-latest',
-        max_tokens: 1024,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    });
+  const text = await callAnthropic({
+    system: SYNTHESIS_SYSTEM,
+    messages: [{ role: 'user', content: userContent }],
+    max_tokens: 1024,
+    temperature: 0.3,
+  });
 
-    if (!res.ok) {
-      throw new Error(`Anthropic API ${res.status}: ${await res.text()}`);
-    }
+  if (!text) return null;
 
-    const data = (await res.json()) as { content?: Array<{ text?: string }> };
-    const text = data.content?.[0]?.text ?? '';
-    const parsed = parseSynthesisJson(text);
+  const parsed = parseSynthesisJson(text);
+  if (!parsed) return null;
 
-    if (parsed) {
-      const result: SynthesisResult = {
-        lumiere: parsed.lumiere ?? 'Synthèse non disponible.',
-        ombre: parsed.ombre ?? 'Synthèse non disponible.',
-        generated_at: parsed.generated_at ?? new Date().toISOString(),
-      };
-      if (isRedisConfigured()) {
-        await redisSet(SYNTHESIS_REDIS_KEY, result, { ex: SYNTHESIS_TTL });
-      }
-      return result;
-    }
-  } catch (err) {
-    console.error('Synthesis Claude error:', err);
+  const result: SynthesisResult = {
+    lumiere: parsed.lumiere ?? 'Synthèse non disponible.',
+    ombre: parsed.ombre ?? 'Synthèse non disponible.',
+    generated_at: parsed.generated_at ?? new Date().toISOString(),
+  };
+
+  if (isRedisConfigured()) {
+    await redisSet(SYNTHESIS_REDIS_KEY, result, { ex: SYNTHESIS_TTL });
   }
 
-  return null;
+  return result;
 }
 
 function parseSynthesisJson(text: string): Partial<SynthesisResult> | null {
-  const cleaned = text.replace(/```json?\s*/g, '').replace(/```\s*/g, '').trim();
+  const cleaned = text
+    .replace(/^```json\s*/i, '')
+    .replace(/^```\s*/g, '')
+    .replace(/\s*```$/g, '')
+    .trim();
   const match = cleaned.match(/\{[\s\S]*\}/);
   if (!match) return null;
   try {

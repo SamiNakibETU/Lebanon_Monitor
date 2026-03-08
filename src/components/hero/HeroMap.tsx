@@ -78,6 +78,24 @@ export function HeroMap({ minimized }: HeroMapProps) {
     fetcher,
     { refreshInterval: 60_000 }
   );
+  const { data: firmsRes } = useSWR<{ data: MapEvent[] }>(
+    '/api/v2/events?source=firms&limit=100',
+    fetcher,
+    { refreshInterval: 120_000 }
+  );
+  const { data: flightsGeo } = useSWR<GeoJSON.FeatureCollection>(
+    '/api/v2/opensky/positions',
+    fetcher,
+    { refreshInterval: 15_000 }
+  );
+  const { data: infraRes } = useSWR<{
+    hospitals: Array<{ lat: number; lng: number; name: string }>;
+    clinics: Array<{ lat: number; lng: number; name: string }>;
+    military: Array<{ lat: number; lng: number; name: string }>;
+    airfields: Array<{ lat: number; lng: number; name: string }>;
+    power: Array<{ lat: number; lng: number; name: string }>;
+    ports: Array<{ lat: number; lng: number; name: string }>;
+  }>('/api/v2/infrastructure', fetcher, { refreshInterval: 3600_000 });
 
   const lumiereEvents = Array.isArray(lumiereRes?.data) ? lumiereRes.data : [];
   const ombreEvents = Array.isArray(ombreRes?.data) ? ombreRes.data : [];
@@ -87,6 +105,37 @@ export function HeroMap({ minimized }: HeroMapProps) {
     type: 'FeatureCollection',
     features: [...lumiereGeo.features, ...ombreGeo.features],
   };
+
+  const firmsEvents = Array.isArray(firmsRes?.data) ? firmsRes.data : [];
+  const firesGeo: GeoJSON.FeatureCollection = {
+    type: 'FeatureCollection',
+    features: firmsEvents
+      .filter((e) => e.latitude != null && e.longitude != null)
+      .map((e) => ({
+        type: 'Feature' as const,
+        geometry: { type: 'Point' as const, coordinates: [e.longitude!, e.latitude!] },
+        properties: { id: e.id, title: e.title },
+      })),
+  };
+
+  const flightsGeoData = flightsGeo ?? { type: 'FeatureCollection' as const, features: [] };
+
+  const infrastructureGeo: GeoJSON.FeatureCollection = (() => {
+    if (!infraRes) return { type: 'FeatureCollection', features: [] };
+    const types = ['hospitals', 'clinics', 'military', 'airfields', 'power', 'ports'] as const;
+    const features: GeoJSON.Feature[] = [];
+    for (const t of types) {
+      const arr = infraRes[t] ?? [];
+      for (const p of arr) {
+        features.push({
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
+          properties: { name: p.name, type: t },
+        });
+      }
+    }
+    return { type: 'FeatureCollection', features };
+  })();
 
   const toggleLayer = useCallback((id: LayerId) => {
     setLayers((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -252,26 +301,79 @@ export function HeroMap({ minimized }: HeroMapProps) {
       })
       .catch(() => {});
 
-    fetch('/data/lebanon-infrastructure.geojson')
-      .then((r) => r.json())
-      .then((geojson) => {
-        if (!mapRef.current || map.getSource('infrastructure')) return;
-        map.addSource('infrastructure', { type: 'geojson', data: geojson });
-        map.addLayer({
-          id: 'infrastructure-points',
-          type: 'circle',
-          source: 'infrastructure',
-          paint: {
-            'circle-radius': 5,
-            'circle-color': '#666666',
-            'circle-stroke-width': 1,
-            'circle-stroke-color': 'rgba(255,255,255,0.3)',
-          },
-          layout: { visibility: 'none' },
-        });
-      })
-      .catch(() => {});
-  }, [styleLoaded, lumiereGeo, ombreGeo, allEventsGeo]);
+    if (!map.getSource('infrastructure')) {
+      map.addSource('infrastructure', { type: 'geojson', data: infrastructureGeo });
+      map.addLayer({
+        id: 'infrastructure-points',
+        type: 'circle',
+        source: 'infrastructure',
+        paint: {
+          'circle-radius': 5,
+          'circle-color': '#666666',
+          'circle-stroke-width': 1,
+          'circle-stroke-color': 'rgba(255,255,255,0.3)',
+        },
+        layout: { visibility: 'none' },
+      });
+    } else {
+      (map.getSource('infrastructure') as maplibregl.GeoJSONSource).setData(infrastructureGeo);
+    }
+
+    if (!map.getSource('flights')) {
+      map.addSource('flights', { type: 'geojson', data: flightsGeoData });
+      map.addLayer({
+        id: 'flights-points',
+        type: 'circle',
+        source: 'flights',
+        paint: {
+          'circle-radius': 4,
+          'circle-color': [
+            'case',
+            ['<', ['get', 'nic'], 5],
+            '#C62828',
+            '#2E7D32',
+          ],
+          'circle-stroke-width': 1,
+          'circle-stroke-color': 'rgba(255,255,255,0.3)',
+        },
+        layout: { visibility: 'none' },
+      });
+      map.addLayer({
+        id: 'jamming-points',
+        type: 'circle',
+        source: 'flights',
+        filter: ['<', ['get', 'nic'], 5],
+        paint: {
+          'circle-radius': 6,
+          'circle-color': '#C62828',
+          'circle-opacity': 0.8,
+          'circle-stroke-width': 1,
+          'circle-stroke-color': 'rgba(255,255,255,0.5)',
+        },
+        layout: { visibility: 'none' },
+      });
+    } else {
+      (map.getSource('flights') as maplibregl.GeoJSONSource).setData(flightsGeoData);
+    }
+
+    if (!map.getSource('fires')) {
+      map.addSource('fires', { type: 'geojson', data: firesGeo });
+      map.addLayer({
+        id: 'fires-points',
+        type: 'circle',
+        source: 'fires',
+        paint: {
+          'circle-radius': 6,
+          'circle-color': '#E65100',
+          'circle-stroke-width': 1,
+          'circle-stroke-color': 'rgba(255,255,255,0.4)',
+        },
+        layout: { visibility: 'none' },
+      });
+    } else {
+      (map.getSource('fires') as maplibregl.GeoJSONSource).setData(firesGeo);
+    }
+  }, [styleLoaded, lumiereGeo, ombreGeo, allEventsGeo, firesGeo, flightsGeoData, infrastructureGeo]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -279,6 +381,9 @@ export function HeroMap({ minimized }: HeroMapProps) {
     const v = (id: string) => (layers[id as LayerId] ? 'visible' : 'none');
     if (map.getLayer('events-clusters')) map.setLayoutProperty('events-clusters', 'visibility', v('events'));
     if (map.getLayer('events-unclustered')) map.setLayoutProperty('events-unclustered', 'visibility', v('events'));
+    if (map.getLayer('flights-points')) map.setLayoutProperty('flights-points', 'visibility', v('flights'));
+    if (map.getLayer('jamming-points')) map.setLayoutProperty('jamming-points', 'visibility', v('jamming'));
+    if (map.getLayer('fires-points')) map.setLayoutProperty('fires-points', 'visibility', v('fires'));
     if (map.getLayer('unifil-fill')) map.setLayoutProperty('unifil-fill', 'visibility', v('unifil'));
     if (map.getLayer('infrastructure-points'))
       map.setLayoutProperty('infrastructure-points', 'visibility', v('infra'));
@@ -315,15 +420,17 @@ export function HeroMap({ minimized }: HeroMapProps) {
           <button
             key={id}
             type="button"
+            title={id === 'ships' ? 'Données navires à venir' : undefined}
             onClick={(e) => {
               e.stopPropagation();
-              toggleLayer(id);
+              if (id !== 'ships') toggleLayer(id);
             }}
             className="px-2 py-1 text-[10px] font-medium uppercase tracking-wider border cursor-pointer transition-colors"
             style={{
               background: 'transparent',
               color: layers[id] ? '#1A1A1A' : 'rgba(0,0,0,0.6)',
               borderColor: layers[id] ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.2)',
+              opacity: id === 'ships' ? 0.6 : 1,
             }}
           >
             {id}

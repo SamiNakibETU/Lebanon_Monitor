@@ -5,15 +5,26 @@
 import { LEBANON_CITIES } from '@/config/lebanon';
 
 export const RSS_FEEDS = [
-  { url: 'https://today.lorientlejour.com/feed/', name: 'L\'Orient Today' },
+  // Liban direct
+  { url: 'https://today.lorientlejour.com/feed/', name: "L'Orient Today" },
   { url: 'https://www.agendaculturel.com/rss', name: 'Agenda Culturel' },
   { url: 'http://nna-leb.gov.lb/en/rss', name: 'NNA' },
-  { url: 'https://www.aljazeera.com/xml/rss/all.xml', name: 'Al Jazeera' },
-  { url: 'https://www.france24.com/en/rss', name: 'France 24' },
   { url: 'https://www.dailystar.com.lb/rss', name: 'Daily Star Lebanon' },
   { url: 'https://www.mtv.com.lb/en/?feed=rss', name: 'MTV Lebanon' },
   { url: 'https://www.beirut.com/feed/', name: 'Beirut.com' },
   { url: 'https://www.executive-magazine.com/feed', name: 'Executive Magazine' },
+  // Région / arabe
+  { url: 'https://www.aljazeera.com/xml/rss/all.xml', name: 'Al Jazeera' },
+  { url: 'https://english.alarabiya.net/feed', name: 'Al Arabiya' },
+  // France / EN — filtre Liban
+  { url: 'https://www.france24.com/en/rss', name: 'France 24 EN' },
+  { url: 'https://www.france24.com/fr/rss', name: 'France 24 FR' },
+  { url: 'https://feeds.bbci.co.uk/news/world/middle_east/rss.xml', name: 'BBC Middle East' },
+  { url: 'https://www.reuters.com/rssfeed/worldNews', name: 'Reuters World' },
+  { url: 'https://www.lemonde.fr/international/rss_full.xml', name: 'Le Monde International' },
+  // Syrie / Israël — contexte régional, filtre Liban
+  { url: 'https://syriadirect.org/feed/', name: 'Syria Direct' },
+  { url: 'https://www.timesofisrael.com/feed/', name: 'Times of Israel' },
 ] as const;
 
 export const RSS_USER_AGENT =

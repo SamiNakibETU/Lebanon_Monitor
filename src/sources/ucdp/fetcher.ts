@@ -1,11 +1,15 @@
 /**
  * UCDP GED API fetcher — violence events in Lebanon.
+ * Token via header x-ucdp-access-token (required since Feb 2026).
+ * Country = 660 (Lebanon, Gleditsch-Ward code).
+ * @see https://ucdp.uu.se/apidocs/
  */
 
 import { fetchWithTimeout } from '@/lib/fetcher';
 import { logger } from '@/lib/logger';
 
 const SOURCE = 'ucdp';
+const LEBANON_COUNTRY_ID = 660; // Gleditsch-Ward
 
 export async function fetchUcdp(): Promise<
   | { ok: true; data: { Results?: unknown[] } }
@@ -18,13 +22,15 @@ export async function fetchUcdp(): Promise<
 
   const params = new URLSearchParams();
   params.set('pagesize', '100');
-  params.set('Country', 'Lebanon');
-  params.set('token', token);
+  params.set('Country', String(LEBANON_COUNTRY_ID));
 
-  const url = `https://ucdpapi.pcr.uu.se/api/gedevents/24.1?${params.toString()}`;
+  const url = `https://ucdpapi.pcr.uu.se/api/gedevents/25.1?${params.toString()}`;
 
   const result = await fetchWithTimeout(url, {
-    headers: { Accept: 'application/json' },
+    headers: {
+      Accept: 'application/json',
+      'x-ucdp-access-token': token,
+    },
   }, { timeoutMs: 15_000, source: SOURCE });
 
   if (!result.ok) {

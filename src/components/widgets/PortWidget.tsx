@@ -10,7 +10,7 @@ export function PortWidget() {
         —
       </div>
       <div className="text-[11px] mt-1" style={{ color: '#666666' }}>
-        navires
+        Données AIS à venir
       </div>
     </div>
   );

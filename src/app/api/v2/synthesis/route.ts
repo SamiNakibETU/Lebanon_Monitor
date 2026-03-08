@@ -4,12 +4,13 @@
  */
 
 import { NextResponse } from 'next/server';
+import { getSanitizedAnthropicKey } from '@/lib/anthropic';
 import { getCachedSynthesis, generateSynthesis } from '@/worker/synthesis';
 
 export async function GET() {
   try {
     let result = await getCachedSynthesis();
-    if (!result && process.env.ANTHROPIC_API_KEY) {
+    if (!result && getSanitizedAnthropicKey()) {
       result = await generateSynthesis();
     }
     if (!result) {
