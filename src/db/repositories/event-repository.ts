@@ -269,7 +269,8 @@ export async function updateEventConvergence(
   const safeBase = typeof baseConfidence === 'number' && !Number.isNaN(baseConfidence)
     ? Math.max(0, Math.min(1, baseConfidence))
     : 0.5;
-  const newConfidence = Math.min(1, safeBase + boost);
+  let newConfidence = Math.min(1, safeBase + boost);
+  if (!Number.isFinite(newConfidence)) newConfidence = 0.5;
   const verificationStatus: VerificationStatus =
     observationCount >= 3 ? 'verified' : observationCount >= 2 ? 'partially_verified' : 'unverified';
 

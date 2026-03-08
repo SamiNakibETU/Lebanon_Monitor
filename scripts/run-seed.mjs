@@ -25,13 +25,16 @@ const SEED_DIR = join(__dirname, '..', 'src', 'db', 'seed');
 const SEED_FILES = ['001_taxonomy.sql', '002_places.sql'];
 
 async function main() {
-  const url = process.env.DATABASE_URL;
+  const url = process.env.DATABASE_PUBLIC_URL || process.env.DATABASE_URL;
   if (!url) {
-    console.error('DATABASE_URL is not set');
+    console.error('DATABASE_URL or DATABASE_PUBLIC_URL is not set');
     process.exit(1);
   }
 
-  const pool = new pg.Pool({ connectionString: url });
+  const pool = new pg.Pool({
+    connectionString: url,
+    ssl: url.includes('railway') ? { rejectUnauthorized: false } : undefined,
+  });
   const client = await pool.connect();
 
   try {

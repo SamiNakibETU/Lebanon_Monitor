@@ -17,11 +17,13 @@
     "type-check": "tsc --noEmit",
     "db:migrate": "node scripts/run-migrations.mjs",
     "db:seed": "node scripts/run-seed.mjs",
-    "db:check": "node -e \"const{Pool}=require('pg');const p=new Pool({connectionString:process.env.DATABASE_URL});p.query('SELECT 1').then(()=>{console.log('DB OK');process.exit(0)}).catch(e=>{console.error(e.message);process.exit(1)}).finally(()=>p.end())\"",
+    "db:reset": "node scripts/reset-db.mjs",
+    "db:check": "node -e \"const{Pool}=require('pg');const url=process.env.DATABASE_PUBLIC_URL||process.env.DATABASE_URL;if(!url){console.error('DATABASE_URL or DATABASE_PUBLIC_URL required');process.exit(1)}const p=new Pool({connectionString:url,ssl:{rejectUnauthorized:false}});p.query('SELECT 1').then(()=>{console.log('DB OK');process.exit(0)}).catch(e=>{console.error(e.message);process.exit(1)}).finally(()=>p.end())\"",
     "worker": "tsx src/worker/index.ts",
     "worker:once": "tsx src/worker/index.ts --once",
     "railway:ingest": "node scripts/railway-ingest-once.mjs",
-    "backfill:translations": "node scripts/backfill-translations.mjs"
+    "backfill:translations": "node scripts/backfill-translations.mjs",
+    "verify": "node scripts/verify-all.mjs"
   },
   "dependencies": {
     "@upstash/redis": "^1.36.3",
