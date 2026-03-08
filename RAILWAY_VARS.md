@@ -38,10 +38,20 @@
 | `NEXT_PUBLIC_APP_URL` | URL réelle du service (Settings → Networking) | SEO, sitemap |
 | `INGEST_SECRET` | `openssl rand -hex 24` | Protection cron. **Pas de `,` `*` etc.** |
 
-**Synthèse AI** : Pour pré-remplir le cache (éviter "en cours de génération"), déclenche manuellement ou via cron :
+**Synthèse AI** : Pour pré-remplir le cache (éviter "en cours de génération"), déclenche manuellement :
+
+PowerShell :
+```powershell
+$env:INGEST_SECRET = "ton_secret_sans_caracteres_speciaux"
+.\scripts\trigger-synthesis.ps1
+```
+
+Ou curl (bash/Git Bash) :
 ```bash
 curl -X POST -H "x-ingest-secret: TON_INGEST_SECRET" https://ton-app.railway.app/api/admin/synthesis
 ```
+
+**Important** : `INGEST_SECRET` ne doit pas contenir `,` `*` `:` `@` `(` `)` etc. Utilise `openssl rand -hex 24` pour un secret propre.
 
 ---
 
