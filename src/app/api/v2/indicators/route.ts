@@ -3,11 +3,11 @@
  */
 
 import { NextResponse } from 'next/server';
-import { withClient } from '@/db/client';
+import { withClient, isDbConfigured } from '@/db/client';
 import { getLatestSnapshots } from '@/db/repositories/indicator-snapshot-repository';
 
 export async function GET(request: Request) {
-  if (!process.env.DATABASE_URL) {
+  if (!isDbConfigured()) {
     return NextResponse.json(
       { error: 'Database not configured', code: 500 },
       { status: 500 }

@@ -1,12 +1,8 @@
 import { NextResponse } from 'next/server';
 import { fetchAll } from '@/sources/registry';
-import { healthCheck as dbHealthCheck } from '@/db/client';
+import { healthCheck as dbHealthCheck, isDbConfigured } from '@/db/client';
 
-const hasDbUrl = !!(
-  process.env.DATABASE_URL ||
-  process.env.DATABASE_PRIVATE_URL ||
-  process.env.DATABASE_PUBLIC_URL
-);
+const hasDbUrl = isDbConfigured();
 
 export async function GET() {
   try {

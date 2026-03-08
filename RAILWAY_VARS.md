@@ -8,7 +8,7 @@
 
 | Variable | Valeur |
 |----------|--------|
-| `DATABASE_URL` | **Add Reference** → Postgres → `DATABASE_URL` (donne `${{ Postgres.DATABASE_URL }}`) |
+| `DATABASE_URL` | **Add Reference** → Postgres → `DATABASE_URL` (donne `${{ Postgres.DATABASE_URL }}`). L'app accepte aussi `DATABASE_PRIVATE_URL` ou `DATABASE_PUBLIC_URL` si Railway les injecte. |
 | `RELIEFWEB_APPNAME` | `SNakib-lebanonmonitor-sn7k2` |
 | `ANTHROPIC_API_KEY` | `sk-ant-api03-...` (clé depuis https://console.anthropic.com/) |
 
@@ -46,3 +46,9 @@
 2. Sauvegarde (les variables déclenchent un redéploiement)
 3. Attends le redéploiement
 4. Réinitialise la DB si besoin : en local, avec `DATABASE_PUBLIC_URL` dans `.env.local` : `npm run db:reset`
+
+## Vérifier que tout marche
+
+Après déploiement, ouvre :
+- `https://ton-app.railway.app/api/v2/health` — indique `env.DATABASE_URL: "ok"` ou `"missing"`
+- Si `"missing"` : ajoute une **variable référence** sur le service Web : **Add Variable** → **Add Reference** → Postgres → `DATABASE_URL` (nom de la variable : `DATABASE_URL`)

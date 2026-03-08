@@ -3,7 +3,7 @@
  * Phase F — fire-and-forget, non-blocking.
  */
 
-import { withClient } from '@/db/client';
+import { withClient, isDbConfigured } from '@/db/client';
 import { createSnapshot } from '@/db/repositories/indicator-snapshot-repository';
 import { logger } from '@/lib/logger';
 
@@ -23,7 +23,7 @@ export async function persistIndicatorSnapshots(
   indicators: IndicatorPayload,
   computedAt: Date
 ): Promise<void> {
-  if (!process.env.DATABASE_URL) return;
+  if (!isDbConfigured()) return;
 
   const periodEnd = computedAt;
   const periodStart = new Date(periodEnd.getTime() - SNAPSHOT_WINDOW_MS);

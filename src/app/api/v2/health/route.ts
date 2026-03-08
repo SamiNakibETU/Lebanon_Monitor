@@ -13,7 +13,7 @@ import { NextResponse } from 'next/server';
 import { CONNECTORS } from '@/sources/connector-registry';
 import { getSanitizedAnthropicKey } from '@/lib/anthropic';
 import { isRedisConfigured } from '@/lib/redis';
-import { healthCheck as dbHealthCheck } from '@/db/client';
+import { healthCheck as dbHealthCheck, isDbConfigured } from '@/db/client';
 
 export interface HealthEntry {
   source: string;
@@ -31,11 +31,7 @@ const ERROR_HINTS: Record<string, string> = {
 };
 
 export async function GET() {
-  const hasDbUrl = !!(
-    process.env.DATABASE_URL ||
-    process.env.DATABASE_PUBLIC_URL ||
-    process.env.DATABASE_PRIVATE_URL
-  );
+  const hasDbUrl = isDbConfigured();
 
   const env: Record<string, 'ok' | 'missing' | 'invalid'> = {};
   env.DATABASE_URL = hasDbUrl ? 'ok' : 'missing';

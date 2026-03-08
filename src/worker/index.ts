@@ -5,15 +5,15 @@
  */
 
 import { runPipeline } from './pipeline';
-import { closePool } from './db';
+import { closePool, isDbConfigured } from './db';
 import { logger } from '@/lib/logger';
 
 const INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 const isOnce = process.argv.includes('--once');
 
 async function main(): Promise<void> {
-  if (!process.env.DATABASE_URL) {
-    logger.error('DATABASE_URL not set');
+  if (!isDbConfigured()) {
+    logger.error('DATABASE_URL, DATABASE_PUBLIC_URL or DATABASE_PRIVATE_URL not set');
     process.exit(1);
   }
 

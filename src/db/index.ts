@@ -2,7 +2,7 @@
  * Database layer — client, migrations, repositories.
  */
 
-export { getPool, withClient, healthCheck, closePool } from './client';
+export { getPool, withClient, healthCheck, closePool, isDbConfigured } from './client';
 export { migrate } from './migrate';
 export * from './types';
 export * from './repositories/event-repository';

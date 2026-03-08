@@ -3,7 +3,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { withClient } from '@/db/client';
+import { withClient, isDbConfigured } from '@/db/client';
 import { getEventById } from '@/db/repositories/event-repository';
 import { getEventTranslations } from '@/db/repositories/event-translation-repository';
 import { getSourceTier } from '@/config/source-tiers';
@@ -21,7 +21,7 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  if (!process.env.DATABASE_URL) {
+  if (!isDbConfigured()) {
     return NextResponse.json(
       { error: 'Database not configured', code: 500 },
       { status: 500 }

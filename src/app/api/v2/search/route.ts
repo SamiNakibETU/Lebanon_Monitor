@@ -3,7 +3,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { withClient } from '@/db/client';
+import { withClient, isDbConfigured } from '@/db/client';
 import { searchEvents } from '@/db/repositories/event-repository';
 import { getTranslationsForEvents } from '@/db/repositories/event-translation-repository';
 import { getObservationCountByEventIds } from '@/db/repositories/event-observation-repository';
@@ -17,7 +17,7 @@ const querySchema = z.object({
 });
 
 export async function GET(request: Request) {
-  if (!process.env.DATABASE_URL) {
+  if (!isDbConfigured()) {
     return NextResponse.json(
       { error: 'Database not configured', code: 500 },
       { status: 500 }

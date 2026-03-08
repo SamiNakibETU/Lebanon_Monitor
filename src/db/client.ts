@@ -8,6 +8,19 @@ import { Pool, type PoolClient } from 'pg';
 let pool: Pool | null = null;
 
 /**
+ * Check if any DB connection URL is configured (matches getConnectionUrl logic).
+ * Use this in API routes to avoid "Database not configured" when Railway
+ * injects DATABASE_PRIVATE_URL or a reference instead of DATABASE_URL.
+ */
+export function isDbConfigured(): boolean {
+  return !!(
+    process.env.DATABASE_URL ||
+    process.env.DATABASE_PUBLIC_URL ||
+    process.env.DATABASE_PRIVATE_URL
+  );
+}
+
+/**
  * Resolve DB URL.
  * - On Railway: prefer DATABASE_URL (internal ref) or DATABASE_PRIVATE_URL.
  * - External (local migrations): prefer DATABASE_PUBLIC_URL (proxy rlwy.net).
