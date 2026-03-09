@@ -1,0 +1,25 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {"type":"Feature","properties":{"name":"Base IDF Northern Command","type":"military","country":"Israel","city":"Safed"},"geometry":{"type":"Point","coordinates":[35.497,32.965]}},
+    {"type":"Feature","properties":{"name":"Kiryat Shmona (base)","type":"military","country":"Israel","city":"Kiryat Shmona"},"geometry":{"type":"Point","coordinates":[35.573,33.208]}},
+    {"type":"Feature","properties":{"name":"Metula (poste frontiere)","type":"border","country":"Israel","city":"Metula"},"geometry":{"type":"Point","coordinates":[35.573,33.281]}},
+    {"type":"Feature","properties":{"name":"Aeroport Ben Gurion","type":"airport","country":"Israel","city":"Tel Aviv"},"geometry":{"type":"Point","coordinates":[34.886,32.011]}},
+    {"type":"Feature","properties":{"name":"Port de Haifa","type":"port","country":"Israel","city":"Haifa"},"geometry":{"type":"Point","coordinates":[34.989,32.794]}},
+    {"type":"Feature","properties":{"name":"Base aerienne Ramat David","type":"military","country":"Israel","city":"Ramat David"},"geometry":{"type":"Point","coordinates":[35.185,32.668]}},
+    {"type":"Feature","properties":{"name":"Dimona (centre nucleaire)","type":"nuclear","country":"Israel","city":"Dimona"},"geometry":{"type":"Point","coordinates":[35.145,31.066]}},
+    {"type":"Feature","properties":{"name":"Base T4 (Tiyas)","type":"military","country":"Syria","city":"Palmyra"},"geometry":{"type":"Point","coordinates":[37.627,34.522]}},
+    {"type":"Feature","properties":{"name":"Base aerienne de Mezzeh","type":"military","country":"Syria","city":"Damascus"},"geometry":{"type":"Point","coordinates":[36.225,33.479]}},
+    {"type":"Feature","properties":{"name":"Base aerienne de Shayrat","type":"military","country":"Syria","city":"Homs"},"geometry":{"type":"Point","coordinates":[36.909,34.49]}},
+    {"type":"Feature","properties":{"name":"Port de Latakia","type":"port","country":"Syria","city":"Latakia"},"geometry":{"type":"Point","coordinates":[35.782,35.537]}},
+    {"type":"Feature","properties":{"name":"Port de Tartus (base navale russe)","type":"military","country":"Syria","city":"Tartus"},"geometry":{"type":"Point","coordinates":[35.886,34.889]}},
+    {"type":"Feature","properties":{"name":"Base aerienne de Hmeimim (Russie)","type":"military","country":"Russia/Syria","city":"Latakia"},"geometry":{"type":"Point","coordinates":[35.946,35.413]}},
+    {"type":"Feature","properties":{"name":"Aeroport de Damas","type":"airport","country":"Syria","city":"Damascus"},"geometry":{"type":"Point","coordinates":[36.515,33.411]}},
+    {"type":"Feature","properties":{"name":"Camp de Zaatari","type":"refugee_camp","country":"Jordan","city":"Mafraq"},"geometry":{"type":"Point","coordinates":[36.323,32.293]}},
+    {"type":"Feature","properties":{"name":"Camp de Azraq","type":"refugee_camp","country":"Jordan","city":"Azraq"},"geometry":{"type":"Point","coordinates":[36.498,31.837]}},
+    {"type":"Feature","properties":{"name":"Aeroport Queen Alia","type":"airport","country":"Jordan","city":"Amman"},"geometry":{"type":"Point","coordinates":[35.993,31.723]}},
+    {"type":"Feature","properties":{"name":"Base aerienne Akrotiri (UK)","type":"military","country":"UK/Cyprus","city":"Akrotiri"},"geometry":{"type":"Point","coordinates":[32.981,34.584]}},
+    {"type":"Feature","properties":{"name":"Base aerienne Dhekelia (UK)","type":"military","country":"UK/Cyprus","city":"Dhekelia"},"geometry":{"type":"Point","coordinates":[33.72,34.98]}},
+    {"type":"Feature","properties":{"name":"Aeroport Larnaca","type":"airport","country":"Cyprus","city":"Larnaca"},"geometry":{"type":"Point","coordinates":[33.625,34.875]}}
+  ]
+}

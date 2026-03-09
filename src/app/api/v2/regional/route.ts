@@ -2,12 +2,12 @@ import { NextResponse } from 'next/server';
 import { cachedFetch } from '@/lib/cache';
 
 const COUNTRIES = [
-  { code: 'LB', name: 'Liban', flag: '🇱🇧' },
-  { code: 'IL', name: 'Israël', flag: '🇮🇱' },
-  { code: 'SY', name: 'Syrie', flag: '🇸🇾' },
-  { code: 'JO', name: 'Jordanie', flag: '🇯🇴' },
-  { code: 'PS', name: 'Palestine', flag: '🇵🇸' },
-  { code: 'CY', name: 'Chypre', flag: '🇨🇾' },
+  { code: 'LB', name: 'Liban' },
+  { code: 'IL', name: 'Israel' },
+  { code: 'SY', name: 'Syrie' },
+  { code: 'JO', name: 'Jordanie' },
+  { code: 'PS', name: 'Palestine' },
+  { code: 'CY', name: 'Chypre' },
 ];
 
 interface GdeltArticle {

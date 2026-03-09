@@ -63,11 +63,13 @@ export async function GET(request: Request) {
         }>(
           `SELECT
              DATE(occurred_at) as day,
-             ROUND(
-               (COUNT(*) FILTER (WHERE polarity_ui = 'ombre') * 1.0 /
-                GREATEST(COUNT(*), 1) * 50) +
-               (COALESCE(AVG(severity_score) FILTER (WHERE polarity_ui = 'ombre'), 0) * 50)
-             )::int as score
+             LEAST(100, ROUND(
+               LEAST(40, LN(GREATEST(COUNT(*) FILTER (WHERE polarity_ui = 'ombre'), 1) + 1) * 12) +
+               COALESCE(AVG(severity_score) FILTER (WHERE polarity_ui = 'ombre'), 0) * 50 +
+               (COUNT(*) FILTER (WHERE polarity_ui = 'ombre') * 1.0 / GREATEST(COUNT(*), 1)) * 25 +
+               CASE WHEN COUNT(*) FILTER (WHERE severity_score >= 0.9 AND polarity_ui = 'ombre') > 0 THEN 15 ELSE 0 END +
+               CASE WHEN COUNT(*) FILTER (WHERE severity_score >= 0.75 AND polarity_ui = 'ombre') > 0 THEN 10 ELSE 0 END
+             ))::int as score
            FROM event
            WHERE is_active = true
              AND occurred_at >= NOW() - INTERVAL '1 day' * $1

@@ -72,6 +72,7 @@ export interface ClassificationResult {
   confidence: number;
   category: EventCategory;
   method: 'pre-classifier' | 'keyword' | 'ensemble' | 'tone';
+  severity_score?: number;
 }
 
 export interface Indicators {

@@ -39,9 +39,31 @@ export const RSS_FEEDS = [
   // ── Think tanks ──
   { url: 'https://www.crisisgroup.org/rss.xml', name: 'Crisis Group' },
   { url: 'https://carnegie-mec.org/rss/feeds', name: 'Carnegie MEC' },
+  // ── Culture & Société ──
+  { url: 'https://www.lecommercedulevant.com/feed', name: 'Le Commerce du Levant' },
+  { url: 'https://mondanite.com/feed/', name: 'Mondanite' },
+  { url: 'https://www.lorientlitteraire.com/rss', name: "L'Orient Littéraire" },
+  // ── Diaspora & International ──
+  { url: 'https://libnanews.com/feed/', name: 'LibnaNews' },
+  { url: 'https://www.lorientlejour.com/rubrique/43-diaspora/feed', name: 'OLJ Diaspora' },
+  // ── Économie & Marchés ──
+  { url: 'https://www.businessnews.com.lb/cms/feed/', name: 'Business News Lebanon' },
+  { url: 'https://www.lbprate.com/feed', name: 'LBP Rate' },
+  // ── Organisations internationales ──
+  { url: 'https://www.unrwa.org/rssfeed/press-releases', name: 'UNRWA' },
+  { url: 'https://www.unhcr.org/lb/feed', name: 'UNHCR Lebanon' },
+  { url: 'https://www.wfp.org/countries/lebanon/rss', name: 'WFP Lebanon' },
+  { url: 'https://www.icrc.org/en/rss', name: 'ICRC' },
+  // ── Think tanks & Analyse ──
+  { url: 'https://www.washingtoninstitute.org/rss.xml', name: 'Washington Institute' },
+  { url: 'https://www.atlanticcouncil.org/category/middle-east/feed/', name: 'Atlantic Council ME' },
+  { url: 'https://www.chathamhouse.org/region/middle-east-and-north-africa/feed', name: 'Chatham House MENA' },
   // ── Contexte régional ──
   { url: 'https://syriadirect.org/feed/', name: 'Syria Direct' },
   { url: 'https://www.timesofisrael.com/feed/', name: 'Times of Israel' },
+  { url: 'https://www.jpost.com/rss/rssfeedsfrontpage.aspx', name: 'Jerusalem Post' },
+  { url: 'https://www.haaretz.com/cmlink/1.628752', name: 'Haaretz' },
+  { url: 'https://www.i24news.tv/fr/rss', name: 'i24NEWS FR' },
 ] as const;
 
 export const RSS_USER_AGENT =
