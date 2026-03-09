@@ -72,7 +72,9 @@ export async function callAnthropic(req: AnthropicRequest): Promise<string | nul
     const text = firstBlock?.text ?? '';
     return text || null;
   } catch (err) {
-    console.error('Anthropic API error:', err);
-    return null;
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('Anthropic API error:', msg);
+    // Re-throw so callers can surface the actual error in diagnostics
+    throw new Error(`Anthropic call failed: ${msg}`);
   }
 }

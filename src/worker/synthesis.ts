@@ -85,15 +85,20 @@ export async function generateSynthesisWithDiagnostics(): Promise<SynthesisDiagn
   const eventsJson = JSON.stringify(events, null, 0);
   const userContent = SYNTHESIS_USER_TEMPLATE.replace('{EVENTS_JSON}', eventsJson);
 
-  const text = await callAnthropic({
-    system: SYNTHESIS_SYSTEM,
-    messages: [{ role: 'user', content: userContent }],
-    max_tokens: 1024,
-    temperature: 0.3,
-  });
+  let text: string | null;
+  try {
+    text = await callAnthropic({
+      system: SYNTHESIS_SYSTEM,
+      messages: [{ role: 'user', content: userContent }],
+      max_tokens: 1024,
+      temperature: 0.3,
+    });
+  } catch (e) {
+    return { ok: false, step: 'anthropic_api', error: e instanceof Error ? e.message : String(e) };
+  }
 
   if (!text) {
-    return { ok: false, step: 'anthropic_api', error: 'Claude API returned null (check key, quota, network)' };
+    return { ok: false, step: 'anthropic_api', error: 'Claude returned empty response' };
   }
 
   const parsed = parseSynthesisJson(text);
