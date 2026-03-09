@@ -5,8 +5,8 @@
 import { runIngest } from './ingest';
 import { runNormalize } from './normalize';
 import { classifyEvent, needsLlmClassification } from './classify';
-import { classifyWithClaude } from './classify-llm';
-import { getSanitizedAnthropicKey } from '@/lib/anthropic';
+import { classifyWithGroq } from './classify-llm';
+import { getSanitizedGroqKey } from '@/lib/groq-client';
 import { findDuplicate } from './deduplicate';
 import { storeNewEvent, linkToExistingEvent } from './store';
 import { translateAndStore } from './translate';
@@ -53,8 +53,8 @@ export async function runPipeline(): Promise<PipelineResult> {
       .filter(({ event }) => needsLlmClassification(event.title));
 
     const llmResults =
-      needsLlm.length > 0 && getSanitizedAnthropicKey()
-        ? await classifyWithClaude(needsLlm)
+      needsLlm.length > 0 && getSanitizedGroqKey()
+        ? await classifyWithGroq(needsLlm)
         : new Map<number, never>();
 
     for (let i = 0; i < toProcess.length; i++) {

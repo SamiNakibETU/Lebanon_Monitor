@@ -6,7 +6,7 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export function LBPWidget() {
 
-  const { data } = useSWR<{ rate: number; source: string; updated: string }>(
+  const { data } = useSWR<{ rate: number; source: string; updated: string; spreadVsOfficial?: number | null; volatility24h?: number | null }>(
     '/api/v2/lbp-rate',
     fetcher,
     { refreshInterval: 300_000 }
@@ -24,6 +24,10 @@ export function LBPWidget() {
       </div>
       <div className="text-[11px] mt-1" style={{ color: '#666666' }}>
         {data?.source === 'fallback' ? 'taux indicatif' : 'marché parallèle'}
+      </div>
+      <div className="text-[11px] mt-1" style={{ color: '#666666' }}>
+        {data?.volatility24h != null ? `vol24h ${data.volatility24h.toFixed(1)}%` : 'vol24h n/a'}
+        {data?.spreadVsOfficial != null ? ` · spread ${data.spreadVsOfficial.toFixed(1)}%` : ''}
       </div>
     </div>
   );

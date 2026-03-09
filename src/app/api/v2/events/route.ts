@@ -13,6 +13,7 @@ import { z } from 'zod';
 
 /** Event types considered "political" for the political feed. */
 const POLITICAL_CATEGORIES = ['political_tension', 'armed_conflict', 'violence', 'displacement'] as const;
+const REGION_KEYWORDS = /(lebanon|liban|beirut|tripoli|sidon|saida|tyre|sour|baalbek|bekaa|nabatiyeh|south lebanon|israel|syria|iran|gaza|palestine)/i;
 
 const querySchema = z.object({
   lang: z.enum(['fr', 'en', 'ar']).optional().default('fr'),
@@ -107,6 +108,7 @@ export async function GET(request: Request) {
         geoPrecision: e.geo_precision ?? (meta.geoPrecision as string | null) ?? 'unknown',
         resolvedPlaceName: (meta.resolvedPlaceName as string | null) ?? null,
         source,
+        eventSource: source,
         sourceTier: getSourceTier(source),
         verificationStatus: e.verification_status,
         translationStatus: (meta.translationStatus as string | null) ?? 'unknown',
@@ -118,7 +120,10 @@ export async function GET(request: Request) {
           verificationStatus: e.verification_status,
         },
       };
-    }).filter((e) => !isProbablyGarbled(e.title));
+    })
+      .filter((e) => !isProbablyGarbled(e.title))
+      .filter((e) => isRelevantEvent(e))
+      .filter((e, idx, arr) => dedupeByTitleWithinWindow(e, idx, arr));
 
     return NextResponse.json(
       {
@@ -138,6 +143,36 @@ export async function GET(request: Request) {
       { status: 500 }
     );
   }
+}
+
+function isRelevantEvent(event: { title: string; summary: string | null; eventSource?: string | null; category: string | null }): boolean {
+  const source = (event.eventSource ?? '').toLowerCase();
+  if (!['gdelt', 'rss'].includes(source)) return true;
+  const text = `${event.title} ${event.summary ?? ''}`;
+  if (REGION_KEYWORDS.test(text)) return true;
+  return ['armed_conflict', 'political_tension', 'violence', 'displacement', 'reconstruction', 'solidarity', 'cultural_event'].includes(event.category ?? '');
+}
+
+function dedupeByTitleWithinWindow(
+  current: { title: string; occurredAt: Date | string | null },
+  idx: number,
+  arr: Array<{ title: string; occurredAt: Date | string | null }>
+): boolean {
+  const currentKey = normalizeTitle(current.title);
+  const currentTs = current.occurredAt ? new Date(current.occurredAt).getTime() : 0;
+  for (let i = 0; i < idx; i++) {
+    const prev = arr[i]!;
+    if (normalizeTitle(prev.title) !== currentKey) continue;
+    const prevTs = prev.occurredAt ? new Date(prev.occurredAt).getTime() : 0;
+    if (!prevTs || !currentTs) return false;
+    const diffHours = Math.abs(currentTs - prevTs) / (1000 * 60 * 60);
+    if (diffHours <= 24) return false;
+  }
+  return true;
+}
+
+function normalizeTitle(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/gi, ' ').trim();
 }
 
 function mapSeverityScore(score: number | null): string {

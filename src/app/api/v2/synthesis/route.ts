@@ -7,6 +7,7 @@ export const maxDuration = 60;
 
 import { NextResponse } from 'next/server';
 import { getSanitizedAnthropicKey } from '@/lib/anthropic';
+import { getSanitizedGroqKey } from '@/lib/groq-client';
 import { isRedisConfigured } from '@/lib/redis';
 import { getCachedSynthesis, generateSynthesis } from '@/worker/synthesis';
 
@@ -28,9 +29,10 @@ export async function GET() {
       });
     }
 
+    const groqKey = getSanitizedGroqKey();
     const anthropicKey = getSanitizedAnthropicKey();
-    if (!anthropicKey) {
-      console.warn('Synthesis: ANTHROPIC_API_KEY not configured or invalid');
+    if (!groqKey && !anthropicKey) {
+      console.warn('Synthesis: neither GROQ_API_KEY nor ANTHROPIC_API_KEY configured');
       return NextResponse.json(placeholder(), {
         headers: { 'Cache-Control': 's-maxage=60' },
       });

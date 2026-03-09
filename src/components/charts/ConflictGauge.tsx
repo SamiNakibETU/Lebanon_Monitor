@@ -4,8 +4,15 @@ import useSWR from 'swr';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
-interface TrendsData {
-  intensity: Array<{ day: string; score: number }>;
+interface InstabilityData {
+  score: number;
+  components?: Record<string, { score: number; weight: number; brief: string }>;
+}
+
+interface CrisisBarometerData {
+  score: number;
+  label: string;
+  history: Array<{ day: string; score: number }>;
 }
 
 function getColor(score: number): string {
@@ -23,14 +30,14 @@ function getLabel(score: number): string {
 }
 
 export function ConflictGauge() {
-  const { data } = useSWR<TrendsData>('/api/v2/trends?days=7', fetcher, {
+  const { data } = useSWR<InstabilityData>('/api/v2/instability', fetcher, {
+    refreshInterval: 300_000,
+  });
+  const { data: barometer } = useSWR<CrisisBarometerData>('/api/v2/crisis-barometer', fetcher, {
     refreshInterval: 300_000,
   });
 
-  const latestScore = data?.intensity?.length
-    ? data.intensity[data.intensity.length - 1].score
-    : null;
-
+  const latestScore = data?.score ?? null;
   const score = latestScore ?? 0;
   const color = getColor(score);
 
@@ -40,7 +47,7 @@ export function ConflictGauge() {
         className="text-[11px] uppercase tracking-[0.08em] mb-2"
         style={{ color: '#666666' }}
       >
-        Indice de tension
+        Indice d'instabilité
       </div>
       <div className="flex items-baseline gap-2 mb-3">
         <span
@@ -53,6 +60,11 @@ export function ConflictGauge() {
           /100 · {getLabel(score)}
         </span>
       </div>
+      {barometer && (
+        <div className="text-[11px] mb-2" style={{ color: '#888888' }}>
+          Baromètre de crise: {barometer.score}/100 · {barometer.label}
+        </div>
+      )}
       <div
         className="w-full h-1.5"
         style={{ background: 'rgba(255,255,255,0.06)' }}
@@ -65,9 +77,18 @@ export function ConflictGauge() {
           }}
         />
       </div>
-      {data?.intensity && data.intensity.length > 1 && (
+      {data?.components && (
+        <div className="mt-3 space-y-1">
+          {Object.entries(data.components).map(([key, c]) => (
+            <div key={key} className="text-[10px]" style={{ color: '#666666' }}>
+              {key}: {c.score}/100
+            </div>
+          ))}
+        </div>
+      )}
+      {barometer?.history && barometer.history.length > 1 && (
         <div className="flex gap-1 mt-2">
-          {data.intensity.slice(-7).map((d, i) => (
+          {barometer.history.slice(-7).map((d, i) => (
             <div
               key={i}
               className="flex-1 h-1"

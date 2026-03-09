@@ -1,11 +1,26 @@
 export interface UCDPEvent {
   id?: number;
+  relid?: string;
   country?: string;
+  region?: string;
   latitude?: number;
   longitude?: number;
   date_start?: string;
   date_end?: string;
   type_of_violence?: number;
+  dyad_name?: string;
+  conflict_name?: string;
+  side_a?: string;
+  side_b?: string;
+  where_description?: string;
+  where_coordinates?: string;
+  adm_1?: string;
+  adm_2?: string;
+  where_prec?: number;
+  event_clarity?: number;
+  number_of_sources?: number;
+  source_headline?: string;
+  source_article?: string;
   deaths_a?: number;
   deaths_b?: number;
   deaths_civilians?: number;

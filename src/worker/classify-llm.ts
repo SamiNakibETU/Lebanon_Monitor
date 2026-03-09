@@ -1,12 +1,10 @@
 /**
- * Claude Haiku batch classification for ambiguous titles.
+ * Groq batch classification for ambiguous titles.
  * Used when pre-classifier returns null.
- * Uses centralized client, system message, and explicit EventCategory mapping.
  */
 
 import { logger } from '@/lib/logger';
-import { getSanitizedAnthropicKey } from '@/lib/anthropic';
-import { callAnthropic } from '@/lib/anthropic-client';
+import { callGroq, getSanitizedGroqKey } from '@/lib/groq-client';
 import type { LebanonEvent } from '@/types/events';
 import type { Classification, EventCategory, Severity } from '@/types/events';
 
@@ -59,12 +57,12 @@ const CLASSIFY_USER_TEMPLATE = `Classify each headline below. Return ONLY a vali
 Headlines:
 {ITEMS}`;
 
-export async function classifyWithClaude(
+export async function classifyWithGroq(
   items: Array<{ event: LebanonEvent; index: number }>
 ): Promise<Map<number, LLMClassificationItem>> {
-  const apiKey = getSanitizedAnthropicKey();
+  const apiKey = getSanitizedGroqKey();
   if (!apiKey) {
-    logger.warn('ANTHROPIC_API_KEY not set, skipping LLM classification');
+    logger.warn('GROQ_API_KEY not set, skipping LLM classification');
     return new Map();
   }
 
@@ -78,15 +76,18 @@ export async function classifyWithClaude(
       headlines.map((h, j) => `${j + 1}. ${h}`).join('\n')
     );
 
-    const text = await callAnthropic({
-      system: CLASSIFY_SYSTEM,
-      messages: [{ role: 'user', content: userContent }],
+    const text = await callGroq({
+      messages: [
+        { role: 'system', content: CLASSIFY_SYSTEM },
+        { role: 'user', content: userContent },
+      ],
       max_tokens: 2048,
       temperature: 0,
+      timeoutMs: 12_000,
     });
 
     if (!text) {
-      logger.warn('Claude classification returned empty');
+      logger.warn('Groq classification returned empty');
       continue;
     }
 
@@ -111,6 +112,9 @@ export async function classifyWithClaude(
 
   return results;
 }
+
+// Backward-compatible export used by existing imports.
+export const classifyWithClaude = classifyWithGroq;
 
 function parseJsonArray(text: string): unknown[] {
   const trimmed = text

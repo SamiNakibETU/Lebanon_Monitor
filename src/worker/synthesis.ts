@@ -1,7 +1,7 @@
 /**
- * AI Synthesis — Claude Haiku generates daily Lumière/Ombre briefings.
+ * AI Synthesis — Groq generates daily Lumière/Ombre briefings.
  * Called 2x/day (8h and 20h Beirut) via cron or POST /api/admin/synthesis.
- * Uses centralized Anthropic client and best-practice prompts.
+ * Uses Groq first, then Anthropic fallback.
  */
 
 import { withClient } from '@/db/client';
@@ -10,6 +10,7 @@ import { getTranslationsForEvents } from '@/db/repositories/event-translation-re
 import { redisSet, redisGet, isRedisConfigured } from '@/lib/redis';
 import { getSanitizedAnthropicKey } from '@/lib/anthropic';
 import { callAnthropic } from '@/lib/anthropic-client';
+import { callGroq, getSanitizedGroqKey } from '@/lib/groq-client';
 
 const SYNTHESIS_REDIS_KEY = 'lebanon-monitor:synthesis';
 const SYNTHESIS_TTL = 12 * 60 * 60; // 12 hours
@@ -18,7 +19,9 @@ const SYNTHESIS_SYSTEM = `Tu es un analyste OSINT spécialisé sur le Liban. Tu 
 
 Chaque briefing est affiché tel quel à l'utilisateur. Tu dois être factuel, dense, sans formules creuses. Style câble diplomatique : chiffres et noms de lieux quand disponibles.
 
-Le dashboard affiche deux colonnes : Lumière (positif) et Ombre (négatif). Tu produis exactement deux résumés de 3 à 4 phrases chacun.`;
+Le dashboard affiche deux colonnes : Lumière (positif) et Ombre (négatif). Tu produis exactement deux résumés de 3 à 4 phrases chacun.
+
+En plus, tu fournis un rapport situationnel structuré en 5 sections avec 2 phrases chacune : security, economy, humanitarian, politics, regional.`;
 
 const SYNTHESIS_USER_TEMPLATE = `À partir des événements des dernières 24h ci-dessous, rédige deux résumés :
 
@@ -30,12 +33,19 @@ const SYNTHESIS_USER_TEMPLATE = `À partir des événements des dernières 24h c
 {EVENTS_JSON}
 
 Tu DOIS répondre par un seul objet JSON valide. Aucun texte avant ou après. Aucun markdown. Format exact :
-{"lumiere":"phrase1. phrase2. phrase3.","ombre":"phrase1. phrase2. phrase3.","generated_at":"2025-03-08T12:00:00.000Z"}`;
+{"lumiere":"phrase1. phrase2. phrase3.","ombre":"phrase1. phrase2. phrase3.","sections":{"security":"...","economy":"...","humanitarian":"...","politics":"...","regional":"..."},"generated_at":"2025-03-08T12:00:00.000Z"}`;
 
 export interface SynthesisResult {
   lumiere: string;
   ombre: string;
   generated_at: string;
+  sections?: {
+    security: string;
+    economy: string;
+    humanitarian: string;
+    politics: string;
+    regional: string;
+  };
 }
 
 export type SynthesisDiagnostics =
@@ -44,8 +54,14 @@ export type SynthesisDiagnostics =
 
 /** Run synthesis with step-by-step diagnostics for admin/debug. */
 export async function generateSynthesisWithDiagnostics(): Promise<SynthesisDiagnostics> {
-  if (!getSanitizedAnthropicKey()) {
-    return { ok: false, step: 'anthropic_key', error: 'ANTHROPIC_API_KEY missing or invalid (need sk-ant-..., 20+ chars)' };
+  const hasGroq = Boolean(getSanitizedGroqKey());
+  const hasAnthropic = Boolean(getSanitizedAnthropicKey());
+  if (!hasGroq && !hasAnthropic) {
+    return {
+      ok: false,
+      step: 'llm_key',
+      error: 'No LLM key configured. Set GROQ_API_KEY (preferred) or ANTHROPIC_API_KEY.',
+    };
   }
 
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -74,6 +90,13 @@ export async function generateSynthesisWithDiagnostics(): Promise<SynthesisDiagn
     const fallback: SynthesisResult = {
       lumiere: 'Aucun événement Lumière majeur ces dernières 24 heures.',
       ombre: 'Aucun événement Ombre majeur ces dernières 24 heures.',
+      sections: {
+        security: 'Aucun signal sécurité majeur sur les dernières 24h.',
+        economy: 'Pas de variation économique majeure observée.',
+        humanitarian: 'Pas de changement humanitaire majeur observé.',
+        politics: 'Pas d’évolution politique majeure observée.',
+        regional: 'Pas de bascule régionale notable observée.',
+      },
       generated_at: new Date().toISOString(),
     };
     if (isRedisConfigured()) {
@@ -87,18 +110,38 @@ export async function generateSynthesisWithDiagnostics(): Promise<SynthesisDiagn
 
   let text: string | null;
   try {
-    text = await callAnthropic({
-      system: SYNTHESIS_SYSTEM,
-      messages: [{ role: 'user', content: userContent }],
-      max_tokens: 1024,
-      temperature: 0.3,
-    });
+    if (hasGroq) {
+      text = await callGroq({
+        messages: [
+          { role: 'system', content: SYNTHESIS_SYSTEM },
+          { role: 'user', content: userContent },
+        ],
+        max_tokens: 1024,
+        temperature: 0.3,
+        timeoutMs: 15_000,
+      });
+    } else {
+      text = await callAnthropic({
+        system: SYNTHESIS_SYSTEM,
+        messages: [{ role: 'user', content: userContent }],
+        max_tokens: 1024,
+        temperature: 0.3,
+      });
+    }
   } catch (e) {
-    return { ok: false, step: 'anthropic_api', error: e instanceof Error ? e.message : String(e) };
+    return {
+      ok: false,
+      step: hasGroq ? 'groq_api' : 'anthropic_api',
+      error: e instanceof Error ? e.message : String(e),
+    };
   }
 
   if (!text) {
-    return { ok: false, step: 'anthropic_api', error: 'Claude returned empty response' };
+    return {
+      ok: false,
+      step: hasGroq ? 'groq_api' : 'anthropic_api',
+      error: hasGroq ? 'Groq returned empty response' : 'Claude returned empty response',
+    };
   }
 
   const parsed = parseSynthesisJson(text);
@@ -109,6 +152,7 @@ export async function generateSynthesisWithDiagnostics(): Promise<SynthesisDiagn
   const result: SynthesisResult = {
     lumiere: parsed.lumiere ?? 'Synthèse non disponible.',
     ombre: parsed.ombre ?? 'Synthèse non disponible.',
+    sections: parsed.sections,
     generated_at: parsed.generated_at ?? new Date().toISOString(),
   };
 

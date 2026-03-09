@@ -1,24 +1,14 @@
 /**
- * HF Opus-MT translation — AR/FR/EN.
+ * Groq translation — AR/FR/EN.
  */
 
 import { withClient } from '@/db/client';
 import { getEventTranslation, upsertEventTranslation } from '@/db/repositories/event-translation-repository';
 import { detectLanguage } from '@/core/language/detect';
 import { logger } from '@/lib/logger';
+import { callGroq, getSanitizedGroqKey } from '@/lib/groq-client';
 import type { PoolClient } from 'pg';
 import type { Lang } from '@/db/repositories/event-translation-repository';
-
-const HF_API = 'https://api-inference.huggingface.co/models';
-
-const MODELS: Record<string, string> = {
-  'ar-en': 'Helsinki-NLP/opus-mt-tc-big-ar-en',
-  'ar-fr': 'Helsinki-NLP/opus-mt-ar-fr',
-  'fr-en': 'Helsinki-NLP/opus-mt-fr-en',
-  'fr-ar': 'Helsinki-NLP/opus-mt-fr-ar',
-  'en-fr': 'Helsinki-NLP/opus-mt-en-fr',
-  'en-ar': 'Helsinki-NLP/opus-mt-tc-big-en-ar',
-};
 
 const LANGS: Lang[] = ['ar', 'fr', 'en'];
 const MAX_RETRIES = 2;
@@ -28,14 +18,14 @@ export async function translateAndStore(
   title: string,
   summary?: string | null
 ): Promise<void> {
-  const token = process.env.HF_API_TOKEN;
+  const apiKey = getSanitizedGroqKey();
   const from = detectLanguage(title);
   let successCount = 0;
   let attemptedCount = 0;
 
   await withClient(async (client) => {
     await updateTranslationStatus(client, eventId, 'in_progress', {
-      provider: token ? 'opus-mt' : 'fallback-copy',
+      provider: apiKey ? 'groq-llama-3.1-8b-instant' : 'fallback-copy',
     });
 
     for (const to of LANGS) {
@@ -55,7 +45,7 @@ export async function translateAndStore(
       const existing = await getEventTranslation(client, eventId, to);
       if (existing?.title) continue;
 
-      if (!token) {
+      if (!apiKey) {
         // Fallback strategy: keep source text so UI is never empty.
         await upsertEventTranslation(client, {
           event_id: eventId,
@@ -68,17 +58,18 @@ export async function translateAndStore(
         continue;
       }
 
-      const translated = await translateTextWithRetry(title, from, to, token);
-      const translatedSummary = summary
-        ? await translateTextWithRetry(summary, from, to, token)
-        : null;
+      const translated = await translatePayloadWithRetry(
+        { title, summary: summary ?? null },
+        from,
+        to
+      );
       if (translated) {
         await upsertEventTranslation(client, {
           event_id: eventId,
           language: to,
-          title: translated,
-          summary: translatedSummary ?? null,
-          provider: 'opus-mt',
+          title: translated.title,
+          summary: translated.summary ?? null,
+          provider: 'groq-llama-3.1-8b-instant',
         });
         successCount++;
       }
@@ -91,7 +82,7 @@ export async function translateAndStore(
           ? 'partial'
           : 'failed';
     await updateTranslationStatus(client, eventId, status, {
-      provider: token ? 'opus-mt' : 'fallback-copy',
+      provider: apiKey ? 'groq-llama-3.1-8b-instant' : 'fallback-copy',
       attemptedCount,
       successCount,
       sourceLanguage: from,
@@ -100,15 +91,14 @@ export async function translateAndStore(
   });
 }
 
-async function translateTextWithRetry(
-  text: string,
+async function translatePayloadWithRetry(
+  payload: { title: string; summary: string | null },
   from: Lang,
-  to: Lang,
-  token: string
-): Promise<string | null> {
-  let last: string | null = null;
+  to: Lang
+): Promise<{ title: string; summary: string | null } | null> {
+  let last: { title: string; summary: string | null } | null = null;
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    const out = await translateText(text, from, to, token);
+    const out = await translatePayload(payload, from, to);
     if (out) return out;
     last = out;
     if (attempt < MAX_RETRIES) {
@@ -118,58 +108,70 @@ async function translateTextWithRetry(
   return last;
 }
 
-async function translateText(
-  text: string,
+async function translatePayload(
+  payload: { title: string; summary: string | null },
   from: Lang,
-  to: Lang,
-  token: string
-): Promise<string | null> {
-  const key = `${from}-${to}`;
-  const model = MODELS[key];
-  if (!model) return null;
+  to: Lang
+): Promise<{ title: string; summary: string | null } | null> {
+  const fromLabel = from.toUpperCase();
+  const toLabel = to.toUpperCase();
 
   try {
-    const res = await fetch(`${HF_API}/${model}`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ inputs: text }),
+    const prompt = [
+      `Translate from ${fromLabel} to ${toLabel}.`,
+      'Return ONLY a valid JSON object with keys "title" and "summary".',
+      'Do not add commentary. Keep names and numbers unchanged when possible.',
+      `Input JSON: ${JSON.stringify(payload)}`,
+    ].join('\n');
+
+    const text = await callGroq({
+      messages: [
+        { role: 'system', content: 'You are a precise multilingual translator.' },
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0,
+      max_tokens: 900,
+      timeoutMs: 12_000,
     });
-
-    if (!res.ok) {
-      if (res.status === 503) {
-        const body = (await res.json()) as { estimated_time?: number };
-        const waitMs = Math.min((body.estimated_time ?? 20) * 1000, 30000);
-        logger.info('HF model loading, retrying after wait', { model, waitMs });
-        await new Promise((r) => setTimeout(r, waitMs));
-
-        const retry = await fetch(`${HF_API}/${model}`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ inputs: text }),
-        });
-        if (retry.ok) {
-          const retryData = (await retry.json()) as Array<{ translation_text?: string }>;
-          return retryData[0]?.translation_text ?? null;
-        }
-        logger.warn('HF model retry failed', { model, status: retry.status });
-      }
-      return null;
-    }
-
-    const data = (await res.json()) as Array<{ translation_text?: string }>;
-    return data[0]?.translation_text ?? null;
+    if (!text) return null;
+    return parseTranslatedJson(text, payload);
   } catch (err) {
-    logger.warn('Translation failed', {
+    logger.warn('Groq translation failed', {
       from,
       to,
       error: err instanceof Error ? err.message : String(err),
     });
+    return null;
+  }
+}
+
+function parseTranslatedJson(
+  text: string,
+  fallback: { title: string; summary: string | null }
+): { title: string; summary: string | null } | null {
+  const cleaned = text
+    .replace(/^```json\s*/i, '')
+    .replace(/^```\s*/g, '')
+    .replace(/\s*```$/g, '')
+    .trim();
+  const match = cleaned.match(/\{[\s\S]*\}/);
+  if (!match) return null;
+  try {
+    const parsed = JSON.parse(match[0]) as { title?: unknown; summary?: unknown };
+    const translatedTitle = typeof parsed.title === 'string' ? parsed.title.trim() : '';
+    const translatedSummary =
+      typeof parsed.summary === 'string'
+        ? parsed.summary.trim()
+        : parsed.summary == null
+          ? null
+          : '';
+
+    if (!translatedTitle) return null;
+    return {
+      title: translatedTitle,
+      summary: translatedSummary === '' ? fallback.summary : translatedSummary,
+    };
+  } catch {
     return null;
   }
 }

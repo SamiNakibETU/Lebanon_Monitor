@@ -25,6 +25,11 @@ export interface OpenSkyPosition {
   lat: number;
   nic: number;
   icao24?: string;
+  callsign?: string;
+  originCountry?: string;
+  altitude?: number;
+  velocity?: number;
+  heading?: number;
 }
 
 export async function fetchOpenSkyPositions(): Promise<
@@ -46,7 +51,17 @@ export async function fetchOpenSkyPositions(): Promise<
         const lon = Number(s[5]);
         const lat = Number(s[6]);
         const nic = typeof s[16] === 'number' ? s[16] : 0;
-        return { lon, lat, nic, icao24: typeof s[0] === 'string' ? s[0] : undefined };
+        return {
+          lon,
+          lat,
+          nic,
+          icao24: typeof s[0] === 'string' ? s[0] : undefined,
+          callsign: typeof s[1] === 'string' ? s[1].trim() : undefined,
+          originCountry: typeof s[2] === 'string' ? s[2] : undefined,
+          altitude: typeof s[13] === 'number' ? s[13] : undefined,
+          velocity: typeof s[9] === 'number' ? s[9] : undefined,
+          heading: typeof s[10] === 'number' ? s[10] : undefined,
+        };
       })
       .filter((p) => Number.isFinite(p.lon) && Number.isFinite(p.lat));
 

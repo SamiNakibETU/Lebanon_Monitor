@@ -23,6 +23,7 @@
     "worker:once": "tsx src/worker/index.ts --once",
     "railway:ingest": "node scripts/railway-ingest-once.mjs",
     "backfill:translations": "node scripts/backfill-translations.mjs",
+    "cleanup:garbled": "node scripts/cleanup-garbled.mjs",
     "verify": "node scripts/verify-all.mjs"
   },
   "dependencies": {

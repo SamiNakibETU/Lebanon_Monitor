@@ -10,6 +10,44 @@ import { resolveCityCoords } from './config';
 import type { RssItem } from './types';
 import { RSS_CONFIG } from './config';
 
+const CULTURE_FEEDS = new Set(['Agenda Culturel', 'Beirut.com', 'Mondanite', "L'Orient Littéraire"]);
+const SOLIDARITY_FEEDS = new Set(['UNDP Lebanon', 'UNICEF Lebanon', 'UNRWA', 'UNHCR Lebanon', 'WFP Lebanon', 'ICRC']);
+
+const CULTURE_KEYWORDS = /(concert|exposition|festival|vernissage|th[ée][âa]tre|cin[ée]ma|musique|spectacle|performance|gallery|exhibit)/i;
+const SOLIDARITY_KEYWORDS = /(aid|humanitarian|distribution|relief|food|medical|vaccin|school|cash assistance|displaced|support)/i;
+
+function classifyRssContent(input: {
+  feedName?: string;
+  text: string;
+  baseClassification: LebanonEvent['classification'];
+  baseConfidence: number;
+}): {
+  classification: LebanonEvent['classification'];
+  confidence: number;
+  category: LebanonEvent['category'];
+} {
+  const feed = input.feedName ?? '';
+  const text = input.text;
+
+  if (CULTURE_FEEDS.has(feed) || CULTURE_KEYWORDS.test(text)) {
+    return { classification: 'lumiere', confidence: Math.max(input.baseConfidence, 0.82), category: 'cultural_event' };
+  }
+  if (SOLIDARITY_FEEDS.has(feed) || SOLIDARITY_KEYWORDS.test(text)) {
+    return { classification: 'lumiere', confidence: Math.max(input.baseConfidence, 0.8), category: 'solidarity' };
+  }
+  if (/(reconstruction|rehabilitation|rebuild|project launch|inauguration)/i.test(text)) {
+    return { classification: 'lumiere', confidence: Math.max(input.baseConfidence, 0.78), category: 'reconstruction' };
+  }
+
+  if (input.baseClassification === 'lumiere') {
+    return { classification: 'lumiere', confidence: input.baseConfidence, category: 'cultural_event' };
+  }
+  if (input.baseClassification === 'ombre') {
+    return { classification: 'ombre', confidence: input.baseConfidence, category: 'political_tension' };
+  }
+  return { classification: 'neutre', confidence: input.baseConfidence, category: 'neutral' };
+}
+
 export function normalize(
   items: Array<RssItem & { feedName?: string }>,
   fetchedAt: Date
@@ -21,7 +59,13 @@ export function normalize(
     const title = normalizeText(item.title) || 'Untitled';
     const snippet = normalizeText(item.contentSnippet ?? '');
     const text = `${title} ${snippet}`;
-    const { classification, confidence } = classifyByKeywords(text);
+    const { classification: baseClassification, confidence: baseConfidence } = classifyByKeywords(text);
+    const { classification, confidence, category } = classifyRssContent({
+      feedName: item.feedName,
+      text,
+      baseClassification,
+      baseConfidence,
+    });
     const resolved = resolveCityCoords(title, snippet);
     const lat = resolved?.lat ?? LEBANON_CITIES.Beirut.lat;
     const lng = resolved?.lng ?? LEBANON_CITIES.Beirut.lng;
@@ -39,7 +83,7 @@ export function normalize(
       longitude: lng,
       classification,
       confidence,
-      category: classification === 'lumiere' ? 'cultural_event' : classification === 'ombre' ? 'political_tension' : 'neutral',
+      category,
       severity: 'low',
       metadata: {
         fetchedAt,
@@ -50,6 +94,12 @@ export function normalize(
         evidence: {
           geocodeMethod: resolved?.geocodeMethod ?? 'country_fallback',
           geocodeConfidence: resolved?.geocodeConfidence ?? 0.3,
+        },
+        extractedEntities: {
+          persons: [],
+          parties: [],
+          cities: resolved?.resolvedPlaceName ? [resolved.resolvedPlaceName] : [],
+          organizations: item.feedName ? [item.feedName] : [],
         },
       },
     });

@@ -1,6 +1,6 @@
 /**
  * Backfill translations for existing events.
- * Run: DATABASE_URL="..." HF_API_TOKEN="..." npx tsx src/scripts/backfill-translations.ts
+ * Run: DATABASE_URL="..." GROQ_API_KEY="..." npx tsx src/scripts/backfill-translations.ts
  * Or: npm run backfill:translations (with .env.local)
  */
 
@@ -8,8 +8,8 @@ import { withClient } from '../db/client';
 import { translateAndStore } from '../worker/translate';
 
 async function main() {
-  if (!process.env.HF_API_TOKEN) {
-    console.error('HF_API_TOKEN is required. Set it in .env.local or environment.');
+  if (!process.env.GROQ_API_KEY) {
+    console.error('GROQ_API_KEY is required. Set it in .env.local or environment.');
     process.exit(1);
   }
 
@@ -29,7 +29,7 @@ async function main() {
     if (done % 10 === 0) {
       console.log(`  ${done}/${rows.length} done`);
     }
-    await delay(300); // Avoid HF API rate limit
+    await delay(150);
   }
 
   console.log(`Done. ${rows.length} events processed.`);

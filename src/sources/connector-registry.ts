@@ -37,9 +37,6 @@ import { OPENAQ_CONFIG } from "./openaq/config";
 import { fetchTwitter } from "./twitter";
 import { normalize as normalizeTwitter } from "./twitter";
 import { TWITTER_CONFIG } from "./twitter/config";
-import { fetchAcled } from "./acled";
-import { normalize as normalizeAcled } from "./acled";
-import { ACLED_CONFIG } from "./acled/config";
 import { fetchUcdp } from "./ucdp";
 import { normalize as normalizeUcdp } from "./ucdp";
 import { UCDP_CONFIG } from "./ucdp/config";
@@ -185,18 +182,6 @@ export const CONNECTORS: ConnectorDescriptor[] = [
     normalize: (raw, fetchedAt) => normalizeTwitter(raw.items, fetchedAt),
   }),
   createConnector({
-    name: "acled",
-    category: "conflict",
-    eventSource: true,
-    indicatorSource: false,
-    ttlSeconds: ACLED_CONFIG.ttlSeconds,
-    reliability: "high",
-    costClass: "free",
-    fetch: fetchAcled,
-    normalize: (raw, fetchedAt) => normalizeAcled(raw, fetchedAt),
-    isSkipped: (msg) => msg.includes("not configured"),
-  }),
-  createConnector({
     name: "ucdp",
     category: "conflict",
     eventSource: true,
@@ -207,7 +192,7 @@ export const CONNECTORS: ConnectorDescriptor[] = [
     fetch: fetchUcdp,
     normalize: (raw, fetchedAt) =>
       normalizeUcdp(
-        raw as { Results?: import("./ucdp/types").UCDPEvent[] },
+        raw as { Result?: import("./ucdp/types").UCDPEvent[] },
         fetchedAt
       ),
     isSkipped: (msg) => msg.includes("not configured"),

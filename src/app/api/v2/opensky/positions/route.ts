@@ -7,11 +7,41 @@
 import { NextResponse } from 'next/server';
 import { fetchOpenSkyPositions } from '@/sources/opensky/fetcher';
 
-function toGeoJSON(positions: Array<{ lon: number; lat: number; nic: number; icao24?: string }>) {
+const MILITARY_CALLSIGN_PREFIXES = ['IAF', 'RCH', 'RRR', 'NATO', 'QID', 'ASY', 'HERKY', 'CNV'];
+
+function looksMilitary(callsign?: string, originCountry?: string): boolean {
+  const cs = (callsign ?? '').trim().toUpperCase();
+  if (MILITARY_CALLSIGN_PREFIXES.some((p) => cs.startsWith(p))) return true;
+  const c = (originCountry ?? '').toLowerCase();
+  return ['air force', 'military'].some((k) => c.includes(k));
+}
+
+function toGeoJSON(
+  positions: Array<{
+    lon: number;
+    lat: number;
+    nic: number;
+    icao24?: string;
+    callsign?: string;
+    originCountry?: string;
+    altitude?: number;
+    velocity?: number;
+    heading?: number;
+  }>
+) {
   const features = positions.map((p) => ({
     type: 'Feature' as const,
     geometry: { type: 'Point' as const, coordinates: [p.lon, p.lat] },
-    properties: { nic: p.nic, icao24: p.icao24 ?? '' },
+    properties: {
+      nic: p.nic,
+      icao24: p.icao24 ?? '',
+      callsign: p.callsign ?? '',
+      originCountry: p.originCountry ?? '',
+      altitude: p.altitude ?? null,
+      velocity: p.velocity ?? null,
+      heading: p.heading ?? null,
+      isMilitary: looksMilitary(p.callsign, p.originCountry),
+    },
   }));
   return { type: 'FeatureCollection' as const, features };
 }
