@@ -5,6 +5,7 @@
 import type { LebanonEvent } from '@/types/events';
 import { classifyByKeywords } from '@/lib/classification/classifier';
 import { LEBANON_CITIES } from '@/config/lebanon';
+import { normalizeText } from '@/lib/text-normalize';
 import { resolveCityCoords } from '@/sources/rss/config';
 import { TELEGRAM_CONFIG } from './config';
 import type { TelegramFetchResult } from './fetcher';
@@ -19,10 +20,11 @@ export function normalize(
 
   for (let i = 0; i < items.length; i++) {
     const item = items[i]!;
-    const title = item.title ?? 'Untitled';
-    const text = `${title} ${item.contentSnippet ?? ''}`;
+    const title = normalizeText(item.title) || 'Untitled';
+    const snippet = normalizeText(item.contentSnippet ?? '');
+    const text = `${title} ${snippet}`;
     const { classification, confidence } = classifyByKeywords(text);
-    const resolved = resolveCityCoords(title, item.contentSnippet);
+    const resolved = resolveCityCoords(title, snippet);
     const lat = resolved?.lat ?? LEBANON_CITIES.Beirut.lat;
     const lng = resolved?.lng ?? LEBANON_CITIES.Beirut.lng;
 
@@ -32,7 +34,7 @@ export function normalize(
       id,
       source: 'telegram',
       title,
-      description: item.contentSnippet,
+      description: snippet || undefined,
       url: item.link,
       timestamp: item.pubDate ? new Date(item.pubDate) : new Date(),
       latitude: lat,

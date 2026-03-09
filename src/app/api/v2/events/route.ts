@@ -8,6 +8,7 @@ import { listEvents } from '@/db/repositories/event-repository';
 import { getTranslationsForEvents } from '@/db/repositories/event-translation-repository';
 import { getObservationCountByEventIds } from '@/db/repositories/event-observation-repository';
 import { getSourceTier } from '@/config/source-tiers';
+import { normalizeText } from '@/lib/text-normalize';
 import { z } from 'zod';
 
 /** Event types considered "political" for the political feed. */
@@ -85,7 +86,7 @@ export async function GET(request: Request) {
     });
 
     const data = events.map((e) => {
-      const translatedTitle = translations.get(e.id) ?? e.canonical_title;
+      const translatedTitle = normalizeText(translations.get(e.id) ?? e.canonical_title);
       const meta = (e.metadata ?? {}) as Record<string, unknown>;
       const source = (meta.source as string | null) ?? null;
       const evidence =
@@ -95,7 +96,7 @@ export async function GET(request: Request) {
       return {
         id: e.id,
         title: translatedTitle,
-        summary: e.canonical_summary,
+        summary: normalizeText(e.canonical_summary ?? '') || null,
         classification: e.polarity_ui,
         confidence: e.confidence_score,
         category: e.event_type,

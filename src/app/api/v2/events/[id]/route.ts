@@ -7,6 +7,7 @@ import { withClient, isDbConfigured } from '@/db/client';
 import { getEventById } from '@/db/repositories/event-repository';
 import { getEventTranslations } from '@/db/repositories/event-translation-repository';
 import { getSourceTier } from '@/config/source-tiers';
+import { normalizeText } from '@/lib/text-normalize';
 import type { Lang } from '@/db/repositories/event-translation-repository';
 
 function mapSeverityScore(score: number | null): string {
@@ -63,8 +64,8 @@ export async function GET(
       return NextResponse.json({ error: 'Event not found', code: 404 }, { status: 404 });
     }
 
-    const transByLang = new Map(translations.map((t) => [t.language, t.title ?? event.canonical_title]));
-    const title = transByLang.get(lang) ?? event.canonical_title;
+    const transByLang = new Map(translations.map((t) => [t.language, normalizeText(t.title ?? event.canonical_title)]));
+    const title = normalizeText(transByLang.get(lang) ?? event.canonical_title);
     const meta = (event.metadata ?? {}) as Record<string, unknown>;
     const evidence =
       meta.evidence && typeof meta.evidence === 'object'
@@ -78,7 +79,7 @@ export async function GET(
       {
         id: event.id,
         title,
-        summary: event.canonical_summary,
+        summary: normalizeText(event.canonical_summary ?? '') || null,
         classification: event.polarity_ui,
         confidence: event.confidence_score ?? 0,
         category: event.event_type,

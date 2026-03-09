@@ -5,6 +5,7 @@
 import type { LebanonEvent } from '@/types/events';
 import { classifyByKeywords } from '@/lib/classification/classifier';
 import { LEBANON_CITIES } from '@/config/lebanon';
+import { normalizeText } from '@/lib/text-normalize';
 import { resolveCityCoords } from '@/sources/rss/config';
 import { TWITTER_CONFIG } from './config';
 import type { NitterRssItem } from './types';
@@ -16,9 +17,9 @@ function stripHtml(html: string): string {
 /** Decode URL-encoded Arabic/Unicode in titles (e.g. %D8%A7%D8%AA...). */
 function decodeTitle(s: string): string {
   try {
-    return decodeURIComponent(s.replace(/\+/g, ' '));
+    return normalizeText(decodeURIComponent(s.replace(/\+/g, ' ')));
   } catch {
-    return s;
+    return normalizeText(s);
   }
 }
 
@@ -47,15 +48,17 @@ export function normalize(
 
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
-    const rawTitle = item.title ?? stripHtml(item.content ?? '') ?? 'Tweet';
+    const rawTitle = normalizeText(item.title) || normalizeText(stripHtml(item.content ?? '')) || 'Tweet';
     const title = stripUrlsAndHashtags(decodeTitle(rawTitle));
-    const text = `${title} ${item.contentSnippet ?? ''} ${item.content ?? ''}`;
+    const snippet = normalizeText(item.contentSnippet ?? '');
+    const content = normalizeText(item.content ?? '');
+    const text = `${title} ${snippet} ${content}`;
     const { classification, confidence, category } = classifyByKeywords(text);
     const tweetId = extractTweetId(item.link, item.guid);
     const url = item.link ?? (tweetId ? `https://x.com/${item.handle}/status/${tweetId}` : undefined);
 
     const id = `twitter-${item.handle}-${tweetId || i}`;
-    const resolved = resolveCityCoords(title, item.contentSnippet ?? item.content);
+    const resolved = resolveCityCoords(title, snippet || content);
     const lat = resolved?.lat ?? LEBANON_CITIES.Beirut.lat;
     const lng = resolved?.lng ?? LEBANON_CITIES.Beirut.lng;
 
@@ -63,7 +66,7 @@ export function normalize(
       id,
       source: 'twitter',
       title: title.slice(0, 300),
-      description: item.contentSnippet?.slice(0, 500),
+      description: (snippet || content || '').slice(0, 500) || undefined,
       url,
       timestamp: item.pubDate ? new Date(item.pubDate) : fetchedAt,
       latitude: lat,
