@@ -20,6 +20,8 @@ export function getAnthropicKeyStatus(): AnthropicKeyStatus {
     // strip whitespace, zero-width space, NBSP, BOM, other invisible Unicode
     .replace(/[\s\u200B\u200C\u200D\uFEFF\u00A0\u2028\u2029]/g, '')
     .replace(/\r\n|\r|\n/g, '')
+    // strip leading = sign (happens when user pastes dotenv-style KEY=value into the value field)
+    .replace(/^=+/, '')
     .trim();
 
   if (key.length === 0) return 'empty_after_strip';
@@ -37,6 +39,7 @@ export function getSanitizedAnthropicKey(): string | null {
     .replace(/^["']|["']$/g, '')
     .replace(/[\s\u200B\u200C\u200D\uFEFF\u00A0\u2028\u2029]/g, '')
     .replace(/\r\n|\r|\n/g, '')
+    .replace(/^=+/, '')
     .trim();
 
   if (key.length < 20) return null;
