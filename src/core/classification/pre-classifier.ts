@@ -4,7 +4,27 @@
  * V2: Negation check — "cessez-le-feu" + "refus" → defer to LLM.
  */
 
-import type { ClassificationResult } from '../types';
+import type { ClassificationResult, OmbreCategory, LumiereCategory } from '../types';
+
+export function inferOmbreCategory(lower: string): OmbreCategory {
+  if (['airstrike', 'bombing', 'missile', 'shelling', 'raid', 'frappe', 'bombardement', 'غارة', 'قصف', 'صاروخ', 'air raid', 'raid aérien', 'غارة جوية'].some(k => lower.includes(k))) return 'armed_conflict';
+  if (['displaced', 'refugee', 'evacuation', 'نزوح', 'déplacé', 'réfugié', 'نازح', 'نازحين', 'تهجير', 'إخلاء', 'لاجئ'].some(k => lower.includes(k))) return 'displacement';
+  if (['killed', 'dead', 'assassination', 'تفجير', 'اغتيال', 'tué', 'attentat', 'mort', 'قتل', 'شهيد', 'شهداء', 'قتيل', 'قتلى', 'assassinat', 'wounded', 'blessé', 'جريح', 'جرحى', 'ضحايا', 'casualties', 'death toll'].some(k => lower.includes(k))) return 'violence';
+  if (['currency', 'lbp', 'lira', 'dollar', 'inflation', 'تضخم', 'ليرة', 'économie', 'crisis', 'crise', 'انهيار', 'economic'].some(k => lower.includes(k))) return 'economic_crisis';
+  if (['protest', 'manifestation', 'احتجاج', 'مظاهرة', 'political', 'politique', 'سياس'].some(k => lower.includes(k))) return 'political_tension';
+  if (['earthquake', 'séisme', 'flood', 'inondation', 'زلزال', 'فيضان', 'fire', 'incendie', 'حريق', 'pollution'].some(k => lower.includes(k))) return 'environmental_negative';
+  return 'armed_conflict';
+}
+
+export function inferLumiereCategory(lower: string): LumiereCategory {
+  if (['festival', 'concert', 'culture', 'exposition', 'musique', 'مهرجان', 'حفل', 'فن', 'théâtre', 'cinéma', 'film', 'spectacle', 'vernissage', 'dance', 'danse'].some(k => lower.includes(k))) return 'cultural_event';
+  if (['reconstruction', 'rebuilt', 'reconstruit', 'إعادة إعمار', 'infrastructure', 'بنية تحتية'].some(k => lower.includes(k))) return 'reconstruction';
+  if (['donation', 'aid', 'humanitarian', 'solidarity', 'don', 'تبرع', 'مساعدات', 'تضامن', 'aide', 'solidarité'].some(k => lower.includes(k))) return 'solidarity';
+  if (['ceasefire', 'peace', 'paix', 'cessez-le-feu', 'وقف إطلاق نار', 'سلام', 'accord', 'agreement', 'اتفاق', 'reform', 'réforme', 'إصلاح', 'government', 'gouvernement', 'حكومة', 'election'].some(k => lower.includes(k))) return 'institutional_progress';
+  if (['reforestation', 'planting', 'plantation', 'تشجير', 'environment', 'بيئة', 'green', 'vert'].some(k => lower.includes(k))) return 'environmental_positive';
+  if (['tourism', 'tourisme', 'سياحة', 'hotel', 'hôtel', 'فندق', 'investment', 'investissement', 'استثمار'].some(k => lower.includes(k))) return 'economic_positive';
+  return 'institutional_progress';
+}
 
 const HARD_OMBRE = [
   'airstrike', 'airstrikes', 'bombing', 'bombed', 'missile', 'missiles',
@@ -65,7 +85,7 @@ export function preClassify(text: string): ClassificationResult | null {
       return {
         classification: 'ombre',
         confidence: 0.95,
-        category: 'armed_conflict',
+        category: inferOmbreCategory(lower),
         method: 'pre-classifier',
       };
     }
@@ -82,7 +102,7 @@ export function preClassify(text: string): ClassificationResult | null {
     return {
       classification: 'lumiere',
       confidence: 0.9,
-      category: 'institutional_progress',
+      category: inferLumiereCategory(lower),
       method: 'pre-classifier',
     };
   }

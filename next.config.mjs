@@ -8,6 +8,13 @@ const nextConfig = {
   async headers() {
     return [
       {
+        source: '/api/youtube/embed',
+        headers: [
+          { key: 'X-Frame-Options', value: 'ALLOWALL' },
+          { key: 'Content-Security-Policy', value: "frame-ancestors 'self' https://lebanonmonitor-production.up.railway.app http://localhost:3000" },
+        ],
+      },
+      {
         source: '/(.*)',
         headers: [
           { key: 'X-Frame-Options', value: 'DENY' },

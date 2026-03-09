@@ -5,6 +5,7 @@
 import { NextResponse } from 'next/server';
 import { isDbConfigured } from '@/db/client';
 import { withClient } from '@/db/client';
+import { cachedFetch } from '@/lib/cache';
 
 export async function GET() {
   if (!isDbConfigured()) {
@@ -15,7 +16,10 @@ export async function GET() {
   }
 
   try {
-    const result = await withClient(async (client) => {
+    const result = await cachedFetch(
+      'lm:stats',
+      async () =>
+        withClient(async (client) => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
@@ -75,11 +79,13 @@ export async function GET() {
           count: parseInt(r.count, 10),
         })),
       };
-    });
+        }),
+      { ttl: 60 }
+    );
 
-    return NextResponse.json(result, {
+    return NextResponse.json(result ?? { totalEvents: 0, eventsToday: 0, ombreRatio: 0, byClassification: { ombre: 0, lumiere: 0, neutre: 0 }, cultureEventsToday: 0, topCategories: [], topSources: [] }, {
       headers: {
-        'Cache-Control': 's-maxage=60, stale-while-revalidate=300',
+        'Cache-Control': 's-maxage=60, stale-while-revalidate=300, stale-if-error=86400',
       },
     });
   } catch (err) {

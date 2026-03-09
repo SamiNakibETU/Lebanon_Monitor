@@ -4,6 +4,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import { cachedFetch } from '@/lib/cache';
 
 const GAMMA_URL = 'https://gamma-api.polymarket.com/events';
 
@@ -76,59 +77,67 @@ function parseOutcomePrices(outcomePrices?: string): { yes: number; no: number }
 
 export async function GET() {
   try {
-    const res = await fetch(
-      `${GAMMA_URL}?active=true&closed=false&limit=200&order=volume24hr&ascending=false`,
-      { cache: 'no-store' }
+    const data = await cachedFetch(
+      'lm:polymarket',
+      async () => {
+        const res = await fetch(
+          `${GAMMA_URL}?active=true&closed=false&limit=200&order=volume24hr&ascending=false`,
+          { cache: 'no-store' }
+        );
+        if (!res.ok) return { markets: [] };
+        const events: GammaEvent[] = await res.json();
+        const items: PolymarketItem[] = [];
+
+        for (const ev of events) {
+          if (!Array.isArray(ev.markets)) continue;
+          const openMarket = ev.markets.find((m) => !m.closed);
+          if (!openMarket) continue;
+          if (!matchesLebanon(ev) && !matchesGeopolitics(ev)) continue;
+          const { yes } = parseOutcomePrices(openMarket.outcomePrices);
+          items.push({
+            id: openMarket.id,
+            question: openMarket.question,
+            slug: openMarket.slug,
+            yesProb: yes,
+            noProb: 1 - yes,
+            eventSlug: ev.slug,
+            volume: typeof openMarket.volume === 'string' ? parseFloat(openMarket.volume) : openMarket.volume,
+          });
+        }
+
+        items.sort((a, b) => (b.volume ?? 0) - (a.volume ?? 0));
+        if (items.length > 0) return { markets: items.slice(0, 6) };
+
+        const fallbackItems: PolymarketItem[] = [];
+        for (const ev of events) {
+          if (!Array.isArray(ev.markets)) continue;
+          const openMarket = ev.markets.find((m) => !m.closed);
+          if (!openMarket) continue;
+          const { yes } = parseOutcomePrices(openMarket.outcomePrices);
+          const vol = typeof openMarket.volume === 'string' ? parseFloat(openMarket.volume) : openMarket.volume;
+          fallbackItems.push({
+            id: openMarket.id,
+            question: openMarket.question,
+            slug: openMarket.slug,
+            yesProb: yes,
+            noProb: 1 - yes,
+            eventSlug: ev.slug,
+            volume: vol,
+          });
+        }
+        fallbackItems.sort((a, b) => (b.volume ?? 0) - (a.volume ?? 0));
+        return { markets: fallbackItems.slice(0, 3) };
+      },
+      { ttl: 300 }
     );
-    if (!res.ok) {
-      return NextResponse.json({ markets: [] }, { status: 200 });
-    }
-    const events: GammaEvent[] = await res.json();
-    const items: PolymarketItem[] = [];
 
-    for (const ev of events) {
-      if (!Array.isArray(ev.markets)) continue;
-      const openMarket = ev.markets.find((m) => !m.closed);
-      if (!openMarket) continue;
-      if (!matchesLebanon(ev) && !matchesGeopolitics(ev)) continue;
-      const { yes } = parseOutcomePrices(openMarket.outcomePrices);
-      items.push({
-        id: openMarket.id,
-        question: openMarket.question,
-        slug: openMarket.slug,
-        yesProb: yes,
-        noProb: 1 - yes,
-        eventSlug: ev.slug,
-        volume: typeof openMarket.volume === 'string' ? parseFloat(openMarket.volume) : openMarket.volume,
-      });
-    }
-
-    items.sort((a, b) => (b.volume ?? 0) - (a.volume ?? 0));
-    if (items.length > 0) {
-      return NextResponse.json({ markets: items.slice(0, 6) });
-    }
-
-    // Fallback: top 3 most traded events (no geo filter)
-    const fallbackItems: PolymarketItem[] = [];
-    for (const ev of events) {
-      if (!Array.isArray(ev.markets)) continue;
-      const openMarket = ev.markets.find((m) => !m.closed);
-      if (!openMarket) continue;
-      const { yes } = parseOutcomePrices(openMarket.outcomePrices);
-      const vol = typeof openMarket.volume === 'string' ? parseFloat(openMarket.volume) : openMarket.volume;
-      fallbackItems.push({
-        id: openMarket.id,
-        question: openMarket.question,
-        slug: openMarket.slug,
-        yesProb: yes,
-        noProb: 1 - yes,
-        eventSlug: ev.slug,
-        volume: vol,
-      });
-    }
-    fallbackItems.sort((a, b) => (b.volume ?? 0) - (a.volume ?? 0));
-    return NextResponse.json({ markets: fallbackItems.slice(0, 3) });
+    return NextResponse.json(data ?? { markets: [] }, {
+      headers: { 'Cache-Control': 's-maxage=300, stale-if-error=86400' },
+    });
   } catch {
-    return NextResponse.json({ markets: [] }, { status: 200 });
+    return NextResponse.json({ markets: [] }, {
+      status: 200,
+      headers: { 'Cache-Control': 's-maxage=60, stale-if-error=86400' },
+    });
   }
 }

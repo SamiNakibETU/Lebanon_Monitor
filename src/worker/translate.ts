@@ -86,8 +86,24 @@ async function translateText(
 
     if (!res.ok) {
       if (res.status === 503) {
-        const data = (await res.json()) as { estimated_time?: number };
-        logger.warn('HF model loading', { model, estimatedTime: data.estimated_time });
+        const body = (await res.json()) as { estimated_time?: number };
+        const waitMs = Math.min((body.estimated_time ?? 20) * 1000, 30000);
+        logger.info('HF model loading, retrying after wait', { model, waitMs });
+        await new Promise((r) => setTimeout(r, waitMs));
+
+        const retry = await fetch(`${HF_API}/${model}`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ inputs: text }),
+        });
+        if (retry.ok) {
+          const retryData = (await retry.json()) as Array<{ translation_text?: string }>;
+          return retryData[0]?.translation_text ?? null;
+        }
+        logger.warn('HF model retry failed', { model, status: retry.status });
       }
       return null;
     }

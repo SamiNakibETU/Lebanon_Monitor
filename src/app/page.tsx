@@ -35,7 +35,7 @@ export default function Home() {
       <Header lang={lang} onLangChange={setLang} />
       <section
         className="relative w-full"
-        style={{ height: 'calc(100vh - 48px)', minHeight: 400 }}
+        style={{ height: 'min(calc(100vh - 48px), 100svh - 48px)', minHeight: 300 }}
         aria-label="Carte du Liban"
       >
         <HeroMap minimized={isScrolled} />

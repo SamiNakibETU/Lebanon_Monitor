@@ -5,6 +5,7 @@
 import { NextResponse } from 'next/server';
 import { withClient, isDbConfigured } from '@/db/client';
 import { getLatestSnapshots } from '@/db/repositories/indicator-snapshot-repository';
+import { cachedFetch } from '@/lib/cache';
 
 export async function GET(request: Request) {
   if (!isDbConfigured()) {
@@ -15,11 +16,18 @@ export async function GET(request: Request) {
   }
 
   try {
-    const [lbpSnapshots, weatherSnapshots, aqiSnapshots] = await Promise.all([
-      withClient((c) => getLatestSnapshots(c, 'lbp', 30)),
-      withClient((c) => getLatestSnapshots(c, 'weather_beirut', 24)),
-      withClient((c) => getLatestSnapshots(c, 'aqi', 24)),
-    ]);
+    const snapshots = await cachedFetch(
+      'lm:indicators',
+      () =>
+        Promise.all([
+          withClient((c) => getLatestSnapshots(c, 'lbp', 30)),
+          withClient((c) => getLatestSnapshots(c, 'weather_beirut', 24)),
+          withClient((c) => getLatestSnapshots(c, 'aqi', 24)),
+        ]),
+      { ttl: 300 }
+    );
+
+    const [lbpSnapshots, weatherSnapshots, aqiSnapshots] = snapshots ?? [[], [], []];
 
     const latestLbp = lbpSnapshots[0]?.payload as { value?: number } | undefined;
     const latestWeather = weatherSnapshots[0]?.payload as { value?: string } | undefined;
@@ -51,7 +59,7 @@ export async function GET(request: Request) {
       },
       {
         headers: {
-          'Cache-Control': 's-maxage=60, stale-while-revalidate=300',
+          'Cache-Control': 's-maxage=60, stale-while-revalidate=300, stale-if-error=86400',
         },
       }
     );

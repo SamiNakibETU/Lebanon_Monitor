@@ -68,6 +68,8 @@ setTimeout(function(){if(!started)overlay.classList.remove('hidden')},3000);
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'public, s-maxage=900, stale-while-revalidate=300',
+      'X-Frame-Options': 'ALLOWALL',
+      'Content-Security-Policy': "frame-ancestors 'self' https://lebanonmonitor-production.up.railway.app http://localhost:3000",
     },
   });
 }

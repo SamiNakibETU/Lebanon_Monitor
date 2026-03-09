@@ -3,7 +3,7 @@
  */
 
 import type { ClassificationResult, EventCategory } from '../types';
-import { preClassify } from './pre-classifier';
+import { preClassify, inferOmbreCategory, inferLumiereCategory } from './pre-classifier';
 import { scoreByKeywords } from './keyword-scorer';
 import { mapTone } from './tone-mapper';
 
@@ -72,7 +72,7 @@ export function classify(text: string, options: ClassifyOptions = {}): Classific
     return {
       classification: 'ombre',
       confidence: Math.min(finalOmbre + 0.3, 1),
-      category: 'political_tension' as EventCategory,
+      category: inferOmbreCategory(text.toLowerCase()),
       method: 'ensemble',
     };
   }
@@ -81,7 +81,7 @@ export function classify(text: string, options: ClassifyOptions = {}): Classific
     return {
       classification: 'lumiere',
       confidence: Math.min(finalLumiere + 0.3, 1),
-      category: 'institutional_progress' as EventCategory,
+      category: inferLumiereCategory(text.toLowerCase()),
       method: 'ensemble',
     };
   }

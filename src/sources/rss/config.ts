@@ -5,24 +5,41 @@
 import { LEBANON_CITIES } from '@/config/lebanon';
 
 export const RSS_FEEDS = [
-  // Liban direct
+  // ── Liban direct ──
   { url: 'https://today.lorientlejour.com/feed/', name: "L'Orient Today" },
+  { url: 'https://www.lorientlejour.com/feed', name: "L'Orient-Le Jour FR" },
   { url: 'https://www.agendaculturel.com/rss', name: 'Agenda Culturel' },
   { url: 'http://nna-leb.gov.lb/en/rss', name: 'NNA' },
   { url: 'https://www.dailystar.com.lb/rss', name: 'Daily Star Lebanon' },
   { url: 'https://www.mtv.com.lb/en/?feed=rss', name: 'MTV Lebanon' },
   { url: 'https://www.beirut.com/feed/', name: 'Beirut.com' },
   { url: 'https://www.executive-magazine.com/feed', name: 'Executive Magazine' },
-  // Région / arabe
-  { url: 'https://www.aljazeera.com/xml/rss/all.xml', name: 'Al Jazeera' },
+  { url: 'https://www.annahar.com/english/rss', name: 'Annahar English' },
+  { url: 'https://www.lbcgroup.tv/rss', name: 'LBCI News' },
+  { url: 'https://www.the961.com/feed/', name: 'The 961' },
+  { url: 'https://www.almanar.com.lb/rss', name: 'Al Manar' },
+  // ── Région / arabe ──
+  { url: 'https://www.aljazeera.com/xml/rss/all.xml', name: 'Al Jazeera EN' },
   { url: 'https://english.alarabiya.net/feed', name: 'Al Arabiya' },
-  // France / EN — filtre Liban
+  // ── International MENA ──
+  { url: 'https://www.middleeasteye.net/rss', name: 'Middle East Eye' },
+  { url: 'https://english.aawsat.com/feed', name: 'Asharq Al-Awsat' },
+  { url: 'https://www.al-monitor.com/rss', name: 'Al-Monitor' },
   { url: 'https://www.france24.com/en/rss', name: 'France 24 EN' },
   { url: 'https://www.france24.com/fr/rss', name: 'France 24 FR' },
+  { url: 'https://www.france24.com/fr/moyen-orient/rss', name: 'France24 Moyen-Orient' },
   { url: 'https://feeds.bbci.co.uk/news/world/middle_east/rss.xml', name: 'BBC Middle East' },
   { url: 'https://www.reuters.com/rssfeed/worldNews', name: 'Reuters World' },
   { url: 'https://www.lemonde.fr/international/rss_full.xml', name: 'Le Monde International' },
-  // Syrie / Israël — contexte régional, filtre Liban
+  { url: 'https://ici.radio-canada.ca/rss/4175', name: 'Radio-Canada Moyen-Orient' },
+  // ── Humanitaire / Reconstruction ──
+  { url: 'https://reliefweb.int/updates/rss.xml?search%5Bfilter%5D%5Bfield_country%5D%5B%5D=128', name: 'ReliefWeb Lebanon' },
+  { url: 'https://www.undp.org/lebanon/rss.xml', name: 'UNDP Lebanon' },
+  { url: 'https://www.unicef.org/lebanon/rss.xml', name: 'UNICEF Lebanon' },
+  // ── Think tanks ──
+  { url: 'https://www.crisisgroup.org/rss.xml', name: 'Crisis Group' },
+  { url: 'https://carnegie-mec.org/rss/feeds', name: 'Carnegie MEC' },
+  // ── Contexte régional ──
   { url: 'https://syriadirect.org/feed/', name: 'Syria Direct' },
   { url: 'https://www.timesofisrael.com/feed/', name: 'Times of Israel' },
 ] as const;

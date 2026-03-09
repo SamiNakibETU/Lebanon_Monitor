@@ -4,33 +4,27 @@ import useSWR from 'swr';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
-const CULTURE_KEYWORDS = [
-  'festival', 'concert', 'culture', 'agenda', 'exposition', 'exhibition',
-  'théâtre', 'theater', 'cinéma', 'film', 'music', 'art', 'concert',
-  'spectacle', 'dance', 'danse', 'vernissage', 'conférence', 'workshop',
-];
-
-function isCultural(title: string): boolean {
-  const lower = title.toLowerCase();
-  return CULTURE_KEYWORDS.some((kw) => lower.includes(kw));
-}
+const CULTURE_RE = /\b(festival|concert|exposition|th[eé][aâ]tre|cin[eé]ma|musique|music|vernissage|spectacle|danse?)\b/i;
 
 interface EventItem {
   id: string;
   title: string;
   occurredAt: string;
+  category?: string | null;
   source?: string | null;
 }
 
 export function CultureWidget() {
   const { data } = useSWR<{ data: EventItem[] }>(
-    '/api/v2/events?source=rss&limit=30',
+    '/api/v2/events?classification=lumiere&limit=30',
     fetcher,
     { refreshInterval: 300_000 }
   );
 
   const events = Array.isArray(data?.data) ? data.data : [];
-  const cultural = events.filter((e) => isCultural(e.title)).slice(0, 5);
+  const cultural = events
+    .filter((e) => e.category === 'cultural_event' || CULTURE_RE.test(e.title))
+    .slice(0, 5);
 
   return (
     <div className="flex flex-col p-4" style={{ background: '#F5F2EE' }}>

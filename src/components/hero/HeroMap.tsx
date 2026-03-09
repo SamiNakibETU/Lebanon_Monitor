@@ -59,7 +59,7 @@ export function HeroMap({ minimized }: HeroMapProps) {
   const mapRef = useRef<maplibregl.Map | null>(null);
   const [styleLoaded, setStyleLoaded] = useState(false);
   const [layers, setLayers] = useState<Record<LayerId, boolean>>({
-    events: false,
+    events: true,
     flights: false,
     ships: false,
     fires: false,
@@ -278,6 +278,41 @@ export function HeroMap({ minimized }: HeroMapProps) {
         },
         layout: { visibility: 'none' },
       });
+
+      map.on('click', 'events-unclustered', (e: maplibregl.MapLayerMouseEvent) => {
+        if (!e.features?.length) return;
+        const f = e.features[0];
+        const props = f.properties || {};
+        const coords = (f.geometry as GeoJSON.Point).coordinates.slice() as [number, number];
+
+        new maplibregl.Popup({ closeButton: true, maxWidth: '280px' })
+          .setLngLat(coords)
+          .setHTML(
+            `<div style="background:#0D0D0D;color:#fff;padding:12px;font-size:12px;font-family:'DM Sans',sans-serif;border-radius:0">` +
+            `<div style="font-weight:500;margin-bottom:6px;line-height:1.4">${props.title ?? 'Événement'}</div>` +
+            `<div style="color:#888;font-size:10px">${props.source ?? ''} · ${props.occurredAt ? new Date(props.occurredAt).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' }) : ''}</div>` +
+            `<a href="/event/${props.id}" style="color:#4FC3F7;font-size:10px;margin-top:8px;display:block;text-decoration:none">Détails →</a>` +
+            `</div>`
+          )
+          .addTo(map);
+      });
+
+      map.on('click', 'events-clusters', (e: maplibregl.MapLayerMouseEvent) => {
+        if (!e.features?.length) return;
+        const clusterId = e.features[0].properties?.cluster_id;
+        const source = map.getSource('events-points') as maplibregl.GeoJSONSource;
+        source.getClusterExpansionZoom(clusterId).then((zoom: number) => {
+          map.easeTo({
+            center: (e.features![0].geometry as GeoJSON.Point).coordinates as [number, number],
+            zoom,
+          });
+        });
+      });
+
+      map.on('mouseenter', 'events-unclustered', () => { map.getCanvas().style.cursor = 'pointer'; });
+      map.on('mouseleave', 'events-unclustered', () => { map.getCanvas().style.cursor = ''; });
+      map.on('mouseenter', 'events-clusters', () => { map.getCanvas().style.cursor = 'pointer'; });
+      map.on('mouseleave', 'events-clusters', () => { map.getCanvas().style.cursor = ''; });
     } else {
       (map.getSource('events-points') as maplibregl.GeoJSONSource).setData(allEventsGeo);
     }

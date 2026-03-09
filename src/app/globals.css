@@ -186,3 +186,36 @@ body {
 .hero-heatmap-pulse {
   animation: heroHeatmapPulse 3s ease-in-out infinite;
 }
+
+/* V4 — Mobile responsive */
+@media (max-width: 767px) {
+  .split-container {
+    flex-direction: column !important;
+  }
+  .split-container .panel {
+    flex: none !important;
+    width: 100% !important;
+    min-width: 100% !important;
+  }
+  .split-divider {
+    width: 100%;
+    height: 1px;
+  }
+  .split-container[data-mode="split"]:has(.panel--lumiere:hover) .panel--lumiere,
+  .split-container[data-mode="split"]:has(.panel--lumiere:hover) .panel--ombre,
+  .split-container[data-mode="split"]:has(.panel--ombre:hover) .panel--ombre,
+  .split-container[data-mode="split"]:has(.panel--ombre:hover) .panel--lumiere {
+    flex: none !important;
+  }
+}
+
+/* V4 — MapLibre popup overrides */
+.maplibregl-popup-content {
+  border-radius: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.maplibregl-popup-tip {
+  border-top-color: #0D0D0D !important;
+}

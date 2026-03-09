@@ -1,10 +1,48 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
 type Language = 'fr' | 'en' | 'ar';
 
 interface HeaderProps {
   lang?: Language;
   onLangChange?: (lang: Language) => void;
+}
+
+function SourceHealthDot() {
+  const [status, setStatus] = useState<'ok' | 'warn' | 'error' | null>(null);
+  const [sourceCount, setSourceCount] = useState(0);
+
+  useEffect(() => {
+    const check = () => {
+      fetch('/api/v2/health')
+        .then((r) => r.json())
+        .then((data) => {
+          const sources = data.sources ?? {};
+          const okCount = Object.values(sources).filter((s: unknown) => s === 'ok' || (s && typeof s === 'object' && (s as Record<string, unknown>).status === 'ok')).length;
+          setSourceCount(okCount);
+          if (okCount >= 10) setStatus('ok');
+          else if (okCount >= 5) setStatus('warn');
+          else setStatus('error');
+        })
+        .catch(() => setStatus('error'));
+    };
+    check();
+    const interval = setInterval(check, 120_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (status == null) return null;
+
+  const color = status === 'ok' ? '#43A047' : status === 'warn' ? '#FBBF24' : '#E53935';
+
+  return (
+    <span
+      title={`${sourceCount} sources active`}
+      className="inline-block w-2 h-2 shrink-0"
+      style={{ background: color }}
+    />
+  );
 }
 
 export function Header({
@@ -34,12 +72,15 @@ export function Header({
         borderColor: 'rgba(255,255,255,0.06)',
       }}
     >
-      <span
-        className="font-medium"
-        style={{ color: '#FFFFFF', fontSize: 13 }}
-      >
-        LB: LEBANON MONITOR
-      </span>
+      <div className="flex items-center gap-2">
+        <SourceHealthDot />
+        <span
+          className="font-medium"
+          style={{ color: '#FFFFFF', fontSize: 13 }}
+        >
+          LB: LEBANON MONITOR
+        </span>
+      </div>
       <div className="flex items-center gap-4">
         <div className="flex gap-0">
           {(['fr', 'en', 'ar'] as const).map((l) => (

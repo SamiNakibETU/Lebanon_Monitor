@@ -4,18 +4,25 @@ import useSWR from 'swr';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
-function aqiColor(aqi: number): string {
-  if (aqi <= 50) return '#43A047';
-  if (aqi <= 100) return '#FBBF24';
+function pm25Color(pm25: number): string {
+  if (pm25 <= 12) return '#43A047';
+  if (pm25 <= 35) return '#FBBF24';
+  if (pm25 <= 55) return '#E65100';
   return '#E53935';
 }
 
 export function AirQualityWidget() {
-  const { data } = useSWR<{ aqi: number | null }>('/api/v2/indicators', fetcher, {
-    refreshInterval: 60_000,
+  const { data } = useSWR<{
+    pm25: number | null;
+    pm10: number | null;
+    usAqi: number | null;
+    hourly: number[];
+  }>('/api/v2/aqi', fetcher, {
+    refreshInterval: 300_000,
   });
 
-  const aqi = data?.aqi ?? null;
+  const pm25 = data?.pm25 ?? null;
+  const usAqi = data?.usAqi ?? null;
 
   return (
     <div className="flex flex-col p-4" style={{ background: '#0A0A0A' }}>
@@ -24,17 +31,20 @@ export function AirQualityWidget() {
       </div>
       <div className="flex items-baseline gap-2">
         <span className="text-[48px] font-light tabular-nums" style={{ color: '#FFFFFF' }}>
-          {aqi != null ? aqi : '—'}
+          {pm25 != null ? pm25 : '—'}
         </span>
-        {aqi != null && (
+        {pm25 != null && (
           <span
             className="inline-block w-3 h-3 shrink-0"
-            style={{ background: aqiColor(aqi) }}
+            style={{ background: pm25Color(pm25) }}
           />
         )}
       </div>
       <div className="text-[11px] mt-1" style={{ color: '#666666' }}>
         PM2.5 µg/m³
+        {usAqi != null && (
+          <span className="ml-2">US AQI {usAqi}</span>
+        )}
       </div>
     </div>
   );
