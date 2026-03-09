@@ -1,28 +1,18 @@
 'use client';
 
-import { useRef } from 'react';
 import useSWR from 'swr';
-import { Sparkline } from '@/components/charts/Sparkline';
-import { useContainerSize } from '@/hooks/useContainerSize';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export function LBPWidget() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const { width } = useContainerSize(containerRef);
 
-  const { data } = useSWR<{ lbp: number | null; history?: { lbp?: Array<{ at: string; value?: number }> } }>(
-    '/api/v2/indicators',
+  const { data } = useSWR<{ rate: number; source: string; updated: string }>(
+    '/api/v2/lbp-rate',
     fetcher,
-    { refreshInterval: 60_000 }
+    { refreshInterval: 300_000 }
   );
 
-  const lbp = data?.lbp ?? null;
-  const history = data?.history?.lbp ?? [];
-  const sparklineData = history
-    .filter((h): h is { at: string; value: number } => typeof h.value === 'number')
-    .slice(-90)
-    .map((h) => h.value);
+  const rate = data?.rate ?? null;
 
   return (
     <div className="flex flex-col p-4" style={{ background: '#0A0A0A' }}>
@@ -30,10 +20,10 @@ export function LBPWidget() {
         Taux LBP / USD
       </div>
       <div className="text-[48px] font-light tabular-nums" style={{ color: '#FFFFFF' }}>
-        {lbp != null ? lbp.toLocaleString() : '—'}
+        {rate != null ? rate.toLocaleString() : '—'}
       </div>
-      <div className="mt-2" style={{ height: 40 }}>
-        <Sparkline width={width} height={40} data={sparklineData} strokeColor="#666666" />
+      <div className="text-[11px] mt-1" style={{ color: '#666666' }}>
+        {data?.source === 'fallback' ? 'taux indicatif' : 'marché parallèle'}
       </div>
     </div>
   );

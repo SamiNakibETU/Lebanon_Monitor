@@ -19,7 +19,7 @@ interface TelegramEvent {
 }
 
 const LIVE_SOURCES = [
-  { id: 'beirut-webcam', name: 'Beirut Skyline' },
+  { id: 'france24-fr', name: 'France 24' },
   { id: 'aljazeera', name: 'Al Jazeera Arabic' },
 ];
 
@@ -34,7 +34,7 @@ function formatTime(iso: string): string {
 
 export function SectionLive() {
   const { data: stream1 } = useSWR<CctvState>(
-    '/api/v2/cctv?source=beirut-webcam',
+    '/api/v2/cctv?source=france24-fr',
     fetcher,
     { refreshInterval: 120_000 }
   );

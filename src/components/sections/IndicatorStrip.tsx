@@ -4,11 +4,6 @@ import useSWR from 'swr';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
-interface IndicatorsData {
-  lbp: number | null;
-  aqi: number | null;
-}
-
 interface StatsData {
   totalEvents: number;
   eventsToday: number;
@@ -21,18 +16,29 @@ interface ReforestationData {
   projectCount: number;
 }
 
+interface LbpRateData {
+  rate: number;
+}
+
+interface AqiData {
+  pm25: number | null;
+}
+
 interface IndicatorStripProps {
   variant: 'lumiere' | 'ombre';
 }
 
 export function IndicatorStrip({ variant }: IndicatorStripProps) {
-  const { data: indicators } = useSWR<IndicatorsData>('/api/v2/indicators', fetcher, {
-    refreshInterval: 60_000,
-  });
   const { data: stats } = useSWR<StatsData>('/api/v2/stats', fetcher, {
     refreshInterval: 60_000,
   });
   const { data: reforest } = useSWR<ReforestationData>('/api/v2/reforestation-stats', fetcher, {
+    refreshInterval: 300_000,
+  });
+  const { data: lbpData } = useSWR<LbpRateData>('/api/v2/lbp-rate', fetcher, {
+    refreshInterval: 300_000,
+  });
+  const { data: aqiData } = useSWR<AqiData>('/api/v2/aqi', fetcher, {
     refreshInterval: 300_000,
   });
 
@@ -65,6 +71,9 @@ export function IndicatorStrip({ variant }: IndicatorStripProps) {
     );
   }
 
+  const lbpRate = lbpData?.rate ?? null;
+  const pm25 = aqiData?.pm25 ?? null;
+
   return (
     <div className="flex flex-wrap gap-6 text-[13px]">
       <div>
@@ -74,13 +83,13 @@ export function IndicatorStrip({ variant }: IndicatorStripProps) {
       <div>
         <span style={{ color: mutedColor }}>LBP </span>
         <span style={{ color: textColor }}>
-          {indicators?.lbp != null ? indicators.lbp.toLocaleString() : '—'}
+          {lbpRate != null ? lbpRate.toLocaleString() : '—'}
         </span>
       </div>
       <div>
         <span style={{ color: mutedColor }}>AQI PM2.5 </span>
         <span style={{ color: textColor }}>
-          {indicators?.aqi != null ? `${indicators.aqi} µg/m³` : '—'}
+          {pm25 != null ? `${pm25} µg/m³` : '—'}
         </span>
       </div>
     </div>

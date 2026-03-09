@@ -33,7 +33,7 @@ export function AISynthesis({ variant }: AISynthesisProps) {
         className="text-[14px] leading-relaxed"
         style={{ color: isLumiere ? '#888888' : '#666666' }}
       >
-        —
+        Synthèse en cours de génération…
       </div>
     );
   }

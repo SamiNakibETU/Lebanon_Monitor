@@ -30,7 +30,7 @@ async function resolveYouTubeLive(handle: string): Promise<{ videoId: string | n
   return { videoId: null, isLive: false };
 }
 
-const LUMIERE_IDS = ['beirut-webcam', 'lbci', 'mtv', 'otv'];
+const LUMIERE_IDS = ['france24-fr', 'lbci', 'mtv', 'otv'];
 const OMBRE_IDS = ['aljazeera', 'alarabiya', 'aljadeed', 'france24-ar'];
 
 function youtubeEmbedUrl(videoId: string): string {
@@ -119,7 +119,7 @@ export async function GET(req: NextRequest) {
   const defaultSource =
     variant === 'ombre'
       ? CCTV_SOURCES.find((s) => s.id === 'aljazeera')
-      : CCTV_SOURCES.find((s) => s.id === 'beirut-webcam');
+      : CCTV_SOURCES.find((s) => s.id === 'france24-fr');
   const final = defaultSource ?? CCTV_SOURCES[0]!;
   if (final.type === 'youtube' && final.videoId) {
     return buildResponse(final, 'youtube', {

@@ -7,22 +7,24 @@ export function PortWidget() {
         Port Beyrouth
       </div>
       <div className="text-[48px] font-light tabular-nums" style={{ color: '#1A1A1A' }}>
-        —
+        AIS
       </div>
       <div className="text-[11px] mt-1 mb-3" style={{ color: '#666666' }}>
-        Trafic maritime — AIS
+        Suivi trafic maritime en temps réel
       </div>
       <a
         href="https://www.marinetraffic.com/en/ais/details/ports/100"
         target="_blank"
         rel="noopener noreferrer"
         className="text-[12px] transition-colors"
-        style={{ color: '#4FC3F7', textDecoration: 'none' }}
+        style={{ color: '#1A1A1A', textDecoration: 'underline' }}
+        onMouseEnter={(e) => { e.currentTarget.style.color = '#666666'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.color = '#1A1A1A'; }}
       >
-        Voir le trafic maritime →
+        Voir le trafic en direct →
       </a>
-      <div className="text-[10px] mt-1" style={{ color: '#888888' }}>
-        Source: MarineTraffic
+      <div className="text-[10px] mt-2" style={{ color: '#888888' }}>
+        Source: MarineTraffic AIS
       </div>
     </div>
   );

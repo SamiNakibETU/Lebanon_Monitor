@@ -42,13 +42,24 @@ export function CondensedFeed({ variant, lang = 'fr' }: CondensedFeedProps) {
   const borderColor = isLumiere ? '#E0DCD7' : 'rgba(255,255,255,0.04)';
   const hoverBg = isLumiere ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)';
 
-  if (isLoading || error) {
+  if (isLoading) {
     return (
       <div
         className="py-4 text-[13px]"
         style={{ color: isLumiere ? '#888888' : '#666666' }}
       >
-        —
+        Chargement des événements…
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div
+        className="py-4 text-[13px]"
+        style={{ color: isLumiere ? '#888888' : '#666666' }}
+      >
+        Connexion en cours…
       </div>
     );
   }

@@ -48,6 +48,6 @@ export async function GET() {
       }
     }
 
-    return NextResponse.json({ count: null, jammingIndex: null }, { status: 200 });
+    return NextResponse.json({ count: null, jammingIndex: 0 }, { status: 200 });
   }
 }
