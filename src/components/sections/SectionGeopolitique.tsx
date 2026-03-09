@@ -3,6 +3,9 @@
 import { PolymarketWidget } from '@/components/widgets/PolymarketWidget';
 import { ACLEDMiniMap } from '@/components/widgets/ACLEDMiniMap';
 import { UNIFILWidget } from '@/components/widgets/UNIFILWidget';
+import { RegionalWidget } from '@/components/widgets/RegionalWidget';
+import { SignalsWidget } from '@/components/widgets/SignalsWidget';
+import { ConflictGauge } from '@/components/charts/ConflictGauge';
 
 export function SectionGeopolitique() {
   return (
@@ -11,12 +14,21 @@ export function SectionGeopolitique() {
       style={{ background: '#000000' }}
     >
       <div style={{ background: '#0A0A0A' }}>
+        <ConflictGauge />
+      </div>
+      <div style={{ background: '#0A0A0A' }}>
         <ACLEDMiniMap />
       </div>
       <div style={{ background: '#0A0A0A' }}>
         <div className="p-4">
           <PolymarketWidget />
         </div>
+      </div>
+      <div style={{ background: '#0A0A0A' }}>
+        <RegionalWidget />
+      </div>
+      <div className="md:col-span-2" style={{ background: '#0A0A0A' }}>
+        <SignalsWidget />
       </div>
       <div className="md:col-span-2" style={{ background: '#0A0A0A' }}>
         <UNIFILWidget />

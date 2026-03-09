@@ -14,8 +14,22 @@ interface PolymarketItem {
   volume?: number;
 }
 
+function formatVolume(v?: number): string {
+  if (!v) return '';
+  if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 1_000) return `$${(v / 1_000).toFixed(0)}K`;
+  return `$${v.toFixed(0)}`;
+}
+
+function probColor(prob: number): string {
+  if (prob >= 0.7) return '#C62828';
+  if (prob >= 0.4) return '#E65100';
+  if (prob >= 0.2) return '#F9A825';
+  return '#2E7D32';
+}
+
 export function PolymarketWidget() {
-  const { data, error, isValidating } = useSWR<{ markets: PolymarketItem[] }>(
+  const { data, error } = useSWR<{ markets: PolymarketItem[] }>(
     '/api/v2/polymarket',
     fetcher,
     { refreshInterval: 120_000 }
@@ -23,88 +37,77 @@ export function PolymarketWidget() {
 
   const markets = data?.markets ?? [];
   const isLoading = !data && !error;
-  const isEmpty = data && markets.length === 0;
 
   return (
-    <div className="flex flex-col h-full min-h-[140px]">
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <span
-          className="text-[10px] uppercase tracking-widest"
-          style={{ color: '#666666' }}
-        >
-          Polymarket · Liban
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <span className="text-[11px] uppercase tracking-[0.08em]" style={{ color: '#666666' }}>
+          Marchés prédictifs · Géopolitique
         </span>
+        {markets.length > 0 && (
+          <span className="text-[10px] tabular-nums" style={{ color: '#666666' }}>
+            {markets.length} marchés
+          </span>
+        )}
       </div>
-      <div
-        className="flex-1 overflow-y-auto min-h-[100px]"
-        style={{ scrollbarWidth: 'thin' }}
-      >
-        {error ? (
-          <div
-            className="flex flex-col items-center gap-2 p-2"
-            style={{ color: '#666666' }}
-          >
-            <span className="text-[10px]">Marchés indisponibles</span>
-          </div>
-        ) : isLoading ? (
-          <div
-            className="flex flex-col items-center justify-center gap-2 p-2 min-h-[80px]"
-            style={{ color: '#666666' }}
-          >
-            <span
-              className="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"
-              aria-hidden
-            />
-            <span className="text-[10px]">Chargement…</span>
-          </div>
-        ) : isEmpty ? (
-          <div
-            className="flex flex-col items-center gap-2 p-2"
-            style={{ color: '#666666' }}
-          >
-            <span className="text-[10px]">Marchés géopolitiques</span>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {markets.map((m) => (
+
+      {error ? (
+        <div className="text-[11px]" style={{ color: '#666666' }}>
+          Marchés indisponibles
+        </div>
+      ) : isLoading ? (
+        <div className="text-[11px]" style={{ color: '#666666' }}>
+          Chargement des marchés…
+        </div>
+      ) : markets.length === 0 ? (
+        <div className="text-[11px]" style={{ color: '#666666' }}>
+          Aucun marché pertinent
+        </div>
+      ) : (
+        <div className="flex flex-col">
+          {markets.map((m) => {
+            const pct = Math.round(m.yesProb * 100);
+            const color = probColor(m.yesProb);
+            return (
               <a
                 key={m.id}
                 href={`https://polymarket.com/event/${m.eventSlug}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block no-underline"
+                className="block py-2.5 transition-colors"
+                style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.02)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
               >
-                <div
-                  className="text-[10px] leading-tight mb-1 line-clamp-2"
-                  style={{ color: '#E0E0E0' }}
-                >
-                  {m.question}
-                </div>
-                <div className="flex items-center gap-2">
-                  <div
-                    className="flex-1 h-1.5 rounded-full overflow-hidden"
-                    style={{ background: 'rgba(255,255,255,0.1)' }}
-                  >
-                    <div
-                      className="h-full rounded-full transition-all"
-                      style={{
-                        width: `${m.yesProb * 100}%`,
-                        background: 'linear-gradient(90deg, #E53935, #C62828)',
-                      }}
-                    />
-                  </div>
+                <div className="flex items-start justify-between gap-3 mb-1.5">
+                  <span className="text-[12px] leading-snug flex-1" style={{ color: '#E0E0E0' }}>
+                    {m.question}
+                  </span>
                   <span
-                    className="text-[10px] tabular-nums shrink-0"
-                    style={{ color: '#9E9E9E', minWidth: 32 }}
+                    className="text-[16px] font-light tabular-nums shrink-0"
+                    style={{ color }}
                   >
-                    {Math.round(m.yesProb * 100)}%
+                    {pct}%
                   </span>
                 </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-1" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                    <div
+                      className="h-full transition-all"
+                      style={{ width: `${pct}%`, background: color }}
+                    />
+                  </div>
+                  {m.volume != null && m.volume > 0 && (
+                    <span className="text-[9px] tabular-nums shrink-0" style={{ color: '#666666' }}>
+                      Vol. {formatVolume(m.volume)}
+                    </span>
+                  )}
+                </div>
               </a>
-            ))}
-          </div>
-        )}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

@@ -4,3 +4,6 @@ export { CategoryBars } from './CategoryBars';
 export { SourceDonut } from './SourceDonut';
 export { OmbreGauge } from './OmbreGauge';
 export { LBPSparkline } from './LBPSparkline';
+export { EventTrendChart } from './EventTrendChart';
+export { ConflictGauge } from './ConflictGauge';
+export { LBPTrendChart } from './LBPTrendChart';

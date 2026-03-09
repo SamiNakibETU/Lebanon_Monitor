@@ -3,6 +3,7 @@
 import { AISynthesis } from './AISynthesis';
 import { IndicatorStrip } from './IndicatorStrip';
 import { CondensedFeed } from './CondensedFeed';
+import { EventTrendChart } from '@/components/charts/EventTrendChart';
 
 type Language = 'fr' | 'en' | 'ar';
 
@@ -30,6 +31,8 @@ export function SectionLumiereOmbre({ lang = 'fr' }: SectionLumiereOmbreProps) {
           className="my-6"
           style={{ borderBottom: '1px solid #E0DCD7' }}
         />
+        <EventTrendChart variant="light" />
+        <div className="my-6" style={{ borderBottom: '1px solid #E0DCD7' }} />
         <CondensedFeed variant="lumiere" lang={lang} />
       </div>
       <div
@@ -49,6 +52,8 @@ export function SectionLumiereOmbre({ lang = 'fr' }: SectionLumiereOmbreProps) {
           className="my-6"
           style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
         />
+        <EventTrendChart variant="dark" />
+        <div className="my-6" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }} />
         <CondensedFeed variant="ombre" lang={lang} />
       </div>
     </section>
