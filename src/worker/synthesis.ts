@@ -38,27 +38,37 @@ export interface SynthesisResult {
   generated_at: string;
 }
 
-export async function generateSynthesis(): Promise<SynthesisResult | null> {
-  if (!getSanitizedAnthropicKey()) return null;
+export type SynthesisDiagnostics =
+  | { ok: true; result: SynthesisResult }
+  | { ok: false; step: string; error: string };
+
+/** Run synthesis with step-by-step diagnostics for admin/debug. */
+export async function generateSynthesisWithDiagnostics(): Promise<SynthesisDiagnostics> {
+  if (!getSanitizedAnthropicKey()) {
+    return { ok: false, step: 'anthropic_key', error: 'ANTHROPIC_API_KEY missing or invalid (need sk-ant-..., 20+ chars)' };
+  }
 
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-  const { events } = await withClient(async (client) => {
-    const out = await listEvents(client, {
-      from_date: since,
-      limit: 150,
+  let events: { title: string; classification: string | null; category: string | null; occurredAt: Date | null; source: string | null }[];
+  try {
+    const out = await withClient(async (client) => {
+      const list = await listEvents(client, { from_date: since, limit: 150 });
+      const trans = await getTranslationsForEvents(client, list.events.map((e) => e.id), 'fr');
+      return {
+        events: list.events.map((e) => ({
+          title: trans.get(e.id) ?? e.canonical_title,
+          classification: e.polarity_ui ?? null,
+          category: e.event_type ?? null,
+          occurredAt: e.occurred_at ?? null,
+          source: (typeof (e.metadata as Record<string, unknown>)?.source === 'string' ? (e.metadata as Record<string, unknown>).source : null) as string | null,
+        })),
+      };
     });
-    const trans = await getTranslationsForEvents(client, out.events.map((e) => e.id), 'fr');
-    return {
-      events: out.events.map((e) => ({
-        title: trans.get(e.id) ?? e.canonical_title,
-        classification: e.polarity_ui,
-        category: e.event_type,
-        occurredAt: e.occurred_at,
-        source: (e.metadata as Record<string, unknown>)?.source ?? null,
-      })),
-    };
-  });
+    events = out.events;
+  } catch (e) {
+    return { ok: false, step: 'database', error: e instanceof Error ? e.message : String(e) };
+  }
 
   if (events.length === 0) {
     const fallback: SynthesisResult = {
@@ -69,7 +79,7 @@ export async function generateSynthesis(): Promise<SynthesisResult | null> {
     if (isRedisConfigured()) {
       await redisSet(SYNTHESIS_REDIS_KEY, fallback, { ex: SYNTHESIS_TTL });
     }
-    return fallback;
+    return { ok: true, result: fallback };
   }
 
   const eventsJson = JSON.stringify(events, null, 0);
@@ -82,10 +92,14 @@ export async function generateSynthesis(): Promise<SynthesisResult | null> {
     temperature: 0.3,
   });
 
-  if (!text) return null;
+  if (!text) {
+    return { ok: false, step: 'anthropic_api', error: 'Claude API returned null (check key, quota, network)' };
+  }
 
   const parsed = parseSynthesisJson(text);
-  if (!parsed) return null;
+  if (!parsed) {
+    return { ok: false, step: 'parse_json', error: `Claude response could not be parsed. First 200 chars: ${text.slice(0, 200)}` };
+  }
 
   const result: SynthesisResult = {
     lumiere: parsed.lumiere ?? 'Synthèse non disponible.',
@@ -97,7 +111,12 @@ export async function generateSynthesis(): Promise<SynthesisResult | null> {
     await redisSet(SYNTHESIS_REDIS_KEY, result, { ex: SYNTHESIS_TTL });
   }
 
-  return result;
+  return { ok: true, result };
+}
+
+export async function generateSynthesis(): Promise<SynthesisResult | null> {
+  const diag = await generateSynthesisWithDiagnostics();
+  return diag.ok ? diag.result : null;
 }
 
 function parseSynthesisJson(text: string): Partial<SynthesisResult> | null {

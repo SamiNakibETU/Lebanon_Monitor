@@ -4,7 +4,7 @@
  * Populates Redis cache so GET /api/v2/synthesis returns instantly.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { generateSynthesis } from '@/worker/synthesis';
+import { generateSynthesisWithDiagnostics } from '@/worker/synthesis';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 90;
@@ -20,18 +20,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const start = Date.now();
   try {
-    const start = Date.now();
-    const result = await generateSynthesis();
+    const diag = await generateSynthesisWithDiagnostics();
     const durationMs = Date.now() - start;
-    if (result) {
+
+    if (diag.ok) {
       return NextResponse.json({ ok: true, durationMs, cached: true });
     }
-    return NextResponse.json({ ok: false, durationMs, error: 'generateSynthesis returned null' }, { status: 500 });
-  } catch (err) {
-    console.error('Admin synthesis error', err);
     return NextResponse.json(
-      { ok: false, error: err instanceof Error ? err.message : String(err) },
+      { ok: false, durationMs, step: diag.step, error: diag.error },
+      { status: 500 }
+    );
+  } catch (err) {
+    const durationMs = Date.now() - start;
+    const msg = err instanceof Error ? err.message : String(err);
+    const stack = err instanceof Error ? err.stack : undefined;
+    return NextResponse.json(
+      {
+        ok: false,
+        durationMs,
+        step: 'unhandled',
+        error: msg,
+        ...(stack && { stack: stack.split('\n').slice(0, 5).join('\n') }),
+      },
       { status: 500 }
     );
   }

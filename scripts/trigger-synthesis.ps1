@@ -14,6 +14,23 @@ try {
   $r = Invoke-RestMethod -Uri $uri -Method POST -Headers $headers -TimeoutSec 120
   Write-Host "OK:" $r
 } catch {
+  $statusCode = $_.Exception.Response.StatusCode.value__
+  $body = ""
+  if ($_.Exception.Response) {
+    $stream = $_.Exception.Response.GetResponseStream()
+    if ($stream) {
+      $reader = New-Object System.IO.StreamReader($stream)
+      $body = $reader.ReadToEnd()
+      $reader.Close()
+      $stream.Close()
+    }
+  }
+  Write-Host ""
+  Write-Host "--- Réponse serveur (HTTP $statusCode) ---" -ForegroundColor Yellow
+  if ($body) {
+    Write-Host $body -ForegroundColor Cyan
+    Write-Host "---" -ForegroundColor Yellow
+  }
   Write-Error $_.Exception.Message
   exit 1
 }
