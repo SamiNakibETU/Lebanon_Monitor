@@ -7,7 +7,7 @@
 import { getSanitizedAnthropicKey } from './anthropic';
 
 const ANTHROPIC_API = 'https://api.anthropic.com/v1/messages';
-const DEFAULT_MODEL = 'claude-3-5-haiku-20241022';
+const DEFAULT_MODEL = 'claude-3-haiku-20240307';
 
 export interface AnthropicMessage {
   role: 'user' | 'assistant';
