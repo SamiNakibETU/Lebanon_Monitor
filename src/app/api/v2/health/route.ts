@@ -11,7 +11,7 @@
 
 import { NextResponse } from 'next/server';
 import { CONNECTORS } from '@/sources/connector-registry';
-import { getSanitizedAnthropicKey } from '@/lib/anthropic';
+import { getAnthropicKeyStatus } from '@/lib/anthropic';
 import { isRedisConfigured } from '@/lib/redis';
 import { healthCheck as dbHealthCheck, isDbConfigured } from '@/db/client';
 
@@ -33,9 +33,9 @@ const ERROR_HINTS: Record<string, string> = {
 export async function GET() {
   const hasDbUrl = isDbConfigured();
 
-  const env: Record<string, 'ok' | 'missing' | 'invalid'> = {};
+  const env: Record<string, string> = {};
   env.DATABASE_URL = hasDbUrl ? 'ok' : 'missing';
-  env.ANTHROPIC_API_KEY = getSanitizedAnthropicKey() ? 'ok' : 'missing';
+  env.ANTHROPIC_API_KEY = getAnthropicKeyStatus();
   env.REDIS = isRedisConfigured() ? 'ok' : 'missing';
   env.RELIEFWEB_APPNAME = process.env.RELIEFWEB_APPNAME ? 'ok' : 'missing';
   env.UCDP_ACCESS_TOKEN = process.env.UCDP_ACCESS_TOKEN ? 'ok' : 'missing';
