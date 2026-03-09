@@ -38,6 +38,9 @@ export interface ListEventsFilter {
   to_date?: Date;
   event_type?: string; // single category
   event_types?: readonly string[]; // multiple categories (e.g. political feed)
+  min_confidence?: number;
+  geo_precision?: GeoPrecision;
+  multi_source_only?: boolean;
   limit?: number;
   offset?: number;
 }
@@ -138,6 +141,22 @@ export async function listEvents(
     conditions.push(`event_type = ANY($${paramIndex++}::text[])`);
     params.push(filter.event_types);
   }
+  if (typeof filter.min_confidence === 'number') {
+    conditions.push(`COALESCE(confidence_score, 0) >= $${paramIndex++}`);
+    params.push(filter.min_confidence);
+  }
+  if (filter.geo_precision) {
+    conditions.push(`COALESCE(geo_precision, 'unknown') = $${paramIndex++}`);
+    params.push(filter.geo_precision);
+  }
+  if (filter.multi_source_only) {
+    conditions.push(`(
+      SELECT COUNT(DISTINCT si2.source_name)
+      FROM event_observation eo2
+      JOIN source_item si2 ON si2.id = eo2.source_item_id
+      WHERE eo2.event_id = event.id
+    ) >= 2`);
+  }
 
   const whereClause =
     conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
@@ -148,7 +167,7 @@ export async function listEvents(
       `SELECT COUNT(*)::int as total FROM event e
        JOIN event_observation eo ON eo.event_id = e.id
        JOIN source_item si ON si.id = eo.source_item_id
-       ${whereClause} AND si.source_name = $${paramIndex}`,
+       ${whereClause.replaceAll('event.', 'e.')} AND si.source_name = $${paramIndex}`,
       [...params]
     );
     const total = countResult.rows[0]?.total ?? 0;
@@ -158,7 +177,7 @@ export async function listEvents(
       `SELECT DISTINCT e.* FROM event e
        JOIN event_observation eo ON eo.event_id = e.id
        JOIN source_item si ON si.id = eo.source_item_id
-       ${whereClause} AND si.source_name = $${paramIndex++}
+       ${whereClause.replaceAll('event.', 'e.')} AND si.source_name = $${paramIndex++}
        ORDER BY e.occurred_at DESC
        LIMIT $${paramIndex++} OFFSET $${paramIndex}`,
       params
@@ -174,7 +193,7 @@ export async function listEvents(
 
   params.push(filter.limit ?? 50, filter.offset ?? 0);
   const { rows } = await client.query<EventRow>(
-    `SELECT * FROM event ${whereClause}
+    `SELECT * FROM event ${whereClause.replaceAll('event.', 'event.')}
      ORDER BY occurred_at DESC
      LIMIT $${paramIndex++} OFFSET $${paramIndex}`,
     params

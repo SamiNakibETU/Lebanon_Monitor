@@ -21,6 +21,9 @@ const querySchema = z.object({
   severity: z.enum(['critical', 'high', 'medium', 'low']).optional(),
   source: z.string().optional(),
   since: z.string().optional(),
+  minConfidence: z.coerce.number().min(0).max(1).optional(),
+  geoPrecision: z.enum(['exact_point', 'neighborhood', 'city', 'district', 'governorate', 'country', 'inferred', 'unknown']).optional(),
+  multiSourceOnly: z.enum(['true', 'false']).optional(),
   limit: z.coerce.number().min(1).max(100).optional().default(50),
   offset: z.coerce.number().min(0).optional().default(0),
 });
@@ -43,6 +46,9 @@ export async function GET(request: Request) {
       severity: searchParams.get('severity') ?? undefined,
       source: searchParams.get('source') ?? undefined,
       since: searchParams.get('since') ?? undefined,
+      minConfidence: searchParams.get('minConfidence') ?? undefined,
+      geoPrecision: searchParams.get('geoPrecision') ?? undefined,
+      multiSourceOnly: searchParams.get('multiSourceOnly') ?? undefined,
       limit: searchParams.get('limit') ?? 50,
       offset: searchParams.get('offset') ?? 0,
     });
@@ -54,7 +60,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const { lang, classification, category, political, source, since, limit, offset } = parsed.data;
+    const { lang, classification, category, political, source, since, minConfidence, geoPrecision, multiSourceOnly, limit, offset } = parsed.data;
 
     const fromDate = since ? new Date(since) : undefined;
     const eventTypeFilter = political === 'true' ? undefined : category;
@@ -67,6 +73,9 @@ export async function GET(request: Request) {
         event_types: eventTypesFilter,
         source,
         from_date: fromDate,
+        min_confidence: minConfidence,
+        geo_precision: geoPrecision,
+        multi_source_only: multiSourceOnly === 'true',
         limit,
         offset,
       });
@@ -79,6 +88,10 @@ export async function GET(request: Request) {
       const translatedTitle = translations.get(e.id) ?? e.canonical_title;
       const meta = (e.metadata ?? {}) as Record<string, unknown>;
       const source = (meta.source as string | null) ?? null;
+      const evidence =
+        meta.evidence && typeof meta.evidence === 'object'
+          ? (meta.evidence as Record<string, unknown>)
+          : null;
       return {
         id: e.id,
         title: translatedTitle,
@@ -90,9 +103,19 @@ export async function GET(request: Request) {
         occurredAt: e.occurred_at,
         latitude: meta.latitude ?? null,
         longitude: meta.longitude ?? null,
+        geoPrecision: e.geo_precision ?? (meta.geoPrecision as string | null) ?? 'unknown',
+        resolvedPlaceName: (meta.resolvedPlaceName as string | null) ?? null,
         source,
         sourceTier: getSourceTier(source),
+        verificationStatus: e.verification_status,
+        translationStatus: (meta.translationStatus as string | null) ?? 'unknown',
         sourceCount: observationCounts.get(e.id) ?? 1,
+        evidence: evidence ?? {
+          sourceCount: observationCounts.get(e.id) ?? 1,
+          sourceDiversity: 1,
+          verificationLevel: e.verification_status === 'verified' ? 'high' : e.verification_status === 'partially_verified' ? 'medium' : 'low',
+          verificationStatus: e.verification_status,
+        },
       };
     });
 

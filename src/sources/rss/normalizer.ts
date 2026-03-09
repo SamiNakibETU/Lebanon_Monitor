@@ -4,8 +4,8 @@
 
 import type { LebanonEvent } from '@/types/events';
 import { classifyByKeywords } from '@/lib/classification/classifier';
-import { addJitter } from '@/lib/geocoding';
-import { getCityCoords } from './config';
+import { LEBANON_CITIES } from '@/config/lebanon';
+import { resolveCityCoords } from './config';
 import type { RssItem } from './types';
 import { RSS_CONFIG } from './config';
 
@@ -20,8 +20,9 @@ export function normalize(
     const title = item.title ?? 'Untitled';
     const text = `${title} ${item.contentSnippet ?? ''}`;
     const { classification, confidence } = classifyByKeywords(text);
-    const baseCoords = getCityCoords(title, item.contentSnippet);
-    const { lat, lng } = addJitter(baseCoords, `rss-${item.link ?? title}-${i}`);
+    const resolved = resolveCityCoords(title, item.contentSnippet);
+    const lat = resolved?.lat ?? LEBANON_CITIES.Beirut.lat;
+    const lng = resolved?.lng ?? LEBANON_CITIES.Beirut.lng;
 
     const id = `rss-${(item.link ?? title).replace(/[^a-zA-Z0-9]/g, '_').slice(0, 60)}-${i}`;
 
@@ -42,6 +43,12 @@ export function normalize(
         fetchedAt,
         ttlSeconds: RSS_CONFIG.ttlSeconds,
         sourceReliability: 'medium',
+        geoPrecision: resolved?.geoPrecision ?? 'country',
+        resolvedPlaceName: resolved?.resolvedPlaceName ?? 'Lebanon',
+        evidence: {
+          geocodeMethod: resolved?.geocodeMethod ?? 'country_fallback',
+          geocodeConfidence: resolved?.geocodeConfidence ?? 0.3,
+        },
       },
     });
   }

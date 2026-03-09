@@ -66,6 +66,10 @@ export async function GET(
     const transByLang = new Map(translations.map((t) => [t.language, t.title ?? event.canonical_title]));
     const title = transByLang.get(lang) ?? event.canonical_title;
     const meta = (event.metadata ?? {}) as Record<string, unknown>;
+    const evidence =
+      meta.evidence && typeof meta.evidence === 'object'
+        ? (meta.evidence as Record<string, unknown>)
+        : null;
 
     const source = (meta.source as string | null) ?? null;
     const sourceCount = observations.length;
@@ -82,10 +86,19 @@ export async function GET(
         occurredAt: event.occurred_at,
         latitude: meta.latitude ?? null,
         longitude: meta.longitude ?? null,
+        geoPrecision: event.geo_precision ?? (meta.geoPrecision as string | null) ?? 'unknown',
+        resolvedPlaceName: (meta.resolvedPlaceName as string | null) ?? null,
         sources: observations.map((o: { source_name: string }) => o.source_name),
         verification_status: event.verification_status,
         sourceCount,
         sourceTier: getSourceTier(source),
+        translationStatus: (meta.translationStatus as string | null) ?? 'unknown',
+        translationMeta: (meta.translationMeta as Record<string, unknown> | null) ?? null,
+        evidence: evidence ?? {
+          sourceCount,
+          sourceDiversity: new Set(observations.map((o: { source_name: string }) => o.source_name)).size,
+          verificationStatus: event.verification_status,
+        },
         translations: Object.fromEntries(translations.map((t) => [t.language, t.title])),
       },
       {

@@ -7,6 +7,7 @@ import { RegionalWidget } from '@/components/widgets/RegionalWidget';
 import { SignalsWidget } from '@/components/widgets/SignalsWidget';
 import { ConflictGauge } from '@/components/charts/ConflictGauge';
 import { ReliefWebWidget } from '@/components/widgets/ReliefWebWidget';
+import { CausalTimelineWidget } from '@/components/widgets/CausalTimelineWidget';
 
 export function SectionGeopolitique() {
   return (
@@ -30,6 +31,9 @@ export function SectionGeopolitique() {
       </div>
       <div className="md:col-span-2" style={{ background: '#0A0A0A' }}>
         <SignalsWidget />
+      </div>
+      <div className="md:col-span-2" style={{ background: '#0A0A0A' }}>
+        <CausalTimelineWidget />
       </div>
       <div style={{ background: '#0A0A0A' }}>
         <UNIFILWidget />

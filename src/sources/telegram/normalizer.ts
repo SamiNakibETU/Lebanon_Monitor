@@ -4,22 +4,10 @@
 
 import type { LebanonEvent } from '@/types/events';
 import { classifyByKeywords } from '@/lib/classification/classifier';
-import { addJitter } from '@/lib/geocoding';
 import { LEBANON_CITIES } from '@/config/lebanon';
+import { resolveCityCoords } from '@/sources/rss/config';
 import { TELEGRAM_CONFIG } from './config';
 import type { TelegramFetchResult } from './fetcher';
-
-function getCityCoords(title: string, snippet?: string): { lat: number; lng: number } {
-  const text = `${title} ${snippet ?? ''}`.toLowerCase();
-  for (const [city, coords] of Object.entries(LEBANON_CITIES)) {
-    if (text.includes(city.toLowerCase())) return coords;
-  }
-  if (text.includes('tripoli')) return LEBANON_CITIES.Tripoli;
-  if (text.includes('sidon') || text.includes('saida')) return LEBANON_CITIES.Sidon;
-  if (text.includes('tyre') || text.includes('sour')) return LEBANON_CITIES.Tyre;
-  if (text.includes('baalbek')) return LEBANON_CITIES.Baalbek;
-  return LEBANON_CITIES.Beirut;
-}
 
 type TelegramItem = TelegramFetchResult['items'][number];
 
@@ -34,8 +22,9 @@ export function normalize(
     const title = item.title ?? 'Untitled';
     const text = `${title} ${item.contentSnippet ?? ''}`;
     const { classification, confidence } = classifyByKeywords(text);
-    const baseCoords = getCityCoords(title, item.contentSnippet);
-    const { lat, lng } = addJitter(baseCoords, `telegram-${item.link ?? title}-${i}`);
+    const resolved = resolveCityCoords(title, item.contentSnippet);
+    const lat = resolved?.lat ?? LEBANON_CITIES.Beirut.lat;
+    const lng = resolved?.lng ?? LEBANON_CITIES.Beirut.lng;
 
     const id = `telegram-${(item.link ?? title).replace(/[^a-zA-Z0-9]/g, '_').slice(0, 60)}-${i}`;
 
@@ -56,6 +45,12 @@ export function normalize(
         fetchedAt,
         ttlSeconds: TELEGRAM_CONFIG.ttlSeconds,
         sourceReliability: 'medium',
+        geoPrecision: resolved?.geoPrecision ?? 'country',
+        resolvedPlaceName: resolved?.resolvedPlaceName ?? 'Lebanon',
+        evidence: {
+          geocodeMethod: resolved?.geocodeMethod ?? 'country_fallback',
+          geocodeConfidence: resolved?.geocodeConfidence ?? 0.3,
+        },
       },
     });
   }

@@ -100,12 +100,68 @@ export async function GET() {
                 timestamp: now.toISOString(),
               });
             }
+
+            // 4. Multi-source convergence zones
+            const convergence = await withClient(async (client) => {
+              const res = await client.query<{
+                zone: string;
+                event_count: string;
+                source_count: string;
+                score: string;
+              }>(
+                `WITH base AS (
+                   SELECT
+                     COALESCE(
+                       NULLIF(e.metadata->>'resolvedPlaceName', ''),
+                       NULLIF(e.metadata->>'admin1', ''),
+                       'Lebanon'
+                     ) AS zone,
+                     e.id,
+                     si.source_name
+                   FROM event e
+                   LEFT JOIN event_observation eo ON eo.event_id = e.id
+                   LEFT JOIN source_item si ON si.id = eo.source_item_id
+                   WHERE e.is_active = true
+                     AND e.occurred_at >= NOW() - INTERVAL '24 hours'
+                 )
+                 SELECT
+                   zone,
+                   COUNT(DISTINCT id)::int as event_count,
+                   COUNT(DISTINCT source_name)::int as source_count,
+                   LEAST(100, ROUND(
+                     LEAST(45, LN(GREATEST(COUNT(DISTINCT id), 1) + 1) * 14) +
+                     LEAST(35, COUNT(DISTINCT source_name) * 6) +
+                     CASE WHEN COUNT(DISTINCT source_name) >= 3 THEN 20 ELSE 0 END
+                   ))::int as score
+                 FROM base
+                 GROUP BY zone
+                 HAVING COUNT(DISTINCT id) >= 3
+                 ORDER BY score DESC
+                 LIMIT 1`
+              );
+              return res.rows[0];
+            });
+
+            if (convergence && parseInt(convergence.score, 10) >= 55) {
+              const zone = convergence.zone;
+              const sourceCount = parseInt(convergence.source_count, 10);
+              const eventCount = parseInt(convergence.event_count, 10);
+              alerts.push({
+                id: `convergence-${zone}-${now.toISOString().slice(0, 10)}`,
+                type: 'convergence',
+                severity: sourceCount >= 3 ? 'high' : 'medium',
+                title: `Convergence multi-source: ${zone}`,
+                description: `${eventCount} événements corroborés par ${sourceCount} sources sur 24h.`,
+                indicators: ['multi_source_convergence', 'zone_corroboration'],
+                timestamp: now.toISOString(),
+              });
+            }
           } catch {
             // DB queries failed, skip DB-based signals
           }
         }
 
-        // 4. If no alerts found, provide a baseline status
+        // 5. If no alerts found, provide a baseline status
         if (alerts.length === 0) {
           alerts.push({
             id: `baseline-${now.toISOString().slice(0, 10)}`,

@@ -14,6 +14,13 @@ interface Signal {
   timestamp: string;
 }
 
+interface ConvergenceZone {
+  zone: string;
+  score: number;
+  sourceCount: number;
+  eventCount: number;
+}
+
 const SEVERITY_COLORS: Record<string, string> = {
   critical: '#C62828',
   high: '#E65100',
@@ -34,14 +41,25 @@ export function SignalsWidget() {
     fetcher,
     { refreshInterval: 120_000 }
   );
+  const { data: convergence } = useSWR<{ zones: ConvergenceZone[] }>(
+    '/api/v2/convergence?days=7&minScore=45',
+    fetcher,
+    { refreshInterval: 180_000 }
+  );
 
   const signals = data?.signals ?? [];
+  const topZone = convergence?.zones?.[0];
 
   return (
     <div className="flex flex-col" style={{ background: '#0A0A0A' }}>
       <div className="text-[11px] uppercase tracking-[0.08em] mb-3 px-4 pt-4" style={{ color: '#666666' }}>
         Signaux faibles · Convergence
       </div>
+      {topZone && (
+        <div className="px-4 pb-3 text-[11px]" style={{ color: '#888888', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+          Zone prioritaire: {topZone.zone} · score {topZone.score} · {topZone.eventCount} événements · {topZone.sourceCount} sources
+        </div>
+      )}
       {signals.length === 0 ? (
         <div className="text-[13px] px-4 pb-4" style={{ color: '#666666' }}>
           Analyse en cours…

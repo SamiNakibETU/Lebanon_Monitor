@@ -13,6 +13,9 @@ interface EventItem {
   category?: string | null;
   occurredAt: string;
   classification: string;
+  verificationStatus?: string;
+  geoPrecision?: string;
+  sourceCount?: number;
 }
 
 function getCategoryLabel(code: string | null | undefined): string {
@@ -128,6 +131,18 @@ export function CondensedFeed({ variant, lang = 'fr' }: CondensedFeedProps) {
               style={{ color: isLumiere ? '#888888' : '#666666' }}
             >
               {getCategoryLabel(e.category)}
+            </span>
+            <span
+              className="shrink-0 text-[10px] uppercase"
+              style={{ color: isLumiere ? '#888888' : '#666666' }}
+            >
+              {e.geoPrecision ?? 'unknown'}
+            </span>
+            <span
+              className="shrink-0 text-[10px] uppercase tabular-nums"
+              style={{ color: isLumiere ? '#888888' : '#666666' }}
+            >
+              {e.sourceCount ?? 1}s
             </span>
           </Link>
         );

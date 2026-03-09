@@ -24,6 +24,17 @@ export async function storeNewEvent(
   event: LebanonEvent
 ): Promise<{ eventId: string; title: string; summary?: string }> {
   const [lat, lng] = clampCoords(event.latitude, event.longitude);
+  const initialEvidence = {
+    primarySource: event.source,
+    sourceCount: 1,
+    sourceDiversity: 1,
+    verificationLevel: 'low',
+    verificationStatus: 'unverified',
+    geocodeMethod: (event.metadata.geoPrecision && event.metadata.geoPrecision !== 'unknown')
+      ? 'gazetteer_match'
+      : 'unknown',
+    geocodeConfidence: (event.metadata.geoPrecision && event.metadata.geoPrecision !== 'unknown') ? 0.8 : 0.2,
+  };
 
   const eventRow = await withClient(async (client) => {
     const safeConfidence = typeof event.confidence === 'number' && !Number.isNaN(event.confidence)
@@ -38,10 +49,15 @@ export async function storeNewEvent(
       occurred_at: event.timestamp,
       event_type: event.category,
       canonical_source_item_id: sourceItem.id,
+      geo_precision: event.metadata.geoPrecision ?? 'unknown',
       metadata: {
         latitude: lat,
         longitude: lng,
         source: event.source,
+        originalSource: sourceItem.source_name,
+        geoPrecision: event.metadata.geoPrecision ?? 'unknown',
+        resolvedPlaceName: event.metadata.resolvedPlaceName ?? null,
+        evidence: initialEvidence,
       },
     });
 
@@ -85,12 +101,37 @@ export async function linkToExistingEvent(
 
     const counts = await getObservationCountByEventIds(client, [eventId]);
     const count = counts.get(eventId) ?? 1;
+    const diversityRes = await client.query<{ source_diversity: number }>(
+      `SELECT COUNT(DISTINCT si.source_name)::int as source_diversity
+       FROM event_observation eo
+       JOIN source_item si ON si.id = eo.source_item_id
+       WHERE eo.event_id = $1`,
+      [eventId]
+    );
+    const sourceDiversity = diversityRes.rows[0]?.source_diversity ?? 1;
     const { rows } = await client.query<{ confidence_score: number | null }>(
       'SELECT confidence_score FROM event WHERE id = $1',
       [eventId]
     );
     const baseConfidence = rows[0]?.confidence_score ?? null;
     await updateEventConvergence(client, eventId, count, baseConfidence);
+    const verificationLevel = sourceDiversity >= 3 ? 'high' : sourceDiversity >= 2 ? 'medium' : 'low';
+    const verificationStatus = sourceDiversity >= 3 ? 'verified' : sourceDiversity >= 2 ? 'partially_verified' : 'unverified';
+    await client.query(
+      `UPDATE event
+       SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object(
+         'evidence',
+         jsonb_build_object(
+           'sourceCount', $2,
+           'sourceDiversity', $3,
+           'verificationLevel', $4,
+           'verificationStatus', $5
+         )
+       ),
+       updated_at = now()
+       WHERE id = $1`,
+      [eventId, count, sourceDiversity, verificationLevel, verificationStatus]
+    );
   });
 }
 

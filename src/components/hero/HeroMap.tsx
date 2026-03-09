@@ -42,6 +42,15 @@ interface MapEvent {
   title: string;
   source?: string | null;
   occurredAt: string;
+  geoPrecision?: string | null;
+  verificationStatus?: string | null;
+  translationStatus?: string | null;
+  evidence?: {
+    sourceCount?: number;
+    sourceDiversity?: number;
+    verificationLevel?: string;
+    geocodeConfidence?: number;
+  } | null;
 }
 
 function toGeoJSON(events: MapEvent[], classification: 'lumiere' | 'ombre'): GeoJSON.FeatureCollection {
@@ -61,6 +70,13 @@ function toGeoJSON(events: MapEvent[], classification: 'lumiere' | 'ombre'): Geo
         classification: e.classification,
         source: e.source ?? '',
         occurredAt: e.occurredAt,
+        geoPrecision: e.geoPrecision ?? 'unknown',
+        verificationStatus: e.verificationStatus ?? 'unverified',
+        translationStatus: e.translationStatus ?? 'unknown',
+        sourceCount: e.evidence?.sourceCount ?? 1,
+        sourceDiversity: e.evidence?.sourceDiversity ?? 1,
+        verificationLevel: e.evidence?.verificationLevel ?? 'low',
+        geocodeConfidence: e.evidence?.geocodeConfidence ?? 0,
       },
     }));
   return { type: 'FeatureCollection', features };
@@ -85,14 +101,19 @@ export function HeroMap({ minimized }: HeroMapProps) {
     unifil: false,
     jamming: false,
   });
+  const [analystMode, setAnalystMode] = useState(false);
+
+  const eventQuery = analystMode
+    ? '&minConfidence=0.65&geoPrecision=city&multiSourceOnly=true'
+    : '';
 
   const { data: lumiereRes } = useSWR<{ data: MapEvent[] }>(
-    '/api/v2/events?classification=lumiere&limit=200',
+    `/api/v2/events?classification=lumiere&limit=200${eventQuery}`,
     fetcher,
     { refreshInterval: 60_000 }
   );
   const { data: ombreRes } = useSWR<{ data: MapEvent[] }>(
-    '/api/v2/events?classification=ombre&limit=200',
+    `/api/v2/events?classification=ombre&limit=200${eventQuery}`,
     fetcher,
     { refreshInterval: 60_000 }
   );
@@ -289,6 +310,9 @@ export function HeroMap({ minimized }: HeroMapProps) {
             `<div style="background:#0D0D0D;color:#fff;padding:12px;font-size:12px;font-family:'DM Sans',sans-serif;border-radius:0">` +
             `<div style="font-weight:500;margin-bottom:6px;line-height:1.4">${props.title ?? 'Événement'}</div>` +
             `<div style="color:#888;font-size:10px">${props.source ?? ''} · ${props.occurredAt ? new Date(props.occurredAt).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' }) : ''}</div>` +
+            `<div style="color:#666;font-size:10px;margin-top:6px">` +
+            `Pourquoi ce point: ${props.verificationStatus ?? 'unverified'} · geo=${props.geoPrecision ?? 'unknown'} · sources=${props.sourceCount ?? 1}` +
+            `</div>` +
             `<a href="/event/${props.id}" style="color:#4FC3F7;font-size:10px;margin-top:8px;display:block;text-decoration:none">Détails →</a>` +
             `</div>`
           )
@@ -493,6 +517,21 @@ export function HeroMap({ minimized }: HeroMapProps) {
         className="absolute bottom-2 left-2 z-10 flex flex-wrap gap-1"
         style={{ maxWidth: 'calc(100% - 16px)' }}
       >
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setAnalystMode((v) => !v);
+          }}
+          className="px-2 py-1 text-[10px] font-medium uppercase tracking-wider border cursor-pointer transition-colors"
+          style={{
+            background: 'rgba(0,0,0,0.6)',
+            color: analystMode ? '#FFFFFF' : 'rgba(255,255,255,0.5)',
+            borderColor: analystMode ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.15)',
+          }}
+        >
+          analyste
+        </button>
         {LAYER_IDS.map((id) => (
           <button
             key={id}

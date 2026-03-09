@@ -15,6 +15,7 @@ import { runCluster } from './cluster';
 import { logSourceHealth, logPipelineRun } from './health';
 import { logger } from '@/lib/logger';
 import { EVENT_SOURCE_NAMES } from '@/sources/connector-registry';
+import { enrichEvent } from '@/core/enrichment';
 import type { LebanonEvent } from '@/types/events';
 
 export interface PipelineResult {
@@ -73,14 +74,15 @@ export async function runPipeline(): Promise<PipelineResult> {
       } else {
         classified = classifyEvent(event);
       }
+      const enriched = enrichEvent(classified);
 
-      const duplicate = await findDuplicate(classified);
+      const duplicate = await findDuplicate(enriched);
 
       if (duplicate) {
-        await linkToExistingEvent(sourceItem, duplicate.eventId, classified, duplicate.confidence);
+        await linkToExistingEvent(sourceItem, duplicate.eventId, enriched, duplicate.confidence);
         eventsUpdated++;
       } else {
-        const { eventId, title, summary } = await storeNewEvent(sourceItem, classified);
+        const { eventId, title, summary } = await storeNewEvent(sourceItem, enriched);
         eventsCreated++;
         translateAndStore(eventId, title, summary).catch((err) =>
           logger.warn('Translation failed for event', { eventId, err: err instanceof Error ? err.message : String(err) })

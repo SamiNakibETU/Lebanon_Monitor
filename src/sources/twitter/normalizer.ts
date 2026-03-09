@@ -4,8 +4,8 @@
 
 import type { LebanonEvent } from '@/types/events';
 import { classifyByKeywords } from '@/lib/classification/classifier';
-import { addJitter } from '@/lib/geocoding';
-import { getCityCoords } from '@/sources/rss/config';
+import { LEBANON_CITIES } from '@/config/lebanon';
+import { resolveCityCoords } from '@/sources/rss/config';
 import { TWITTER_CONFIG } from './config';
 import type { NitterRssItem } from './types';
 
@@ -55,8 +55,9 @@ export function normalize(
     const url = item.link ?? (tweetId ? `https://x.com/${item.handle}/status/${tweetId}` : undefined);
 
     const id = `twitter-${item.handle}-${tweetId || i}`;
-    const baseCoords = getCityCoords(title, item.contentSnippet ?? item.content);
-    const { lat, lng } = addJitter(baseCoords, id);
+    const resolved = resolveCityCoords(title, item.contentSnippet ?? item.content);
+    const lat = resolved?.lat ?? LEBANON_CITIES.Beirut.lat;
+    const lng = resolved?.lng ?? LEBANON_CITIES.Beirut.lng;
 
     events.push({
       id,
@@ -80,6 +81,12 @@ export function normalize(
         fetchedAt,
         ttlSeconds: TWITTER_CONFIG.ttlSeconds,
         sourceReliability: 'medium',
+        geoPrecision: resolved?.geoPrecision ?? 'country',
+        resolvedPlaceName: resolved?.resolvedPlaceName ?? 'Lebanon',
+        evidence: {
+          geocodeMethod: resolved?.geocodeMethod ?? 'country_fallback',
+          geocodeConfidence: resolved?.geocodeConfidence ?? 0.3,
+        },
       },
     });
   }

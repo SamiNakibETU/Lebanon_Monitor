@@ -87,5 +87,17 @@ export interface LebanonEvent {
       | "unknown";
     /** Phase E: resolved place name when geocoded from text */
     resolvedPlaceName?: string;
+    /** Admin mapping for contextual analytics (Lebanese governorate or regional area) */
+    admin1?: string;
+    /** Evidence model: provenance and verification context for explainability */
+    evidence?: {
+      primarySource?: SourceName;
+      sourceCount?: number;
+      sourceDiversity?: number;
+      verificationLevel?: 'low' | 'medium' | 'high';
+      verificationStatus?: 'unverified' | 'partially_verified' | 'verified' | 'disputed';
+      geocodeMethod?: 'source_exact' | 'gazetteer_match' | 'admin_fallback' | 'country_fallback' | 'unknown';
+      geocodeConfidence?: number;
+    };
   };
 }

@@ -3,6 +3,7 @@
  */
 
 import { LEBANON_CITIES } from '@/config/lebanon';
+import type { GeoPrecision } from '@/geo/types';
 
 export const RSS_FEEDS = [
   // ── Liban direct ──
@@ -73,15 +74,35 @@ export const RSS_CONFIG = {
   ttlSeconds: 15 * 60,
 } as const;
 
-export function getCityCoords(title: string, description?: string): { lat: number; lng: number } {
+export interface ResolvedCityCoords {
+  lat: number;
+  lng: number;
+  resolvedPlaceName: string;
+  geoPrecision: GeoPrecision;
+  geocodeMethod: 'gazetteer_match';
+  geocodeConfidence: number;
+}
+
+export function resolveCityCoords(title: string, description?: string): ResolvedCityCoords | null {
   const text = `${title} ${description ?? ''}`.toLowerCase();
   for (const [city, coords] of Object.entries(LEBANON_CITIES)) {
-    if (text.includes(city.toLowerCase())) return coords;
+    if (text.includes(city.toLowerCase())) {
+      return {
+        lat: coords.lat,
+        lng: coords.lng,
+        resolvedPlaceName: city,
+        geoPrecision: 'city',
+        geocodeMethod: 'gazetteer_match',
+        geocodeConfidence: 0.85,
+      };
+    }
   }
-  if (text.includes('tripoli')) return LEBANON_CITIES.Tripoli;
-  if (text.includes('sidon') || text.includes('saida')) return LEBANON_CITIES.Sidon;
-  if (text.includes('tyre') || text.includes('sour')) return LEBANON_CITIES.Tyre;
-  if (text.includes('baalbek')) return LEBANON_CITIES.Baalbek;
-  if (text.includes('jounieh')) return LEBANON_CITIES.Jounieh;
+  return null;
+}
+
+// Backward-compatible helper used in older source modules.
+export function getCityCoords(title: string, description?: string): { lat: number; lng: number } {
+  const resolved = resolveCityCoords(title, description);
+  if (resolved) return { lat: resolved.lat, lng: resolved.lng };
   return LEBANON_CITIES.Beirut;
 }
