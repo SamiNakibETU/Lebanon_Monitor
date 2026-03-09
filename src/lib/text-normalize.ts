@@ -45,3 +45,12 @@ export function normalizeText(input: string | null | undefined): string {
   return best.replace(/\s+/g, ' ').trim();
 }
 
+export function isProbablyGarbled(input: string | null | undefined): boolean {
+  const s = (input ?? '').trim();
+  if (!s) return true;
+  const bad = scoreBadEncoding(s);
+  const len = s.length;
+  // High ratio of replacement/mojibake markers usually means unreadable content.
+  return bad >= 12 || bad / Math.max(len, 1) > 0.15;
+}
+

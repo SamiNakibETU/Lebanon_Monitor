@@ -8,7 +8,7 @@ import { listEvents } from '@/db/repositories/event-repository';
 import { getTranslationsForEvents } from '@/db/repositories/event-translation-repository';
 import { getObservationCountByEventIds } from '@/db/repositories/event-observation-repository';
 import { getSourceTier } from '@/config/source-tiers';
-import { normalizeText } from '@/lib/text-normalize';
+import { isProbablyGarbled, normalizeText } from '@/lib/text-normalize';
 import { z } from 'zod';
 
 /** Event types considered "political" for the political feed. */
@@ -118,7 +118,7 @@ export async function GET(request: Request) {
           verificationStatus: e.verification_status,
         },
       };
-    });
+    }).filter((e) => !isProbablyGarbled(e.title));
 
     return NextResponse.json(
       {
