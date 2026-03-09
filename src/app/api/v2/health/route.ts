@@ -35,7 +35,8 @@ export async function GET() {
 
   const env: Record<string, string> = {};
   env.DATABASE_URL = hasDbUrl ? 'ok' : 'missing';
-  env.ANTHROPIC_API_KEY = getAnthropicKeyStatus();
+  const anthropicStatus = getAnthropicKeyStatus();
+  env.ANTHROPIC_API_KEY = anthropicStatus;
   env.REDIS = isRedisConfigured() ? 'ok' : 'missing';
   env.RELIEFWEB_APPNAME = process.env.RELIEFWEB_APPNAME ? 'ok' : 'missing';
   env.UCDP_ACCESS_TOKEN = process.env.UCDP_ACCESS_TOKEN ? 'ok' : 'missing';
@@ -92,9 +93,29 @@ export async function GET() {
     }
   }
 
+  // Temporary debug block — shows raw char codes so we can see what Railway actually stores.
+  // Only shows first 12 chars of raw value (sk-ant-api03) — not the secret portion.
+  let anthropicDebug: Record<string, unknown> | undefined;
+  if (anthropicStatus !== 'ok') {
+    const raw = process.env.ANTHROPIC_API_KEY ?? '';
+    const stripped = raw
+      .replace(/^["']|["']$/g, '')
+      .replace(/[\s\u200B\u200C\u200D\uFEFF\u00A0\u2028\u2029]/g, '')
+      .replace(/\r\n|\r|\n/g, '')
+      .trim();
+    anthropicDebug = {
+      raw_length: raw.length,
+      stripped_length: stripped.length,
+      raw_first12: raw.slice(0, 12),
+      stripped_first12: stripped.slice(0, 12),
+      raw_charCodes: Array.from(raw.slice(0, 16)).map((c) => c.charCodeAt(0)),
+    };
+  }
+
   return NextResponse.json(
     {
       env,
+      ...(anthropicDebug && { anthropicDebug }),
       database,
       apis: results,
       summary: {
