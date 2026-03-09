@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Désactive le cache webpack pour éviter ENOENT pack.gz / MODULE_NOT_FOUND sur Windows
+  turbopack: {},
   webpack: (config, { dev }) => {
     if (dev) config.cache = false;
     return config;
