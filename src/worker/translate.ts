@@ -185,7 +185,7 @@ async function updateTranslationStatus(
   await client.query(
     `UPDATE event
      SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object(
-       'translationStatus', $2,
+       'translationStatus', $2::text,
        'translationMeta', COALESCE(metadata->'translationMeta', '{}'::jsonb) || $3::jsonb
      ),
      updated_at = now()

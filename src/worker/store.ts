@@ -122,10 +122,10 @@ export async function linkToExistingEvent(
        SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object(
          'evidence',
          jsonb_build_object(
-           'sourceCount', $2,
-           'sourceDiversity', $3,
-           'verificationLevel', $4,
-           'verificationStatus', $5
+           'sourceCount', $2::int,
+           'sourceDiversity', $3::int,
+           'verificationLevel', $4::text,
+           'verificationStatus', $5::text
          )
        ),
        updated_at = now()
