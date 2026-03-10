@@ -44,17 +44,23 @@ export async function GET() {
         withClient(async (client) => {
           const metrics = await client.query<{
             armed_24h: string;
+            armed_7d: string;
             ombre_24h: string;
+            ombre_7d: string;
             political_24h: string;
-            displacement_24h: string;
-            infra_24h: string;
+            displacement_7d: string;
+            infra_7d: string;
+            total_7d: string;
           }>(
             `SELECT
                COUNT(*) FILTER (WHERE occurred_at >= NOW() - INTERVAL '24 hours' AND event_type IN ('armed_conflict','violence'))::int AS armed_24h,
+               COUNT(*) FILTER (WHERE occurred_at >= NOW() - INTERVAL '7 days' AND event_type IN ('armed_conflict','violence'))::int AS armed_7d,
                COUNT(*) FILTER (WHERE occurred_at >= NOW() - INTERVAL '24 hours' AND polarity_ui = 'ombre')::int AS ombre_24h,
+               COUNT(*) FILTER (WHERE occurred_at >= NOW() - INTERVAL '7 days' AND polarity_ui = 'ombre')::int AS ombre_7d,
                COUNT(*) FILTER (WHERE occurred_at >= NOW() - INTERVAL '24 hours' AND event_type = 'political_tension')::int AS political_24h,
-               COUNT(*) FILTER (WHERE occurred_at >= NOW() - INTERVAL '24 hours' AND event_type = 'displacement')::int AS displacement_24h,
-               COUNT(*) FILTER (WHERE occurred_at >= NOW() - INTERVAL '24 hours' AND event_type = 'infrastructure_failure')::int AS infra_24h
+               COUNT(*) FILTER (WHERE occurred_at >= NOW() - INTERVAL '7 days' AND event_type = 'displacement')::int AS displacement_7d,
+               COUNT(*) FILTER (WHERE occurred_at >= NOW() - INTERVAL '7 days' AND event_type = 'infrastructure_failure')::int AS infra_7d,
+               COUNT(*) FILTER (WHERE occurred_at >= NOW() - INTERVAL '7 days')::int AS total_7d
              FROM event
              WHERE is_active = true`
           );
@@ -73,24 +79,33 @@ export async function GET() {
           );
 
           const row = metrics.rows[0]!;
-          const armed = Number(row.armed_24h ?? 0);
-          const ombre = Number(row.ombre_24h ?? 0);
+          const armed24 = Number(row.armed_24h ?? 0);
+          const armed7d = Number(row.armed_7d ?? 0);
+          const ombre24 = Number(row.ombre_24h ?? 0);
+          const ombre7d = Number(row.ombre_7d ?? 0);
           const political = Number(row.political_24h ?? 0);
-          const displacement = Number(row.displacement_24h ?? 0);
-          const infra = Number(row.infra_24h ?? 0);
+          const displacement = Number(row.displacement_7d ?? 0);
+          const infra = Number(row.infra_7d ?? 0);
+          const total7d = Number(row.total_7d ?? 0);
           const latestLbp = Number(lbp.rows[0]?.latest ?? 0);
           const avgLbp = Number(lbp.rows[0]?.avg24 ?? 0);
 
-          const militaryScore = clampScore(armed * 4 + ombre * 0.4);
-          const economicScore = clampScore(avgLbp > 0 ? ((latestLbp - avgLbp) / avgLbp) * 100 + 40 : 40);
-          const politicalScore = clampScore(political * 6 + 20);
-          const humanitarianScore = clampScore(displacement * 7 + infra * 5 + 15);
+          const militaryScore = clampScore(
+            Math.min(100, armed24 * 5 + armed7d * 0.5 + ombre24 * 1.5)
+          );
+          const economicScore = clampScore(
+            avgLbp > 0 ? ((latestLbp - avgLbp) / avgLbp) * 100 + 50 : 50
+          );
+          const politicalScore = clampScore(political * 6 + (total7d > 100 ? 40 : 20));
+          const humanitarianScore = clampScore(
+            displacement * 5 + infra * 4 + (ombre7d > 50 ? 30 : 15)
+          );
 
           const components: Record<ComponentKey, InstabilityComponent> = {
             military: {
               score: militaryScore,
               weight: 30,
-              brief: await briefForComponent('military', militaryScore, `${armed} événements armés, ${ombre} ombre`),
+              brief: await briefForComponent('military', militaryScore, `${armed24} armés/24h, ${armed7d} armés/7j, ${ombre24} ombre/24h`),
             },
             economic: {
               score: economicScore,

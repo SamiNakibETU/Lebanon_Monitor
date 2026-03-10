@@ -66,18 +66,16 @@ export async function generateSynthesisWithDiagnostics(): Promise<SynthesisDiagn
 
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-  let events: { title: string; classification: string | null; category: string | null; occurredAt: Date | null; source: string | null }[];
+  let events: { title: string; classification: string | null; category: string | null }[];
   try {
     const out = await withClient(async (client) => {
-      const list = await listEvents(client, { from_date: since, limit: 150 });
+      const list = await listEvents(client, { from_date: since, limit: 80 });
       const trans = await getTranslationsForEvents(client, list.events.map((e) => e.id), 'fr');
       return {
         events: list.events.map((e) => ({
-          title: trans.get(e.id) ?? e.canonical_title,
+          title: (trans.get(e.id) ?? e.canonical_title).slice(0, 120),
           classification: e.polarity_ui ?? null,
           category: e.event_type ?? null,
-          occurredAt: e.occurred_at ?? null,
-          source: (typeof (e.metadata as Record<string, unknown>)?.source === 'string' ? (e.metadata as Record<string, unknown>).source : null) as string | null,
         })),
       };
     });
@@ -118,7 +116,7 @@ export async function generateSynthesisWithDiagnostics(): Promise<SynthesisDiagn
         ],
         max_tokens: 1024,
         temperature: 0.3,
-        timeoutMs: 15_000,
+        timeoutMs: 30_000,
       });
     } else {
       text = await callAnthropic({

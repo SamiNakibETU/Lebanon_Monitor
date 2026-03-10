@@ -17,7 +17,7 @@ const LEVANT_BOUNDS: [[number, number], [number, number]] = [
   [42.0, 38.0],
 ];
 
-const LAYER_IDS = ['events', 'flights', 'fires', 'infra', 'unifil', 'jamming'] as const;
+const LAYER_IDS = ['events', 'convergence', 'flights', 'fires', 'infra', 'unifil', 'jamming'] as const;
 type LayerId = (typeof LAYER_IDS)[number];
 
 const INFRA_TYPES: Record<string, { color: string; radius: number }> = {
@@ -146,6 +146,7 @@ export function HeroMap({ minimized }: HeroMapProps) {
   const [styleLoaded, setStyleLoaded] = useState(false);
   const [layers, setLayers] = useState<Record<LayerId, boolean>>({
     events: false,
+    convergence: true,
     flights: true,
     fires: false,
     infra: true,
@@ -323,6 +324,7 @@ export function HeroMap({ minimized }: HeroMapProps) {
           ],
           'heatmap-radius': 35,
         },
+        layout: { visibility: 'none' },
       });
     } else {
       (map.getSource('heatmap-lumiere') as maplibregl.GeoJSONSource).setData(lumiereGeo);
@@ -352,6 +354,7 @@ export function HeroMap({ minimized }: HeroMapProps) {
           ],
           'heatmap-radius': 35,
         },
+        layout: { visibility: 'none' },
       });
     } else {
       (map.getSource('heatmap-ombre') as maplibregl.GeoJSONSource).setData(ombreGeo);
@@ -761,7 +764,9 @@ export function HeroMap({ minimized }: HeroMapProps) {
     if (map.getLayer('jamming-points')) map.setLayoutProperty('jamming-points', 'visibility', v('jamming'));
     if (map.getLayer('fires-points')) map.setLayoutProperty('fires-points', 'visibility', v('fires'));
     if (map.getLayer('fires-recent')) map.setLayoutProperty('fires-recent', 'visibility', v('fires'));
-    if (map.getLayer('convergence-circles')) map.setLayoutProperty('convergence-circles', 'visibility', v('events'));
+    if (map.getLayer('heatmap-lumiere-layer')) map.setLayoutProperty('heatmap-lumiere-layer', 'visibility', v('events'));
+    if (map.getLayer('heatmap-ombre-layer')) map.setLayoutProperty('heatmap-ombre-layer', 'visibility', v('events'));
+    if (map.getLayer('convergence-circles')) map.setLayoutProperty('convergence-circles', 'visibility', v('convergence'));
     if (map.getLayer('regional-events-points')) {
       map.setLayoutProperty('regional-events-points', 'visibility', viewMode === 'levant' ? 'visible' : 'none');
     }

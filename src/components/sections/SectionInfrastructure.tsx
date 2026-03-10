@@ -2,11 +2,10 @@
 
 import { CloudflareWidget } from '@/components/widgets/CloudflareWidget';
 import { OpenSkyWidget } from '@/components/widgets/OpenSkyWidget';
-import { PortWidget } from '@/components/widgets/PortWidget';
-import { JammingWidget } from '@/components/widgets/JammingWidget';
-import { EDLWidget } from '@/components/widgets/EDLWidget';
 import { AirportPulseWidget } from '@/components/widgets/AirportPulseWidget';
+import { CCTVWidget } from '@/components/widgets/CCTVWidget';
 import { DataFreshnessWidget } from '@/components/widgets/DataFreshnessWidget';
+import { JammingWidget } from '@/components/widgets/JammingWidget';
 
 export function SectionInfrastructure() {
   return (
@@ -16,10 +15,9 @@ export function SectionInfrastructure() {
     >
       <CloudflareWidget />
       <OpenSkyWidget />
-      <PortWidget />
-      <JammingWidget />
-      <EDLWidget />
       <AirportPulseWidget />
+      <CCTVWidget />
+      <JammingWidget />
       <DataFreshnessWidget />
     </section>
   );

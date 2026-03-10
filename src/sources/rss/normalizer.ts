@@ -13,8 +13,10 @@ import { RSS_CONFIG } from './config';
 const CULTURE_FEEDS = new Set(['Agenda Culturel', 'Beirut.com', 'Mondanite', "L'Orient Littéraire"]);
 const SOLIDARITY_FEEDS = new Set(['UNDP Lebanon', 'UNICEF Lebanon', 'UNRWA', 'UNHCR Lebanon', 'WFP Lebanon', 'ICRC']);
 
-const CULTURE_KEYWORDS = /(concert|exposition|festival|vernissage|th[ée][âa]tre|cin[ée]ma|musique|spectacle|performance|gallery|exhibit)/i;
-const SOLIDARITY_KEYWORDS = /(aid|humanitarian|distribution|relief|food|medical|vaccin|school|cash assistance|displaced|support)/i;
+const CULTURE_KEYWORDS = /(concert|exposition|festival|vernissage|th[ée][âa]tre|cin[ée]ma|musique|spectacle|performance|gallery|exhibit|art\s|artist|book\s?launch|litt[ée]r|po[ée]sie|danse|ballet|opera|museum|mus[ée]e|patrimoine|heritage|film|documentary|documentaire)/i;
+const SOLIDARITY_KEYWORDS = /(aid\s|humanitarian|distribution|relief\s|food\s(aid|distribution)|medical\s(aid|team)|vaccin|school\s(reopened|opening)|cash assistance|displaced|support\s(for|to)|don(ation|s)|solidarity|solidarit[ée]|b[ée]n[ée]vol|volunteer|refu(gee|gi[ée])|shelter|abri|accueil|convoy|acheminement|assistance|aide\s(humanitaire|alimentaire|m[ée]dicale)|livraison|rescue|sauvetage|[ée]vacuation\s(safe|civilian)|secour|croix.rouge|red\s?cross|m[ée]decins\s?sans|UNHCR|UNICEF|WFP|UNRWA|OMS|WHO)/i;
+const RECONSTRUCTION_KEYWORDS = /(reconstruction|rehabilitation|rebuild|project\s?launch|inauguration|restauration|r[ée]habilitation|infrastructure\s(restored|repaired)|reopen|r[ée]ouverture|restored|remise\s?en\s?[ée]tat|replant|reforestation|reboisement|[ée]nergie\s?(solaire|renouvelable)|solar|renewable)/i;
+const DIPLOMACY_POSITIVE_KEYWORDS = /(ceasefire|cessez.le.feu|accord|agreement|peace\s?(talk|deal|agreement|process)|paix|n[ée]gociation|dialogue|reconnaissance|recognition|election|[ée]lection|vote|d[ée]mocratie|democracy|lib[ée]ration|liberation|retrait|withdrawal|truce|tr[êe]ve)/i;
 
 function classifyRssContent(input: {
   feedName?: string;
@@ -35,8 +37,11 @@ function classifyRssContent(input: {
   if (SOLIDARITY_FEEDS.has(feed) || SOLIDARITY_KEYWORDS.test(text)) {
     return { classification: 'lumiere', confidence: Math.max(input.baseConfidence, 0.8), category: 'solidarity' };
   }
-  if (/(reconstruction|rehabilitation|rebuild|project launch|inauguration)/i.test(text)) {
+  if (RECONSTRUCTION_KEYWORDS.test(text)) {
     return { classification: 'lumiere', confidence: Math.max(input.baseConfidence, 0.78), category: 'reconstruction' };
+  }
+  if (DIPLOMACY_POSITIVE_KEYWORDS.test(text)) {
+    return { classification: 'lumiere', confidence: Math.max(input.baseConfidence, 0.75), category: 'institutional_progress' };
   }
 
   if (input.baseClassification === 'lumiere') {

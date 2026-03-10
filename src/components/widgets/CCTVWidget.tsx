@@ -1,93 +1,65 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import useSWR from 'swr';
+const WEBCAMS = [
+  {
+    label: 'Beirut Skyline',
+    url: 'https://www.skylinewebcams.com/webcam/lebanon/beirut/beirut/beirut.html',
+    source: 'SkylineWebcams',
+  },
+  {
+    label: 'Beirut Coast',
+    url: 'https://liveworldwebcams.com/beirut-webcam/',
+    source: 'LiveWorldWebcams',
+  },
+  {
+    label: 'AUB Campus',
+    url: 'https://www.worldlivecamera.com/en/Lebanon',
+    source: 'WorldLiveCamera',
+  },
+  {
+    label: 'Insecam LB',
+    url: 'http://www.insecam.org/en/bycountry/LB/',
+    source: 'Insecam',
+  },
+];
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
-
-interface CctvState {
-  source: { id: string; name: string };
-  type: 'youtube' | 'webcam' | 'direct';
-  videoId?: string;
-  isLive?: boolean;
-  embedUrl: string;
-  sources?: Array<{ id: string; name: string }>;
-}
-
-const LUMIERE_SOURCE_IDS = ['beirut-webcam', 'lbci', 'mtv', 'otv'];
-const OMBRE_SOURCE_IDS = ['aljazeera', 'alarabiya', 'aljadeed', 'france24-ar'];
-
-export function CCTVWidget({ variant = 'lumiere' }: { variant?: 'lumiere' | 'ombre' }) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-
-  const variantParam = variant === 'ombre' ? 'ombre' : 'lumiere';
-  const url = selectedId
-    ? `/api/v2/cctv?source=${selectedId}`
-    : `/api/v2/cctv?variant=${variantParam}`;
-  const { data, error, mutate } = useSWR<CctvState>(url, fetcher, {
-    refreshInterval: 120_000,
-  });
-
-  useEffect(() => {
-    if (data?.source?.id && !selectedId) setSelectedId(data.source.id);
-  }, [data?.source?.id, selectedId]);
-
-  const embedUrl =
-    data?.videoId
-      ? `/api/youtube/embed?videoId=${data.videoId}&autoplay=1&mute=1`
-      : data?.embedUrl;
-  const isLive = data?.isLive ?? false;
-  const sources = data?.sources ?? [];
-
+export function CCTVWidget() {
   return (
-    <div className="flex flex-col h-full min-h-[140px]">
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest" style={{ color: '#666666' }} suppressHydrationWarning>
-          {isLive && (
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#E53935] animate-pulse" />
-          )}
-          LIVE · {data?.source?.name ?? '—'}
-        </span>
-      </div>
+    <div className="flex flex-col p-4" style={{ background: '#0A0A0A' }}>
       <div
-        className="flex-1 min-h-[120px] overflow-hidden flex items-center justify-center"
-        style={{ background: '#0D0D0D' }}
+        className="text-[11px] uppercase tracking-[0.08em] mb-3"
+        style={{ color: '#666666' }}
       >
-        {error ? (
-          <div className="flex flex-col items-center gap-2 p-4" style={{ color: '#666666' }} suppressHydrationWarning>
-            <span className="text-xs">Flux indisponible</span>
-          </div>
-        ) : embedUrl ? (
-          <iframe
-            src={embedUrl}
-            title={`${data?.source?.name ?? 'Live'} stream`}
-            className="w-full h-full min-h-[120px]"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-          />
-        ) : (
-          <div className="flex flex-col items-center gap-2 p-4" style={{ color: '#666666' }} suppressHydrationWarning>
-            <span className="text-xs">Chargement…</span>
-          </div>
-        )}
+        CCTV / Webcams · Beyrouth
       </div>
-      {sources.length > 0 && (
-        <div className="flex flex-wrap gap-1 mt-2">
-          {sources.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => setSelectedId(s.id)}
-              className="text-[10px] px-2 py-0.5 transition-colors duration-150"
-              style={{
-                color: selectedId === s.id ? '#FFFFFF' : '#666666',
-              }}
-            >
-              {s.name}
-            </button>
-          ))}
-        </div>
-      )}
+      <div className="flex flex-col gap-2">
+        {WEBCAMS.map((cam) => (
+          <a
+            key={cam.url}
+            href={cam.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between py-1 transition-colors"
+            style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = '#FFFFFF';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = '#999999';
+            }}
+          >
+            <span className="text-[13px]" style={{ color: '#CCCCCC' }}>
+              {cam.label}
+            </span>
+            <span className="text-[10px]" style={{ color: '#666666' }}>
+              {cam.source} →
+            </span>
+          </a>
+        ))}
+      </div>
+      <div className="text-[10px] mt-3" style={{ color: '#444444' }}>
+        Flux publics · OSINT
+      </div>
     </div>
   );
 }
