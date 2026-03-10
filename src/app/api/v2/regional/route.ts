@@ -94,6 +94,22 @@ interface RegionalEvent {
   sources: string[];
 }
 
+function normalizeReliefwebUrl(urlAlias: unknown): string | null {
+  if (typeof urlAlias !== 'string' || urlAlias.trim() === '') return null;
+  const value = urlAlias.trim();
+  if (/^https?:\/\//i.test(value)) return value;
+  return `https://reliefweb.int${value.startsWith('/') ? value : `/${value}`}`;
+}
+
+function isCountryRelevant(country: typeof COUNTRIES[number], title: string, url: string | null): boolean {
+  const hay = `${title} ${url ?? ''}`.toLowerCase();
+  const countryName = country.name.toLowerCase();
+  const countryQuery = country.query.toLowerCase().replace(/\s+or\s+/g, ' ');
+  if (hay.includes(countryName)) return true;
+  if (countryQuery.split(' ').some((token) => token.length > 3 && hay.includes(token))) return true;
+  return country.dbKeywords.some((k) => hay.includes(k.toLowerCase()));
+}
+
 function inferCategory(title: string): 'armed_conflict' | 'political_tension' | 'diplomacy' | 'humanitarian' {
   const t = title.toLowerCase();
   if (/(strike|missile|rocket|drone|airstrike|clash|killed|bomb|attack|troops)/.test(t)) {
@@ -160,7 +176,7 @@ async function fetchReliefWebForCountry(countryName: string): Promise<Array<{ ti
     const json = (await res.json()) as { data?: Array<any> };
     return (json.data ?? []).map((item) => ({
       title: item?.fields?.title ?? '',
-      url: item?.fields?.url_alias ? `https://reliefweb.int${item.fields.url_alias}` : null,
+      url: normalizeReliefwebUrl(item?.fields?.url_alias),
       date: item?.fields?.date?.created ?? null,
       source: Array.isArray(item?.fields?.source) ? item.fields.source.map((s: any) => s.name).join(', ') : null,
     }));
@@ -241,6 +257,7 @@ function fuseRegionalEvents(country: typeof COUNTRIES[number], inputs: {
   }
 
   for (const r of inputs.reliefweb) {
+    if (!isCountryRelevant(country, r.title, r.url)) continue;
     const key = normalizeTitleKey(r.title);
     const existing = map.get(key);
     if (existing) {
@@ -268,6 +285,7 @@ function fuseRegionalEvents(country: typeof COUNTRIES[number], inputs: {
   }
 
   for (const d of inputs.db) {
+    if (!isCountryRelevant(country, d.title, null)) continue;
     const key = normalizeTitleKey(d.title);
     const existing = map.get(key);
     if (existing) {
@@ -309,7 +327,7 @@ function fuseRegionalEvents(country: typeof COUNTRIES[number], inputs: {
 export async function GET() {
   try {
     const data = await cachedFetch(
-      'lm:regional:v2-fusion',
+      'lm:regional:v3-quality',
       async () => {
         const results = await Promise.allSettled(
           COUNTRIES.map(async (country) => {

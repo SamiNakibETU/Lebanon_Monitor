@@ -16,6 +16,13 @@ interface ConvergenceZone {
   brief?: string;
 }
 
+function sanitizeBrief(text: string): string {
+  return text
+    .replace(/[*_`#>-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 async function buildZoneBrief(zone: ConvergenceZone): Promise<string | null> {
   if (!getSanitizedGroqKey()) return null;
   const prompt = [
@@ -32,15 +39,16 @@ async function buildZoneBrief(zone: ConvergenceZone): Promise<string | null> {
     'Format: 2 phrases courtes, françaises, sans disclaimer.',
   ].join('\n');
 
-  return callGroq({
+  const out = await callGroq({
     messages: [
       { role: 'system', content: 'You write concise convergence risk briefs for analysts.' },
       { role: 'user', content: prompt },
     ],
-    temperature: 0.2,
-    max_tokens: 180,
+    temperature: 0,
+    max_tokens: 120,
     timeoutMs: 10_000,
   });
+  return out ? sanitizeBrief(out) : null;
 }
 
 export async function GET(request: Request) {
