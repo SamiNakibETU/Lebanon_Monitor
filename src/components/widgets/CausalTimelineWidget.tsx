@@ -24,6 +24,7 @@ export function CausalTimelineWidget() {
       ...p,
       dominant: p.ombre > p.lumiere ? 'ombre' : p.lumiere > p.ombre ? 'lumiere' : 'mixed',
     }));
+  const maxCount = Math.max(1, ...top.map((p) => p.count));
 
   return (
     <div className="flex flex-col p-4" style={{ background: '#0A0A0A' }}>
@@ -39,20 +40,28 @@ export function CausalTimelineWidget() {
           {top.map((p) => (
             <div
               key={p.hour}
-              className="flex items-center justify-between py-2"
+              className="py-2"
               style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
             >
-              <div className="text-[12px]" style={{ color: '#FFFFFF' }}>
-                {p.hour}h
+              <div className="flex items-center justify-between">
+                <div className="text-[12px]" style={{ color: '#FFFFFF' }}>
+                  {p.hour}h
+                </div>
+                <div className="text-[11px]" style={{ color: '#888888' }}>
+                  {p.count} événements
+                </div>
               </div>
-              <div className="text-[11px]" style={{ color: '#888888' }}>
-                {p.count} événements · {p.ombre} ombre / {p.lumiere} lumière
+              <div className="mt-2 h-2 w-full" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                <div
+                  className="h-full"
+                  style={{
+                    width: `${Math.max(2, (p.count / maxCount) * 100)}%`,
+                    background: p.dominant === 'ombre' ? '#C62828' : p.dominant === 'lumiere' ? '#2E7D32' : '#888888',
+                  }}
+                />
               </div>
-              <div
-                className="text-[10px] uppercase"
-                style={{ color: p.dominant === 'ombre' ? '#C62828' : p.dominant === 'lumiere' ? '#2E7D32' : '#888888' }}
-              >
-                {p.dominant}
+              <div className="text-[11px] mt-1" style={{ color: '#888888' }}>
+                {p.ombre} ombre / {p.lumiere} lumière
               </div>
             </div>
           ))}

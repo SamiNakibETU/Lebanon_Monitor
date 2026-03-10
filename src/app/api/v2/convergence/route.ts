@@ -19,14 +19,17 @@ interface ConvergenceZone {
 async function buildZoneBrief(zone: ConvergenceZone): Promise<string | null> {
   if (!getSanitizedGroqKey()) return null;
   const prompt = [
-    'Tu es analyste OSINT.',
-    "Explique en 2 phrases max pourquoi cette convergence de signaux est importante et quel risque immédiat surveiller.",
+    'Tu es analyste OSINT senior.',
+    "Rédige un brief opérationnel en 2 phrases maximum, strictement factuel.",
+    "Interdiction d'utiliser des formules vagues: 'pourrait', 'risque de', 'importance de'.",
+    "Si le contexte montre une guerre active, dis explicitement 'contexte de guerre active'.",
+    'Tu dois citer les éléments concrets: volume, sources, catégories dominantes.',
     `Zone: ${zone.zone}`,
     `Score: ${zone.score}/100`,
     `Events: ${zone.eventCount}`,
     `Sources distinctes: ${zone.sourceCount}`,
     `Categories dominantes: ${zone.topCategories.map((c) => `${c.category} (${c.count})`).join(', ') || 'n/a'}`,
-    'Réponse en français, factuelle, sans disclaimer.',
+    'Format: 2 phrases courtes, françaises, sans disclaimer.',
   ].join('\n');
 
   return callGroq({

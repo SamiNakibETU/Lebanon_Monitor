@@ -75,6 +75,24 @@ export async function getTranslationsForEvents(
 }
 
 /**
+ * Get translated title+summary for multiple events in one language.
+ */
+export async function getTranslationPayloadsForEvents(
+  client: PoolClient,
+  eventIds: string[],
+  lang: Lang
+): Promise<Map<string, { title: string | null; summary: string | null }>> {
+  if (eventIds.length === 0) return new Map();
+  const { rows } = await client.query<{ event_id: string; title: string | null; summary: string | null }>(
+    `SELECT event_id, title, summary
+     FROM event_translation
+     WHERE event_id = ANY($1) AND language = $2`,
+    [eventIds, lang]
+  );
+  return new Map(rows.map((r) => [r.event_id, { title: r.title, summary: r.summary }]));
+}
+
+/**
  * Get translation for event+language, or null.
  */
 export async function getEventTranslation(

@@ -26,7 +26,15 @@ export interface PipelineResult {
   sourcesRun: string[];
 }
 
-export async function runPipeline(): Promise<PipelineResult> {
+export interface PipelineOptions {
+  skipLlmClassification?: boolean;
+  maxLlmItems?: number;
+  maxTranslations?: number;
+  skipCluster?: boolean;
+  runIndicators?: boolean;
+}
+
+export async function runPipeline(options: PipelineOptions = {}): Promise<PipelineResult> {
   const start = Date.now();
   const startedAt = new Date();
   let eventsCreated = 0;
@@ -52,10 +60,16 @@ export async function runPipeline(): Promise<PipelineResult> {
       .map((item, i) => ({ ...item, index: i }))
       .filter(({ event }) => needsLlmClassification(event.title));
 
+    const maxLlmItems = Math.max(0, options.maxLlmItems ?? Number(process.env.GROQ_CLASSIFY_MAX_ITEMS ?? 15));
+    const llmCandidates = options.skipLlmClassification ? [] : needsLlm.slice(0, maxLlmItems);
+
     const llmResults =
-      needsLlm.length > 0 && getSanitizedGroqKey()
-        ? await classifyWithGroq(needsLlm)
+      llmCandidates.length > 0 && getSanitizedGroqKey()
+        ? await classifyWithGroq(llmCandidates)
         : new Map<number, never>();
+
+    let translationsTriggered = 0;
+    const maxTranslations = Math.max(0, options.maxTranslations ?? Number(process.env.GROQ_TRANSLATE_MAX_EVENTS_PER_RUN ?? 20));
 
     for (let i = 0; i < toProcess.length; i++) {
       const { sourceItem, event } = toProcess[i]!;
@@ -84,17 +98,24 @@ export async function runPipeline(): Promise<PipelineResult> {
       } else {
         const { eventId, title, summary } = await storeNewEvent(sourceItem, enriched);
         eventsCreated++;
-        translateAndStore(eventId, title, summary).catch((err) =>
-          logger.warn('Translation failed for event', { eventId, err: err instanceof Error ? err.message : String(err) })
-        );
+        if (translationsTriggered < maxTranslations) {
+          translationsTriggered++;
+          translateAndStore(eventId, title, summary).catch((err) =>
+            logger.warn('Translation failed for event', { eventId, err: err instanceof Error ? err.message : String(err) })
+          );
+        }
       }
     }
 
-    await runIndicators(indicators);
+    if (options.runIndicators !== false) {
+      await runIndicators(indicators);
+    }
 
-    await runCluster().catch((err) =>
-      logger.warn('Clustering failed (non-fatal)', { err: err instanceof Error ? err.message : String(err) })
-    );
+    if (!options.skipCluster) {
+      await runCluster().catch((err) =>
+        logger.warn('Clustering failed (non-fatal)', { err: err instanceof Error ? err.message : String(err) })
+      );
+    }
 
     await logPipelineRun({
       status: 'success',

@@ -5,7 +5,7 @@
 import { NextResponse } from 'next/server';
 import { withClient, isDbConfigured } from '@/db/client';
 import { listEvents } from '@/db/repositories/event-repository';
-import { getTranslationsForEvents } from '@/db/repositories/event-translation-repository';
+import { getTranslationPayloadsForEvents } from '@/db/repositories/event-translation-repository';
 import { getObservationCountByEventIds } from '@/db/repositories/event-observation-repository';
 import { getSourceTier } from '@/config/source-tiers';
 import { isProbablyGarbled, normalizeText } from '@/lib/text-normalize';
@@ -81,13 +81,15 @@ export async function GET(request: Request) {
         limit,
         offset,
       });
-      const trans = await getTranslationsForEvents(client, out.events.map((e) => e.id), lang);
+      const trans = await getTranslationPayloadsForEvents(client, out.events.map((e) => e.id), lang);
       const counts = await getObservationCountByEventIds(client, out.events.map((e) => e.id));
       return { ...out, translations: trans, observationCounts: counts };
     });
 
     const data = events.map((e) => {
-      const translatedTitle = normalizeText(translations.get(e.id) ?? e.canonical_title);
+      const translated = translations.get(e.id);
+      const translatedTitle = normalizeText(translated?.title ?? e.canonical_title);
+      const translatedSummary = normalizeText(translated?.summary ?? e.canonical_summary ?? '') || null;
       const meta = (e.metadata ?? {}) as Record<string, unknown>;
       const source = (meta.source as string | null) ?? null;
       const evidence =
@@ -97,7 +99,7 @@ export async function GET(request: Request) {
       return {
         id: e.id,
         title: translatedTitle,
-        summary: normalizeText(e.canonical_summary ?? '') || null,
+        summary: translatedSummary,
         classification: e.polarity_ui,
         confidence: e.confidence_score,
         category: e.event_type,

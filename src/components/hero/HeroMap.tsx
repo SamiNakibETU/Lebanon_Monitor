@@ -145,8 +145,8 @@ export function HeroMap({ minimized }: HeroMapProps) {
   const mapRef = useRef<maplibregl.Map | null>(null);
   const [styleLoaded, setStyleLoaded] = useState(false);
   const [layers, setLayers] = useState<Record<LayerId, boolean>>({
-    events: true,
-    flights: false,
+    events: false,
+    flights: true,
     fires: false,
     infra: true,
     unifil: false,

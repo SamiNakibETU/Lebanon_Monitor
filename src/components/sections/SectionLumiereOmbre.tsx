@@ -31,7 +31,7 @@ export function SectionLumiereOmbre({ lang = 'fr' }: SectionLumiereOmbreProps) {
           className="my-6"
           style={{ borderBottom: '1px solid #E0DCD7' }}
         />
-        <EventTrendChart variant="light" />
+        <EventTrendChart variant="light" focus="lumiere" />
         <div className="my-6" style={{ borderBottom: '1px solid #E0DCD7' }} />
         <CondensedFeed variant="lumiere" lang={lang} />
       </div>
@@ -52,7 +52,7 @@ export function SectionLumiereOmbre({ lang = 'fr' }: SectionLumiereOmbreProps) {
           className="my-6"
           style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
         />
-        <EventTrendChart variant="dark" />
+        <EventTrendChart variant="dark" focus="ombre" />
         <div className="my-6" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }} />
         <CondensedFeed variant="ombre" lang={lang} />
       </div>
