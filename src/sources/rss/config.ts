@@ -21,7 +21,11 @@ export const RSS_FEEDS = [
   { url: 'https://www.almanar.com.lb/rss', name: 'Al Manar' },
   // ── Région / arabe ──
   { url: 'https://www.aljazeera.com/xml/rss/all.xml', name: 'Al Jazeera EN' },
+  { url: 'https://www.aljazeera.net/aljazeerarss/ar-home.xml', name: 'Al Jazeera AR' },
   { url: 'https://english.alarabiya.net/feed', name: 'Al Arabiya' },
+  { url: 'https://www.arabnews.com/rss.xml', name: 'Arab News' },
+  { url: 'https://apnews.com/hub/middle-east/rss', name: 'AP Middle East' },
+  { url: 'https://www.dw.com/en/middle-east/s-7978/rss', name: 'DW Middle East' },
   // ── International MENA ──
   { url: 'https://www.middleeasteye.net/rss', name: 'Middle East Eye' },
   { url: 'https://english.aawsat.com/feed', name: 'Asharq Al-Awsat' },
@@ -30,6 +34,8 @@ export const RSS_FEEDS = [
   { url: 'https://www.france24.com/fr/rss', name: 'France 24 FR' },
   { url: 'https://www.france24.com/fr/moyen-orient/rss', name: 'France24 Moyen-Orient' },
   { url: 'https://feeds.bbci.co.uk/news/world/middle_east/rss.xml', name: 'BBC Middle East' },
+  { url: 'https://www.thenationalnews.com/mena/rss', name: 'The National MENA' },
+  { url: 'https://www.albawaba.com/rss', name: 'Al Bawaba' },
   { url: 'https://www.reuters.com/rssfeed/worldNews', name: 'Reuters World' },
   { url: 'https://www.lemonde.fr/international/rss_full.xml', name: 'Le Monde International' },
   { url: 'https://ici.radio-canada.ca/rss/4175', name: 'Radio-Canada Moyen-Orient' },
