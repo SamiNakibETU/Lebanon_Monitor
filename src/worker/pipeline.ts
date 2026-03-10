@@ -17,6 +17,7 @@ import { logger } from '@/lib/logger';
 import { EVENT_SOURCE_NAMES } from '@/sources/connector-registry';
 import { enrichEvent } from '@/core/enrichment';
 import type { LebanonEvent } from '@/types/events';
+import { extractBestLocality } from '@/lib/geo/locality-extractor';
 
 export interface PipelineResult {
   eventsCreated: number;
@@ -30,6 +31,7 @@ export interface PipelineOptions {
   skipLlmClassification?: boolean;
   maxLlmItems?: number;
   maxTranslations?: number;
+  maxGeoLlmItems?: number;
   skipCluster?: boolean;
   runIndicators?: boolean;
 }
@@ -70,6 +72,8 @@ export async function runPipeline(options: PipelineOptions = {}): Promise<Pipeli
 
     let translationsTriggered = 0;
     const maxTranslations = Math.max(0, options.maxTranslations ?? Number(process.env.GROQ_TRANSLATE_MAX_EVENTS_PER_RUN ?? 20));
+    const maxGeoLlmItems = Math.max(0, options.maxGeoLlmItems ?? Number(process.env.GROQ_GEO_MAX_ITEMS ?? 10));
+    let geoLlmUsed = 0;
 
     for (let i = 0; i < toProcess.length; i++) {
       const { sourceItem, event } = toProcess[i]!;
@@ -88,7 +92,35 @@ export async function runPipeline(options: PipelineOptions = {}): Promise<Pipeli
       } else {
         classified = classifyEvent(event);
       }
-      const enriched = enrichEvent(classified);
+      let enriched = enrichEvent(classified);
+      const geoPrecision = enriched.metadata?.geoPrecision;
+      const shouldGeocode =
+        geoPrecision === 'country' || geoPrecision === 'inferred' || geoPrecision === 'unknown' || !geoPrecision;
+      if (shouldGeocode) {
+        const locality = await extractBestLocality({
+          title: enriched.title,
+          description: enriched.description,
+          allowLlm: geoLlmUsed < maxGeoLlmItems,
+        });
+        if (locality) {
+          if (locality.method === 'llm') geoLlmUsed++;
+          enriched = {
+            ...enriched,
+            latitude: locality.lat,
+            longitude: locality.lng,
+            metadata: {
+              ...enriched.metadata,
+              geoPrecision: 'city',
+              resolvedPlaceName: locality.name,
+              evidence: {
+                ...(enriched.metadata.evidence ?? {}),
+                geocodeMethod: locality.method === 'llm' ? 'admin_fallback' : 'gazetteer_match',
+                geocodeConfidence: locality.method === 'exact' ? 0.9 : locality.method === 'fuzzy' ? 0.82 : 0.7,
+              },
+            },
+          };
+        }
+      }
 
       const duplicate = await findDuplicate(enriched);
 

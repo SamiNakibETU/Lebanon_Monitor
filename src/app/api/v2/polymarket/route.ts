@@ -33,6 +33,9 @@ export interface PolymarketItem {
   noProb: number;
   eventSlug: string;
   volume?: number;
+  delta24h?: number | null;
+  history7d?: number[];
+  signal?: 'escalation' | 'deescalation' | 'stable';
 }
 
 const LEBANON_KEYWORDS = ['lebanon', 'lebanese', 'beirut', 'hezbollah', 'litani'];
@@ -75,6 +78,50 @@ function parseOutcomePrices(outcomePrices?: string): { yes: number; no: number }
   }
 }
 
+async function fetchPriceHistory(marketId: string): Promise<number[]> {
+  const urls = [
+    `https://clob.polymarket.com/prices-history?market=${encodeURIComponent(marketId)}&interval=1d`,
+    `https://clob.polymarket.com/prices-history?token_id=${encodeURIComponent(marketId)}&interval=1d`,
+  ];
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(5000) });
+      if (!res.ok) continue;
+      const json = await res.json() as Record<string, unknown>;
+      const rows =
+        (Array.isArray(json.history) ? json.history : null) ??
+        (Array.isArray(json.data) ? json.data : null) ??
+        (Array.isArray(json.prices) ? json.prices : null);
+      if (!rows) continue;
+      const parsed = rows
+        .map((r) => {
+          if (typeof r === 'number') return r;
+          if (r && typeof r === 'object') {
+            const obj = r as Record<string, unknown>;
+            const v = obj.p ?? obj.price ?? obj.value ?? obj.midpoint;
+            const n = typeof v === 'string' ? Number(v) : typeof v === 'number' ? v : NaN;
+            return Number.isFinite(n) ? n : null;
+          }
+          return null;
+        })
+        .filter((n): n is number => typeof n === 'number' && Number.isFinite(n))
+        .slice(-7);
+      if (parsed.length > 0) return parsed;
+    } catch {
+      // best-effort only
+    }
+  }
+  return [];
+}
+
+function computeDelta24h(history: number[], currentYes: number): number | null {
+  if (history.length >= 2) {
+    const prev = history[history.length - 2]!;
+    return Number((currentYes - prev).toFixed(4));
+  }
+  return null;
+}
+
 export async function GET() {
   try {
     const data = await cachedFetch(
@@ -94,6 +141,8 @@ export async function GET() {
           if (!openMarket) continue;
           if (!matchesLebanon(ev) && !matchesGeopolitics(ev)) continue;
           const { yes } = parseOutcomePrices(openMarket.outcomePrices);
+          const history = await fetchPriceHistory(openMarket.id);
+          const delta24h = computeDelta24h(history, yes);
           items.push({
             id: openMarket.id,
             question: openMarket.question,
@@ -102,6 +151,9 @@ export async function GET() {
             noProb: 1 - yes,
             eventSlug: ev.slug,
             volume: typeof openMarket.volume === 'string' ? parseFloat(openMarket.volume) : openMarket.volume,
+            delta24h,
+            history7d: history,
+            signal: delta24h == null ? 'stable' : delta24h >= 0.05 ? 'escalation' : delta24h <= -0.05 ? 'deescalation' : 'stable',
           });
         }
 
@@ -115,6 +167,8 @@ export async function GET() {
           if (!openMarket) continue;
           const { yes } = parseOutcomePrices(openMarket.outcomePrices);
           const vol = typeof openMarket.volume === 'string' ? parseFloat(openMarket.volume) : openMarket.volume;
+          const history = await fetchPriceHistory(openMarket.id);
+          const delta24h = computeDelta24h(history, yes);
           fallbackItems.push({
             id: openMarket.id,
             question: openMarket.question,
@@ -123,6 +177,9 @@ export async function GET() {
             noProb: 1 - yes,
             eventSlug: ev.slug,
             volume: vol,
+            delta24h,
+            history7d: history,
+            signal: delta24h == null ? 'stable' : delta24h >= 0.05 ? 'escalation' : delta24h <= -0.05 ? 'deescalation' : 'stable',
           });
         }
         fallbackItems.sort((a, b) => (b.volume ?? 0) - (a.volume ?? 0));

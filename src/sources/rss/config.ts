@@ -71,6 +71,10 @@ export const RSS_FEEDS = [
   { url: 'https://www.jpost.com/rss/rssfeedsfrontpage.aspx', name: 'Jerusalem Post' },
   { url: 'https://www.haaretz.com/cmlink/1.628752', name: 'Haaretz' },
   { url: 'https://www.i24news.tv/fr/rss', name: 'i24NEWS FR' },
+  // ── Positive signal trackers (Google News RSS queries) ──
+  { url: 'https://news.google.com/rss/search?q=Lebanon+solidarity&hl=en-US&gl=US&ceid=US:en', name: 'GN Lebanon Solidarity' },
+  { url: 'https://news.google.com/rss/search?q=Lebanon+reconstruction&hl=en-US&gl=US&ceid=US:en', name: 'GN Lebanon Reconstruction' },
+  { url: 'https://news.google.com/rss/search?q=Lebanon+ceasefire&hl=en-US&gl=US&ceid=US:en', name: 'GN Lebanon Ceasefire' },
 ] as const;
 
 export const RSS_USER_AGENT =

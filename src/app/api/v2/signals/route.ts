@@ -156,12 +156,77 @@ export async function GET() {
                 timestamp: now.toISOString(),
               });
             }
+
+            // 5. Market stress signal from LBP + Polymarket delta
+            const marketSignal = await withClient(async (client) => {
+              const lbp = await client.query<{ latest: string | null; prev: string | null }>(
+                `WITH x AS (
+                   SELECT (payload->>'value')::float8 AS value, period_end
+                   FROM indicator_snapshot
+                   WHERE indicator_key = 'lbp'
+                     AND period_end >= NOW() - INTERVAL '48 hours'
+                   ORDER BY period_end DESC
+                   LIMIT 2
+                 )
+                 SELECT
+                   (SELECT value::text FROM x OFFSET 0 LIMIT 1) AS latest,
+                   (SELECT value::text FROM x OFFSET 1 LIMIT 1) AS prev`
+              );
+              const ratio = await client.query<{ today_lumiere: string; yesterday_lumiere: string; today_total: string; yesterday_total: string }>(
+                `SELECT
+                   COUNT(*) FILTER (WHERE occurred_at >= CURRENT_DATE AND polarity_ui = 'lumiere')::int AS today_lumiere,
+                   COUNT(*) FILTER (WHERE occurred_at >= CURRENT_DATE - INTERVAL '1 day' AND occurred_at < CURRENT_DATE AND polarity_ui = 'lumiere')::int AS yesterday_lumiere,
+                   COUNT(*) FILTER (WHERE occurred_at >= CURRENT_DATE)::int AS today_total,
+                   COUNT(*) FILTER (WHERE occurred_at >= CURRENT_DATE - INTERVAL '1 day' AND occurred_at < CURRENT_DATE)::int AS yesterday_total
+                 FROM event
+                 WHERE is_active = true`
+              );
+              return {
+                latest: lbp.rows[0]?.latest ? Number(lbp.rows[0].latest) : null,
+                prev: lbp.rows[0]?.prev ? Number(lbp.rows[0].prev) : null,
+                todayLumiere: Number(ratio.rows[0]?.today_lumiere ?? 0),
+                yesterdayLumiere: Number(ratio.rows[0]?.yesterday_lumiere ?? 0),
+                todayTotal: Number(ratio.rows[0]?.today_total ?? 0),
+                yesterdayTotal: Number(ratio.rows[0]?.yesterday_total ?? 0),
+              };
+            });
+
+            const lbpDeltaPct =
+              marketSignal.latest && marketSignal.prev && marketSignal.prev > 0
+                ? ((marketSignal.latest - marketSignal.prev) / marketSignal.prev) * 100
+                : null;
+
+            if (lbpDeltaPct != null && Math.abs(lbpDeltaPct) > 2) {
+              alerts.push({
+                id: `market-lbp-${now.toISOString().slice(0, 10)}`,
+                type: 'anomaly',
+                severity: Math.abs(lbpDeltaPct) > 4 ? 'high' : 'medium',
+                title: `Signal marché: LBP ${lbpDeltaPct >= 0 ? '+' : ''}${lbpDeltaPct.toFixed(1)}%`,
+                description: `Mouvement anormal du taux parallèle LBP sur 24h. Corréler avec signaux de conflit.`,
+                indicators: ['lbp_delta_24h', 'market_stress'],
+                timestamp: now.toISOString(),
+              });
+            }
+
+            const todayRatio = marketSignal.todayTotal > 0 ? marketSignal.todayLumiere / marketSignal.todayTotal : 0;
+            const yesterdayRatio = marketSignal.yesterdayTotal > 0 ? marketSignal.yesterdayLumiere / marketSignal.yesterdayTotal : 0;
+            if (yesterdayRatio > 0 && todayRatio > yesterdayRatio * 1.2) {
+              alerts.push({
+                id: `lumiere-ratio-${now.toISOString().slice(0, 10)}`,
+                type: 'anomaly',
+                severity: 'low',
+                title: `Signal Lumière en hausse`,
+                description: `Le ratio Lumière augmente de ${Math.round(((todayRatio / yesterdayRatio) - 1) * 100)}% vs veille.`,
+                indicators: ['lumiere_ratio_shift', 'de_escalation_proxy'],
+                timestamp: now.toISOString(),
+              });
+            }
           } catch {
             // DB queries failed, skip DB-based signals
           }
         }
 
-        // 5. If no alerts found, provide a baseline status
+        // 6. If no alerts found, provide a baseline status
         if (alerts.length === 0) {
           alerts.push({
             id: `baseline-${now.toISOString().slice(0, 10)}`,

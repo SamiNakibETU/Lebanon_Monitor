@@ -8,6 +8,7 @@ import { SignalsWidget } from '@/components/widgets/SignalsWidget';
 import { ConflictGauge } from '@/components/charts/ConflictGauge';
 import { ReliefWebWidget } from '@/components/widgets/ReliefWebWidget';
 import { CausalTimelineWidget } from '@/components/widgets/CausalTimelineWidget';
+import { MarketIntelWidget } from '@/components/widgets/MarketIntelWidget';
 
 export function SectionGeopolitique() {
   return (
@@ -20,6 +21,9 @@ export function SectionGeopolitique() {
       </div>
       <div style={{ background: '#0A0A0A' }}>
         <ACLEDMiniMap />
+      </div>
+      <div style={{ background: '#0A0A0A' }}>
+        <MarketIntelWidget />
       </div>
       <div style={{ background: '#0A0A0A' }}>
         <div className="p-4">

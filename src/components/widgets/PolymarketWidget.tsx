@@ -12,6 +12,9 @@ interface PolymarketItem {
   noProb: number;
   eventSlug: string;
   volume?: number;
+  delta24h?: number | null;
+  history7d?: number[];
+  signal?: 'escalation' | 'deescalation' | 'stable';
 }
 
 function formatVolume(v?: number): string {
@@ -26,6 +29,19 @@ function probColor(prob: number): string {
   if (prob >= 0.4) return '#E65100';
   if (prob >= 0.2) return '#F9A825';
   return '#2E7D32';
+}
+
+function deltaColor(delta?: number | null): string {
+  if (delta == null) return '#666666';
+  if (delta >= 0.05) return '#C62828';
+  if (delta <= -0.05) return '#2E7D32';
+  return '#888888';
+}
+
+function formatDelta(delta?: number | null): string {
+  if (delta == null) return 'n/a';
+  const pct = (delta * 100).toFixed(1);
+  return `${delta >= 0 ? '+' : ''}${pct}%`;
 }
 
 export function PolymarketWidget() {
@@ -83,12 +99,17 @@ export function PolymarketWidget() {
                   <span className="text-[12px] leading-snug flex-1" style={{ color: '#E0E0E0' }}>
                     {m.question}
                   </span>
-                  <span
-                    className="text-[16px] font-light tabular-nums shrink-0"
-                    style={{ color }}
-                  >
-                    {pct}%
-                  </span>
+                  <div className="flex flex-col items-end shrink-0">
+                    <span
+                      className="text-[16px] font-light tabular-nums"
+                      style={{ color }}
+                    >
+                      {pct}%
+                    </span>
+                    <span className="text-[10px] tabular-nums" style={{ color: deltaColor(m.delta24h) }}>
+                      {formatDelta(m.delta24h)}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="flex-1 h-1" style={{ background: 'rgba(255,255,255,0.06)' }}>
@@ -103,6 +124,20 @@ export function PolymarketWidget() {
                     </span>
                   )}
                 </div>
+                {Array.isArray(m.history7d) && m.history7d.length > 1 && (
+                  <div className="mt-1 flex items-end gap-[2px] h-5">
+                    {m.history7d.map((v, i) => (
+                      <div
+                        key={`${m.id}-${i}`}
+                        style={{
+                          width: 4,
+                          height: `${Math.max(2, Math.round(v * 20))}px`,
+                          background: i === m.history7d!.length - 1 ? color : 'rgba(255,255,255,0.18)',
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
               </a>
             );
           })}

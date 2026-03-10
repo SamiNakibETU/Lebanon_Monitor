@@ -24,6 +24,10 @@ interface AqiData {
   pm25: number | null;
 }
 
+interface ReliefwebLumiereData {
+  count: number;
+}
+
 interface IndicatorStripProps {
   variant: 'lumiere' | 'ombre';
 }
@@ -41,6 +45,9 @@ export function IndicatorStrip({ variant }: IndicatorStripProps) {
   const { data: aqiData } = useSWR<AqiData>('/api/v2/aqi', fetcher, {
     refreshInterval: 300_000,
   });
+  const { data: rwLumiere } = useSWR<ReliefwebLumiereData>('/api/v2/reliefweb-lumiere?limit=20', fetcher, {
+    refreshInterval: 300_000,
+  });
 
   const isLumiere = variant === 'lumiere';
   const textColor = isLumiere ? '#1A1A1A' : '#FFFFFF';
@@ -49,17 +56,22 @@ export function IndicatorStrip({ variant }: IndicatorStripProps) {
   if (variant === 'lumiere') {
     const lumiereCount = stats?.byClassification?.lumiere ?? null;
     const cultureCount = stats?.cultureEventsToday ?? null;
+    const humanitarianReports = rwLumiere?.count ?? null;
     const hectares = reforest?.hectares ?? null;
     const projectCount = reforest?.projectCount ?? 0;
     return (
       <div className="flex flex-wrap gap-6 text-[13px]">
         <div>
-          <span style={{ color: mutedColor }}>Projets reconstruction </span>
+          <span style={{ color: mutedColor }}>Signaux positifs 24h </span>
           <span style={{ color: textColor }}>{lumiereCount != null ? lumiereCount : '—'}</span>
         </div>
         <div>
           <span style={{ color: mutedColor }}>Events culturels </span>
           <span style={{ color: textColor }}>{cultureCount != null ? cultureCount : '—'}</span>
+        </div>
+        <div>
+          <span style={{ color: mutedColor }}>Rapports humanitaires </span>
+          <span style={{ color: textColor }}>{humanitarianReports != null ? humanitarianReports : '—'}</span>
         </div>
         <div>
           <span style={{ color: mutedColor }}>Hectares replantés </span>

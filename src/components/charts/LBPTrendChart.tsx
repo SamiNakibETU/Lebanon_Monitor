@@ -10,6 +10,8 @@ interface RateSnapshot {
   rate: number;
   source: string;
   updated: string;
+  volatility24h?: number | null;
+  trend30d?: number[];
 }
 
 export function LBPTrendChart() {
@@ -38,8 +40,8 @@ export function LBPTrendChart() {
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
 
-    const height = 48;
-    const margin = { top: 4, right: 4, bottom: 4, left: 4 };
+    const height = 56;
+    const margin = { top: 6, right: 6, bottom: 8, left: 6 };
     const w = width - margin.left - margin.right;
     const h = height - margin.top - margin.bottom;
 
@@ -51,28 +53,45 @@ export function LBPTrendChart() {
       .append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`);
 
-    const rate = data.rate;
-    const baseline = rate * 0.98;
-    const ceiling = rate * 1.02;
+    const trend = (data.trend30d ?? []).filter((n) => Number.isFinite(n));
+    const series = trend.length > 1 ? trend : [data.rate * 0.995, data.rate, data.rate * 1.005];
+    const min = d3.min(series) ?? data.rate;
+    const max = d3.max(series) ?? data.rate;
 
-    const y = d3.scaleLinear().domain([baseline, ceiling]).range([h, 0]);
+    const x = d3.scaleLinear().domain([0, series.length - 1]).range([0, w]);
+    const y = d3.scaleLinear().domain([min * 0.995, max * 1.005]).range([h, 0]);
 
-    g.append('line')
-      .attr('x1', 0)
-      .attr('x2', w)
-      .attr('y1', y(rate))
-      .attr('y2', y(rate))
-      .attr('stroke', '#C62828')
-      .attr('stroke-width', 1.5)
-      .attr('stroke-dasharray', '4,3');
+    const area = d3
+      .area<number>()
+      .x((_, i) => x(i))
+      .y0(h)
+      .y1((d) => y(d))
+      .curve(d3.curveMonotoneX);
 
-    g.append('rect')
-      .attr('x', 0)
-      .attr('y', y(rate))
-      .attr('width', w)
-      .attr('height', h - y(rate))
+    const line = d3
+      .line<number>()
+      .x((_, i) => x(i))
+      .y((d) => y(d))
+      .curve(d3.curveMonotoneX);
+
+    g.append('path')
+      .datum(series)
+      .attr('d', area)
       .attr('fill', '#C62828')
-      .attr('fill-opacity', 0.06);
+      .attr('opacity', 0.08);
+
+    g.append('path')
+      .datum(series)
+      .attr('d', line)
+      .attr('fill', 'none')
+      .attr('stroke', '#C62828')
+      .attr('stroke-width', 1.5);
+
+    g.append('circle')
+      .attr('cx', x(series.length - 1))
+      .attr('cy', y(series[series.length - 1]!))
+      .attr('r', 2)
+      .attr('fill', '#C62828');
   }, [data, width]);
 
   return (
@@ -81,14 +100,19 @@ export function LBPTrendChart() {
         className="text-[11px] uppercase tracking-[0.08em] mb-1"
         style={{ color: '#666666' }}
       >
-        Tendance LBP
+        Tendance LBP · 30j
       </div>
+      {data?.volatility24h != null && (
+        <div className="text-[10px] mb-1" style={{ color: '#666666' }}>
+          Volatilité 24h: {data.volatility24h.toFixed(2)}%
+        </div>
+      )}
       {data?.rate ? (
-        <svg ref={svgRef} className="w-full" style={{ height: 48 }} />
+        <svg ref={svgRef} className="w-full" style={{ height: 56 }} />
       ) : (
         <div
           className="text-[11px]"
-          style={{ color: '#666666', height: 48, display: 'flex', alignItems: 'center' }}
+          style={{ color: '#666666', height: 56, display: 'flex', alignItems: 'center' }}
         >
           Chargement…
         </div>

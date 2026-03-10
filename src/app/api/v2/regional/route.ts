@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cachedFetch } from '@/lib/cache';
 import { withClient, isDbConfigured } from '@/db/client';
+import { normalizeText, isProbablyGarbled } from '@/lib/text-normalize';
 
 const COUNTRIES = [
   {
@@ -219,7 +220,7 @@ async function fetchDbRegionalForCountry(keywords: string[]): Promise<Array<{ ti
 }
 
 function normalizeTitleKey(title: string): string {
-  return title.toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/gi, ' ').trim().slice(0, 120);
+  return normalizeText(title).toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/gi, ' ').trim().slice(0, 120);
 }
 
 function computeConfidence(input: { tone: number | null; sources: string[]; date: string | null }): number {
@@ -238,9 +239,11 @@ function fuseRegionalEvents(country: typeof COUNTRIES[number], inputs: {
   const map = new Map<string, RegionalEvent>();
 
   for (const a of inputs.gdelt) {
-    const key = normalizeTitleKey(a.title);
+    const cleanTitle = normalizeText(a.title);
+    if (!cleanTitle || isProbablyGarbled(cleanTitle)) continue;
+    const key = normalizeTitleKey(cleanTitle);
     map.set(key, {
-      title: a.title,
+      title: cleanTitle,
       url: a.url ?? null,
       date: a.seendate ?? null,
       domain: a.domain ?? null,
@@ -257,8 +260,10 @@ function fuseRegionalEvents(country: typeof COUNTRIES[number], inputs: {
   }
 
   for (const r of inputs.reliefweb) {
-    if (!isCountryRelevant(country, r.title, r.url)) continue;
-    const key = normalizeTitleKey(r.title);
+    const cleanTitle = normalizeText(r.title);
+    if (!cleanTitle || isProbablyGarbled(cleanTitle)) continue;
+    if (!isCountryRelevant(country, cleanTitle, r.url)) continue;
+    const key = normalizeTitleKey(cleanTitle);
     const existing = map.get(key);
     if (existing) {
       existing.sources = Array.from(new Set([...existing.sources, 'reliefweb']));
@@ -268,7 +273,7 @@ function fuseRegionalEvents(country: typeof COUNTRIES[number], inputs: {
       continue;
     }
     map.set(key, {
-      title: r.title,
+      title: cleanTitle,
       url: r.url,
       date: r.date,
       domain: r.source ?? 'reliefweb',
@@ -285,8 +290,10 @@ function fuseRegionalEvents(country: typeof COUNTRIES[number], inputs: {
   }
 
   for (const d of inputs.db) {
-    if (!isCountryRelevant(country, d.title, null)) continue;
-    const key = normalizeTitleKey(d.title);
+    const cleanTitle = normalizeText(d.title);
+    if (!cleanTitle || isProbablyGarbled(cleanTitle)) continue;
+    if (!isCountryRelevant(country, cleanTitle, null)) continue;
+    const key = normalizeTitleKey(cleanTitle);
     const existing = map.get(key);
     if (existing) {
       existing.sources = Array.from(new Set([...existing.sources, 'db']));
@@ -294,7 +301,7 @@ function fuseRegionalEvents(country: typeof COUNTRIES[number], inputs: {
       continue;
     }
     map.set(key, {
-      title: d.title,
+      title: cleanTitle,
       url: null,
       date: d.occurredAt,
       domain: d.source ?? 'db',

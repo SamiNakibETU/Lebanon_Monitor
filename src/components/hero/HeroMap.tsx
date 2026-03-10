@@ -17,7 +17,7 @@ const LEVANT_BOUNDS: [[number, number], [number, number]] = [
   [42.0, 38.0],
 ];
 
-const LAYER_IDS = ['events', 'convergence', 'flights', 'fires', 'infra', 'unifil', 'jamming'] as const;
+const LAYER_IDS = ['events', 'strikes', 'convergence', 'flights', 'fires', 'infra', 'unifil'] as const;
 type LayerId = (typeof LAYER_IDS)[number];
 
 const INFRA_TYPES: Record<string, { color: string; radius: number }> = {
@@ -46,6 +46,8 @@ interface MapEvent {
   title: string;
   source?: string | null;
   occurredAt: string;
+  category?: string | null;
+  severity?: string | null;
   geoPrecision?: string | null;
   verificationStatus?: string | null;
   translationStatus?: string | null;
@@ -122,6 +124,8 @@ function toGeoJSON(events: MapEvent[], classification: 'lumiere' | 'ombre'): Geo
         classification: e.classification,
         source: e.source ?? '',
         occurredAt: e.occurredAt,
+        category: e.category ?? null,
+        severity: e.severity ?? null,
         geoPrecision: e.geoPrecision ?? 'unknown',
         verificationStatus: e.verificationStatus ?? 'unverified',
         translationStatus: e.translationStatus ?? 'unknown',
@@ -146,12 +150,12 @@ export function HeroMap({ minimized }: HeroMapProps) {
   const [styleLoaded, setStyleLoaded] = useState(false);
   const [layers, setLayers] = useState<Record<LayerId, boolean>>({
     events: false,
+    strikes: true,
     convergence: true,
     flights: true,
     fires: false,
     infra: true,
     unifil: false,
-    jamming: false,
   });
   const [analystMode, setAnalystMode] = useState(false);
   const [viewMode, setViewMode] = useState<'lebanon' | 'levant'>('lebanon');
@@ -208,6 +212,18 @@ export function HeroMap({ minimized }: HeroMapProps) {
   const allEventsGeo: GeoJSON.FeatureCollection = {
     type: 'FeatureCollection',
     features: [...lumiereGeo.features, ...ombreGeo.features],
+  };
+  const strikesGeo: GeoJSON.FeatureCollection = {
+    type: 'FeatureCollection',
+    features: ombreGeo.features.filter((f) => {
+      const p = (f.properties ?? {}) as Record<string, unknown>;
+      const category = String(p.category ?? '');
+      const geoPrecision = String(p.geoPrecision ?? '');
+      return (
+        (category === 'armed_conflict' || category === 'violence') &&
+        ['city', 'district', 'neighborhood'].includes(geoPrecision)
+      );
+    }),
   };
 
   const firesGeo: GeoJSON.FeatureCollection = firmsRes?.data ?? {
@@ -443,6 +459,57 @@ export function HeroMap({ minimized }: HeroMapProps) {
       (map.getSource('events-points') as maplibregl.GeoJSONSource).setData(allEventsGeo);
     }
 
+    if (!map.getSource('strikes-points')) {
+      map.addSource('strikes-points', { type: 'geojson', data: strikesGeo });
+      map.addLayer({
+        id: 'strikes-circles',
+        type: 'circle',
+        source: 'strikes-points',
+        paint: {
+          'circle-radius': [
+            'match',
+            ['coalesce', ['get', 'severity'], 'low'],
+            'critical',
+            10,
+            'high',
+            8,
+            'medium',
+            6,
+            4,
+          ],
+          'circle-color': '#C62828',
+          'circle-opacity': 0.75,
+          'circle-stroke-width': 1,
+          'circle-stroke-color': 'rgba(255,255,255,0.4)',
+        },
+        layout: { visibility: 'none' },
+      });
+      map.on('click', 'strikes-circles', (e: maplibregl.MapLayerMouseEvent) => {
+        if (!e.features?.length) return;
+        const f = e.features[0];
+        const props = f.properties || {};
+        const coords = (f.geometry as GeoJSON.Point).coordinates.slice() as [number, number];
+        new maplibregl.Popup({ closeButton: true, maxWidth: '300px' })
+          .setLngLat(coords)
+          .setHTML(
+            `<div style="background:#0D0D0D;color:#fff;padding:12px;font-size:12px;font-family:'DM Sans',sans-serif;border-radius:0">` +
+            `<div style="font-weight:500;margin-bottom:6px;line-height:1.4">${props.title ?? 'Frappe'}</div>` +
+            `<div style="color:#888;font-size:10px">` +
+            `${props.source ?? ''} · ${props.occurredAt ? new Date(props.occurredAt).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' }) : ''}` +
+            `</div>` +
+            `<div style="color:#666;font-size:10px;margin-top:6px">` +
+            `Localité: ${props.geoPrecision ?? 'unknown'} · sévérité: ${props.severity ?? 'low'}` +
+            `</div>` +
+            `</div>`
+          )
+          .addTo(map);
+      });
+      map.on('mouseenter', 'strikes-circles', () => { map.getCanvas().style.cursor = 'pointer'; });
+      map.on('mouseleave', 'strikes-circles', () => { map.getCanvas().style.cursor = ''; });
+    } else {
+      (map.getSource('strikes-points') as maplibregl.GeoJSONSource).setData(strikesGeo);
+    }
+
     fetch('/data/unifil-zone.geojson')
       .then((r) => r.json())
       .then((geojson) => {
@@ -583,20 +650,6 @@ export function HeroMap({ minimized }: HeroMapProps) {
       });
       map.on('mouseenter', 'flights-points', () => { map.getCanvas().style.cursor = 'pointer'; });
       map.on('mouseleave', 'flights-points', () => { map.getCanvas().style.cursor = ''; });
-      map.addLayer({
-        id: 'jamming-points',
-        type: 'circle',
-        source: 'flights',
-        filter: ['<', ['get', 'nic'], 5],
-        paint: {
-          'circle-radius': 6,
-          'circle-color': '#C62828',
-          'circle-opacity': 0.8,
-          'circle-stroke-width': 1,
-          'circle-stroke-color': 'rgba(255,255,255,0.5)',
-        },
-        layout: { visibility: 'none' },
-      });
     } else {
       (map.getSource('flights') as maplibregl.GeoJSONSource).setData(flightsGeoData);
     }
@@ -752,7 +805,7 @@ export function HeroMap({ minimized }: HeroMapProps) {
     } else {
       (map.getSource('regional-events') as maplibregl.GeoJSONSource).setData(regionalGeo);
     }
-  }, [styleLoaded, lumiereGeo, ombreGeo, allEventsGeo, firesGeo, flightsGeoData, staticInfra, convergenceGeo, regionalGeo, unifilRes]);
+  }, [styleLoaded, lumiereGeo, ombreGeo, allEventsGeo, strikesGeo, firesGeo, flightsGeoData, staticInfra, convergenceGeo, regionalGeo, unifilRes]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -760,8 +813,8 @@ export function HeroMap({ minimized }: HeroMapProps) {
     const v = (id: string) => (layers[id as LayerId] ? 'visible' : 'none');
     if (map.getLayer('events-clusters')) map.setLayoutProperty('events-clusters', 'visibility', v('events'));
     if (map.getLayer('events-unclustered')) map.setLayoutProperty('events-unclustered', 'visibility', v('events'));
+    if (map.getLayer('strikes-circles')) map.setLayoutProperty('strikes-circles', 'visibility', v('strikes'));
     if (map.getLayer('flights-points')) map.setLayoutProperty('flights-points', 'visibility', v('flights'));
-    if (map.getLayer('jamming-points')) map.setLayoutProperty('jamming-points', 'visibility', v('jamming'));
     if (map.getLayer('fires-points')) map.setLayoutProperty('fires-points', 'visibility', v('fires'));
     if (map.getLayer('fires-recent')) map.setLayoutProperty('fires-recent', 'visibility', v('fires'));
     if (map.getLayer('heatmap-lumiere-layer')) map.setLayoutProperty('heatmap-lumiere-layer', 'visibility', v('events'));

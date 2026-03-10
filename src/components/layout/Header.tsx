@@ -45,6 +45,41 @@ function SourceHealthDot() {
   );
 }
 
+function FreshnessChip() {
+  const [minutesAgo, setMinutesAgo] = useState<number | null>(null);
+
+  useEffect(() => {
+    const check = () => {
+      fetch('/api/v2/data-freshness')
+        .then((r) => r.json())
+        .then((data) => {
+          const items = Array.isArray(data.items) ? data.items : [];
+          if (items.length === 0) return setMinutesAgo(null);
+          const latestTs = items
+            .map((i: Record<string, unknown>) => {
+              const v = typeof i.checkedAt === 'string' ? new Date(i.checkedAt).getTime() : 0;
+              return Number.isFinite(v) ? v : 0;
+            })
+            .reduce((a: number, b: number) => Math.max(a, b), 0);
+          if (!latestTs) return setMinutesAgo(null);
+          const mins = Math.max(0, Math.round((Date.now() - latestTs) / 60000));
+          setMinutesAgo(mins);
+        })
+        .catch(() => setMinutesAgo(null));
+    };
+
+    check();
+    const interval = setInterval(check, 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <span className="text-[10px]" style={{ color: '#666666' }}>
+      {minutesAgo == null ? 'Ingestion: n/a' : `Ingestion: il y a ${minutesAgo} min`}
+    </span>
+  );
+}
+
 export function Header({
   lang = 'fr',
   onLangChange,
@@ -80,6 +115,7 @@ export function Header({
         >
           LB: LEBANON MONITOR
         </span>
+        <FreshnessChip />
       </div>
       <div className="flex items-center gap-4">
         <div className="flex gap-0">

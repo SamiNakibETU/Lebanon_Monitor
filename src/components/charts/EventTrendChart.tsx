@@ -17,6 +17,7 @@ interface TimelineEntry {
 interface TrendsData {
   days: number;
   timeline: TimelineEntry[];
+  intensity: Array<{ day: string; score: number }>;
   breakdown: Array<{
     day: string;
     classification: 'ombre' | 'lumiere' | 'neutre';
@@ -136,6 +137,12 @@ export function EventTrendChart({ variant = 'dark', focus = 'ombre' }: EventTren
   }, [data, width, variant, focus]);
 
   const textColor = variant === 'dark' ? '#666666' : '#888888';
+  const timelineFocus = (data?.timeline ?? []).map((d) => ({
+    day: d.day,
+    count: focus === 'ombre' ? d.ombre : d.lumiere,
+  }));
+  const maxTimeline = Math.max(1, ...timelineFocus.map((d) => d.count));
+  const latestIntensity = data?.intensity?.[data.intensity.length - 1]?.score ?? null;
 
   return (
     <div ref={containerRef} className="w-full">
@@ -146,7 +153,27 @@ export function EventTrendChart({ variant = 'dark', focus = 'ombre' }: EventTren
         Analyse catégories · {focus} · 7j
       </div>
       {data?.breakdown?.length ? (
-        <svg ref={svgRef} className="w-full" style={{ height: 170 }} />
+        <>
+          <svg ref={svgRef} className="w-full" style={{ height: 170 }} />
+          <div className="mt-2">
+            <div className="text-[10px] mb-1" style={{ color: textColor }}>
+              Intensité du jour: {latestIntensity != null ? `${latestIntensity}/100` : 'n/a'}
+            </div>
+            <div className="flex items-end gap-1 h-8">
+              {timelineFocus.map((d) => (
+                <div
+                  key={d.day}
+                  title={`${d.day}: ${d.count}`}
+                  style={{
+                    width: '100%',
+                    height: `${Math.max(2, (d.count / maxTimeline) * 100)}%`,
+                    background: focus === 'ombre' ? 'rgba(198,40,40,0.65)' : 'rgba(46,125,50,0.65)',
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        </>
       ) : (
         <div
           className="text-[11px]"

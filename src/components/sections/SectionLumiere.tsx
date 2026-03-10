@@ -3,7 +3,7 @@
 import useSWR from 'swr';
 import { ReconstructionWidget } from '@/components/widgets/ReconstructionWidget';
 import { CultureWidget } from '@/components/widgets/CultureWidget';
-import { ReforestationWidget } from '@/components/widgets/ReforestationWidget';
+import { SolidarityActiveWidget } from '@/components/widgets/SolidarityActiveWidget';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -86,9 +86,9 @@ export function SectionLumiere() {
   return (
     <section style={{ background: '#000000' }}>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-px w-full">
+        <SolidarityActiveWidget />
         <ReconstructionWidget />
         <CultureWidget />
-        <ReforestationWidget />
       </div>
       <div className="mt-px">
         <LumiereHighlights />
