@@ -309,7 +309,7 @@ function fuseRegionalEvents(country: typeof COUNTRIES[number], inputs: {
 export async function GET() {
   try {
     const data = await cachedFetch(
-      'lm:regional',
+      'lm:regional:v2-fusion',
       async () => {
         const results = await Promise.allSettled(
           COUNTRIES.map(async (country) => {
