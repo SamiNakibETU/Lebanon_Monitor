@@ -40,7 +40,7 @@ async function fetchGdeltForCountry(countryQuery: string): Promise<GdeltArticle[
     const query = encodeURIComponent(
       `(${countryQuery}) AND (conflict OR military OR strike OR diplomacy OR humanitarian OR ceasefire OR protest)`
     );
-    const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${query}&mode=ArtList&maxrecords=25&format=json&sort=DateDesc&timespan=72h`;
+    const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${query}&mode=ArtList&maxrecords=50&format=json&sort=DateDesc&timespan=7d`;
     const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
     if (!res.ok) return [];
     const data = (await res.json()) as { articles?: GdeltArticle[] };
@@ -52,7 +52,18 @@ async function fetchGdeltForCountry(countryQuery: string): Promise<GdeltArticle[
       return true;
     });
 
-    return filtered.slice(0, 8);
+    if (filtered.length > 0) return filtered.slice(0, 8);
+
+    // Fallback when tone filter is too strict.
+    if (articles.length > 0) return articles.slice(0, 8);
+
+    // Final fallback: looser query only on country mention.
+    const fallbackQuery = encodeURIComponent(countryQuery);
+    const fallbackUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=${fallbackQuery}&mode=ArtList&maxrecords=20&format=json&sort=DateDesc&timespan=7d`;
+    const fallbackRes = await fetch(fallbackUrl, { signal: AbortSignal.timeout(10_000) });
+    if (!fallbackRes.ok) return [];
+    const fallbackData = (await fallbackRes.json()) as { articles?: GdeltArticle[] };
+    return Array.isArray(fallbackData.articles) ? fallbackData.articles.slice(0, 5) : [];
   } catch {
     return [];
   }
