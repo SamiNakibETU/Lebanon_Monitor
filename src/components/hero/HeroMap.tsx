@@ -17,7 +17,7 @@ const LEVANT_BOUNDS: [[number, number], [number, number]] = [
   [42.0, 38.0],
 ];
 
-const LAYER_IDS = ['events', 'strikes', 'convergence', 'flights', 'fires', 'infra', 'unifil'] as const;
+const LAYER_IDS = ['events', 'strikes', 'convergence', 'flights', 'fires', 'infra', 'unifil', 'media', 'statements'] as const;
 type LayerId = (typeof LAYER_IDS)[number];
 
 const INFRA_TYPES: Record<string, { color: string; radius: number }> = {
@@ -107,6 +107,31 @@ interface UnifilResponse {
   items: Array<{ title: string; url: string; date?: string }>;
 }
 
+interface SocialMediaResponse {
+  items: Array<{
+    id: string;
+    linkedEventId: string | null;
+    author: string;
+    text: string;
+    permalink: string;
+    mediaUrls: string[];
+    createdAt: string;
+  }>;
+}
+
+interface StatementsResponse {
+  items: Array<{
+    id: string;
+    title: string;
+    url: string | null;
+    date: string | null;
+    source: string;
+    type: string;
+    latitude: number;
+    longitude: number;
+  }>;
+}
+
 function toGeoJSON(events: MapEvent[], classification: 'lumiere' | 'ombre'): GeoJSON.FeatureCollection {
   const features = events
     .filter((e) => e.latitude != null && e.longitude != null)
@@ -156,9 +181,12 @@ export function HeroMap({ minimized }: HeroMapProps) {
     fires: false,
     infra: true,
     unifil: false,
+    media: true,
+    statements: true,
   });
   const [analystMode, setAnalystMode] = useState(false);
   const [viewMode, setViewMode] = useState<'lebanon' | 'levant'>('lebanon');
+  const [playbackHours, setPlaybackHours] = useState(24);
 
   const eventQuery = analystMode
     ? '&minConfidence=0.65&geoPrecision=city&multiSourceOnly=true'
@@ -204,14 +232,79 @@ export function HeroMap({ minimized }: HeroMapProps) {
     fetcher,
     { refreshInterval: 300_000 }
   );
+  const { data: socialRes } = useSWR<SocialMediaResponse>(
+    '/api/v2/social-feed',
+    fetcher,
+    { refreshInterval: 180_000 }
+  );
+  const { data: statementsRes } = useSWR<StatementsResponse>(
+    '/api/v2/official-statements',
+    fetcher,
+    { refreshInterval: 300_000 }
+  );
 
-  const lumiereEvents = Array.isArray(lumiereRes?.data) ? lumiereRes.data : [];
-  const ombreEvents = Array.isArray(ombreRes?.data) ? ombreRes.data : [];
+  const cutoffTs = Date.now() - playbackHours * 60 * 60 * 1000;
+  const lumiereEvents = (Array.isArray(lumiereRes?.data) ? lumiereRes.data : []).filter((e) => {
+    const ts = e.occurredAt ? new Date(e.occurredAt).getTime() : 0;
+    return ts >= cutoffTs;
+  });
+  const ombreEvents = (Array.isArray(ombreRes?.data) ? ombreRes.data : []).filter((e) => {
+    const ts = e.occurredAt ? new Date(e.occurredAt).getTime() : 0;
+    return ts >= cutoffTs;
+  });
   const lumiereGeo = toGeoJSON(lumiereEvents, 'lumiere');
   const ombreGeo = toGeoJSON(ombreEvents, 'ombre');
   const allEventsGeo: GeoJSON.FeatureCollection = {
     type: 'FeatureCollection',
     features: [...lumiereGeo.features, ...ombreGeo.features],
+  };
+  const eventCoordsById = new Map<string, [number, number]>();
+  for (const f of allEventsGeo.features) {
+    const id = String((f.properties as Record<string, unknown>)?.id ?? '');
+    const c = (f.geometry as GeoJSON.Point).coordinates;
+    if (id && Array.isArray(c) && c.length === 2) eventCoordsById.set(id, [Number(c[0]), Number(c[1])]);
+  }
+
+  const mediaGeo: GeoJSON.FeatureCollection = {
+    type: 'FeatureCollection',
+    features:
+      socialRes?.items
+        ?.filter((i) => i.linkedEventId && i.mediaUrls.length > 0 && i.createdAt && new Date(i.createdAt).getTime() >= cutoffTs)
+        .flatMap((i, idx) => {
+          const coords = i.linkedEventId ? eventCoordsById.get(i.linkedEventId) : null;
+          if (!coords) return [];
+          return [{
+            type: 'Feature' as const,
+            geometry: { type: 'Point' as const, coordinates: coords },
+            properties: {
+              id: `media-${idx}-${i.id}`,
+              author: i.author,
+              text: i.text,
+              permalink: i.permalink,
+              mediaUrl: i.mediaUrls[0] ?? '',
+              createdAt: i.createdAt,
+            },
+          }];
+        }) ?? [],
+  };
+
+  const statementsGeo: GeoJSON.FeatureCollection = {
+    type: 'FeatureCollection',
+    features:
+      statementsRes?.items
+        ?.filter((s) => s.latitude != null && s.longitude != null)
+        .map((s) => ({
+          type: 'Feature' as const,
+          geometry: { type: 'Point' as const, coordinates: [s.longitude, s.latitude] },
+          properties: {
+            id: s.id,
+            title: s.title,
+            url: s.url ?? '',
+            source: s.source,
+            date: s.date ?? '',
+            type: s.type,
+          },
+        })) ?? [],
   };
   const strikesGeo: GeoJSON.FeatureCollection = {
     type: 'FeatureCollection',
@@ -787,6 +880,77 @@ export function HeroMap({ minimized }: HeroMapProps) {
       (map.getSource('convergence-zones') as maplibregl.GeoJSONSource).setData(convergenceGeo);
     }
 
+    if (!map.getSource('media-evidence')) {
+      map.addSource('media-evidence', { type: 'geojson', data: mediaGeo });
+      map.addLayer({
+        id: 'media-evidence-points',
+        type: 'circle',
+        source: 'media-evidence',
+        paint: {
+          'circle-radius': 4,
+          'circle-color': '#4FC3F7',
+          'circle-opacity': 0.8,
+          'circle-stroke-width': 1,
+          'circle-stroke-color': 'rgba(255,255,255,0.35)',
+        },
+        layout: { visibility: 'none' },
+      });
+      map.on('click', 'media-evidence-points', (e: maplibregl.MapLayerMouseEvent) => {
+        if (!e.features?.length) return;
+        const f = e.features[0];
+        const p = f.properties ?? {};
+        const coords = (f.geometry as GeoJSON.Point).coordinates.slice() as [number, number];
+        new maplibregl.Popup({ closeButton: true, maxWidth: '300px' })
+          .setLngLat(coords)
+          .setHTML(
+            `<div style="background:#0D0D0D;color:#fff;padding:12px;font-size:12px;font-family:'DM Sans',sans-serif;border-radius:0">` +
+            `<div style="font-weight:500;margin-bottom:4px">Evidence media @${p.author ?? ''}</div>` +
+            `<div style="color:#888;font-size:10px;line-height:1.4">${String(p.text ?? '').slice(0, 180)}</div>` +
+            `${p.mediaUrl ? `<a href="${p.mediaUrl}" target="_blank" style="color:#4FC3F7;font-size:10px;margin-top:8px;display:block;text-decoration:none">Ouvrir media →</a>` : ''}` +
+            `${p.permalink ? `<a href="${p.permalink}" target="_blank" style="color:#4FC3F7;font-size:10px;margin-top:6px;display:block;text-decoration:none">Ouvrir post →</a>` : ''}` +
+            `</div>`
+          )
+          .addTo(map);
+      });
+    } else {
+      (map.getSource('media-evidence') as maplibregl.GeoJSONSource).setData(mediaGeo);
+    }
+
+    if (!map.getSource('official-statements')) {
+      map.addSource('official-statements', { type: 'geojson', data: statementsGeo });
+      map.addLayer({
+        id: 'official-statements-points',
+        type: 'circle',
+        source: 'official-statements',
+        paint: {
+          'circle-radius': 5,
+          'circle-color': '#FFFFFF',
+          'circle-opacity': 0.75,
+          'circle-stroke-width': 1,
+          'circle-stroke-color': 'rgba(0,0,0,0.6)',
+        },
+        layout: { visibility: 'none' },
+      });
+      map.on('click', 'official-statements-points', (e: maplibregl.MapLayerMouseEvent) => {
+        if (!e.features?.length) return;
+        const f = e.features[0];
+        const p = f.properties ?? {};
+        const coords = (f.geometry as GeoJSON.Point).coordinates.slice() as [number, number];
+        new maplibregl.Popup({ closeButton: true, maxWidth: '300px' })
+          .setLngLat(coords)
+          .setHTML(
+            `<div style="background:#0D0D0D;color:#fff;padding:12px;font-size:12px;font-family:'DM Sans',sans-serif;border-radius:0">` +
+            `<div style="font-weight:500;margin-bottom:4px">${p.title ?? 'Statement'}</div>` +
+            `<div style="color:#888;font-size:10px">${p.source ?? ''} · ${p.type ?? ''}</div>` +
+            `${p.url ? `<a href="${p.url}" target="_blank" style="color:#4FC3F7;font-size:10px;margin-top:8px;display:block;text-decoration:none">Source →</a>` : ''}` +
+            `</div>`
+          )
+          .addTo(map);
+      });
+    } else {
+      (map.getSource('official-statements') as maplibregl.GeoJSONSource).setData(statementsGeo);
+    }
+
     if (!map.getSource('regional-events')) {
       map.addSource('regional-events', { type: 'geojson', data: regionalGeo });
       map.addLayer({
@@ -805,7 +969,7 @@ export function HeroMap({ minimized }: HeroMapProps) {
     } else {
       (map.getSource('regional-events') as maplibregl.GeoJSONSource).setData(regionalGeo);
     }
-  }, [styleLoaded, lumiereGeo, ombreGeo, allEventsGeo, strikesGeo, firesGeo, flightsGeoData, staticInfra, convergenceGeo, regionalGeo, unifilRes]);
+  }, [styleLoaded, lumiereGeo, ombreGeo, allEventsGeo, strikesGeo, firesGeo, flightsGeoData, staticInfra, convergenceGeo, mediaGeo, statementsGeo, regionalGeo, unifilRes]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -820,6 +984,8 @@ export function HeroMap({ minimized }: HeroMapProps) {
     if (map.getLayer('heatmap-lumiere-layer')) map.setLayoutProperty('heatmap-lumiere-layer', 'visibility', v('events'));
     if (map.getLayer('heatmap-ombre-layer')) map.setLayoutProperty('heatmap-ombre-layer', 'visibility', v('events'));
     if (map.getLayer('convergence-circles')) map.setLayoutProperty('convergence-circles', 'visibility', v('convergence'));
+    if (map.getLayer('media-evidence-points')) map.setLayoutProperty('media-evidence-points', 'visibility', v('media'));
+    if (map.getLayer('official-statements-points')) map.setLayoutProperty('official-statements-points', 'visibility', v('statements'));
     if (map.getLayer('regional-events-points')) {
       map.setLayoutProperty('regional-events-points', 'visibility', viewMode === 'levant' ? 'visible' : 'none');
     }
@@ -859,6 +1025,22 @@ export function HeroMap({ minimized }: HeroMapProps) {
         className="absolute bottom-2 left-2 z-10 flex flex-wrap gap-1"
         style={{ maxWidth: 'calc(100% - 16px)' }}
       >
+        <div
+          className="px-2 py-1 border"
+          style={{ background: 'rgba(0,0,0,0.6)', borderColor: 'rgba(255,255,255,0.2)' }}
+        >
+          <div className="text-[10px] uppercase tracking-wider" style={{ color: '#666666' }}>
+            playback {playbackHours}h
+          </div>
+          <input
+            type="range"
+            min={6}
+            max={72}
+            step={6}
+            value={playbackHours}
+            onChange={(e) => setPlaybackHours(Number(e.target.value))}
+          />
+        </div>
         <button
           type="button"
           onClick={(e) => {

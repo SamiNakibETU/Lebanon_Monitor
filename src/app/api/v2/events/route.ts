@@ -121,6 +121,9 @@ export async function GET(request: Request) {
           verificationLevel: e.verification_status === 'verified' ? 'high' : e.verification_status === 'partially_verified' ? 'medium' : 'low',
           verificationStatus: e.verification_status,
         },
+        confidence_lumiere: typeof meta.confidenceLumiere === 'number' ? meta.confidenceLumiere : null,
+        impact_lumiere: typeof meta.impactLumiere === 'number' ? meta.impactLumiere : null,
+        verification_status: (meta.verificationStatus as string | null) ?? e.verification_status,
       };
     })
       .filter((e) => !isProbablyGarbled(e.title))
@@ -152,7 +155,11 @@ function isRelevantEvent(event: { title: string; summary: string | null; eventSo
   if (!['gdelt', 'rss'].includes(source)) return true;
   const text = `${event.title} ${event.summary ?? ''}`;
   if (REGION_KEYWORDS.test(text)) return true;
-  return ['armed_conflict', 'political_tension', 'violence', 'displacement', 'reconstruction', 'solidarity', 'cultural_event'].includes(event.category ?? '');
+  return [
+    'armed_conflict', 'political_tension', 'violence', 'displacement',
+    'reconstruction', 'solidarity', 'cultural_event',
+    'aid_delivery_verified', 'service_restoration', 'cultural_resilience', 'sports_cohesion', 'civil_society_mobilization',
+  ].includes(event.category ?? '');
 }
 
 function dedupeByTitleWithinWindow(

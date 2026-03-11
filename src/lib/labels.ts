@@ -22,6 +22,11 @@ export const SOURCE_LABELS: Record<SourceName, string> = {
 };
 
 export const CATEGORY_LABELS: Record<EventCategory, string> = {
+  aid_delivery_verified: 'Aide vérifiée',
+  service_restoration: 'Services restaurés',
+  cultural_resilience: 'Résilience culturelle',
+  sports_cohesion: 'Cohésion sportive',
+  civil_society_mobilization: 'Mobilisation civile',
   cultural_event: 'Culture',
   reconstruction: 'Reconstruction',
   institutional_progress: 'Institutions',

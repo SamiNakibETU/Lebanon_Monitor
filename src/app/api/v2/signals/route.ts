@@ -4,7 +4,7 @@ import { cachedFetch } from '@/lib/cache';
 
 interface Signal {
   id: string;
-  type: 'convergence' | 'spike' | 'anomaly' | 'escalation';
+  type: 'convergence' | 'spike' | 'anomaly' | 'escalation' | 'deescalation' | 'resilience_spike';
   severity: 'critical' | 'high' | 'medium' | 'low';
   title: string;
   description: string;
@@ -213,11 +213,35 @@ export async function GET() {
             if (yesterdayRatio > 0 && todayRatio > yesterdayRatio * 1.2) {
               alerts.push({
                 id: `lumiere-ratio-${now.toISOString().slice(0, 10)}`,
-                type: 'anomaly',
+                type: 'resilience_spike',
                 severity: 'low',
                 title: `Signal Lumière en hausse`,
                 description: `Le ratio Lumière augmente de ${Math.round(((todayRatio / yesterdayRatio) - 1) * 100)}% vs veille.`,
                 indicators: ['lumiere_ratio_shift', 'de_escalation_proxy'],
+                timestamp: now.toISOString(),
+              });
+            }
+
+            if (ombreRatio > 0.7 && lbpDeltaPct != null && lbpDeltaPct > 1.5) {
+              alerts.push({
+                id: `causal-escalation-${now.toISOString().slice(0, 10)}`,
+                type: 'escalation',
+                severity: ombreRatio > 0.82 ? 'critical' : 'high',
+                title: 'Alerte causale: conflit + stress marchés',
+                description: `Conflits dominants (${Math.round(ombreRatio * 100)}%) et pression LBP (${lbpDeltaPct.toFixed(1)}%) convergent dans la même fenêtre temporelle.`,
+                indicators: ['ombre_ratio', 'lbp_delta_24h', 'causal_correlation'],
+                timestamp: now.toISOString(),
+              });
+            }
+
+            if (todayRatio > 0.35 && (lbpDeltaPct == null || Math.abs(lbpDeltaPct) < 1.2)) {
+              alerts.push({
+                id: `causal-deescalation-${now.toISOString().slice(0, 10)}`,
+                type: 'deescalation',
+                severity: 'low',
+                title: 'Signal de stabilisation',
+                description: `Part Lumière robuste (${Math.round(todayRatio * 100)}%) sans stress monétaire significatif: possible phase de respiration.`,
+                indicators: ['lumiere_ratio_shift', 'market_stability', 'deescalation_proxy'],
                 timestamp: now.toISOString(),
               });
             }

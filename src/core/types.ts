@@ -33,6 +33,11 @@ export type OmbreCategory =
   | 'violence';
 
 export type LumiereCategory =
+  | 'aid_delivery_verified'
+  | 'service_restoration'
+  | 'cultural_resilience'
+  | 'sports_cohesion'
+  | 'civil_society_mobilization'
   | 'cultural_event'
   | 'reconstruction'
   | 'institutional_progress'

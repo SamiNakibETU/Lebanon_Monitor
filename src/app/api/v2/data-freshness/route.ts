@@ -1,18 +1,7 @@
 import { NextResponse } from 'next/server';
 import { withClient, isDbConfigured } from '@/db/client';
 import { cachedFetch } from '@/lib/cache';
-
-const SOURCE_TTLS: Record<string, number> = {
-  gdelt: 15 * 60,
-  rss: 30 * 60,
-  ucdp: 12 * 60 * 60,
-  firms: 3 * 60 * 60,
-  cloudflare: 30 * 60,
-  'lbp-rate': 60 * 60,
-  reliefweb: 60 * 60,
-  twitter: 30 * 60,
-  telegram: 30 * 60,
-};
+import { SOURCE_REGISTRY_BY_NAME } from '@/config/source-registry';
 
 export async function GET() {
   if (!isDbConfigured()) {
@@ -41,13 +30,14 @@ export async function GET() {
           const items = rows.map((r) => {
             const checkedAt = new Date(r.checked_at);
             const ageSec = Math.max(0, (now - checkedAt.getTime()) / 1000);
-            const ttl = SOURCE_TTLS[r.source_name] ?? 3600;
+            const ttl = SOURCE_REGISTRY_BY_NAME.get(r.source_name)?.refreshIntervalSec ?? 3600;
             const stale = ageSec > ttl * 2;
             return {
               source: r.source_name,
               checkedAt: checkedAt.toISOString(),
               ageSeconds: Math.round(ageSec),
               ttlSeconds: ttl,
+              sourceMeta: SOURCE_REGISTRY_BY_NAME.get(r.source_name) ?? null,
               stale,
               status: stale ? 'stale' : r.status,
               itemCount: r.item_count ?? 0,

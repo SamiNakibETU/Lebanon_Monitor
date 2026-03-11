@@ -9,6 +9,8 @@ import { ConflictGauge } from '@/components/charts/ConflictGauge';
 import { ReliefWebWidget } from '@/components/widgets/ReliefWebWidget';
 import { CausalTimelineWidget } from '@/components/widgets/CausalTimelineWidget';
 import { MarketIntelWidget } from '@/components/widgets/MarketIntelWidget';
+import { SocialMediaWidget } from '@/components/widgets/SocialMediaWidget';
+import { AnalystWorkbenchWidget } from '@/components/widgets/AnalystWorkbenchWidget';
 
 export function SectionGeopolitique() {
   return (
@@ -44,6 +46,12 @@ export function SectionGeopolitique() {
       </div>
       <div style={{ background: '#0A0A0A' }}>
         <ReliefWebWidget />
+      </div>
+      <div style={{ background: '#0A0A0A' }}>
+        <SocialMediaWidget />
+      </div>
+      <div style={{ background: '#0A0A0A' }}>
+        <AnalystWorkbenchWidget />
       </div>
     </section>
   );

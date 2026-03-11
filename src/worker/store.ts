@@ -40,12 +40,19 @@ export async function storeNewEvent(
     const safeConfidence = typeof event.confidence === 'number' && !Number.isNaN(event.confidence)
       ? Math.max(0, Math.min(1, event.confidence))
       : 0.5;
+    const scoredMeta = event.metadata as LebanonEvent['metadata'] & {
+      confidenceLumiere?: number;
+      impactLumiere?: number;
+      verificationStatus?: 'unverified' | 'partially_verified' | 'verified' | 'disputed';
+    };
     const ev = await createEvent(client, {
       canonical_title: event.title,
       canonical_summary: event.description ?? null,
       polarity_ui: event.classification,
       confidence_score: safeConfidence,
       severity_score: mapSeverity(event.severity),
+      impact_score: typeof scoredMeta.impactLumiere === 'number' ? Math.max(0, Math.min(100, scoredMeta.impactLumiere)) / 100 : null,
+      verification_status: scoredMeta.verificationStatus,
       occurred_at: event.timestamp,
       event_type: event.category,
       canonical_source_item_id: sourceItem.id,
@@ -58,6 +65,9 @@ export async function storeNewEvent(
         geoPrecision: event.metadata.geoPrecision ?? 'unknown',
         resolvedPlaceName: event.metadata.resolvedPlaceName ?? null,
         evidence: initialEvidence,
+        confidenceLumiere: scoredMeta.confidenceLumiere ?? null,
+        impactLumiere: scoredMeta.impactLumiere ?? null,
+        verificationStatus: scoredMeta.verificationStatus ?? null,
       },
     });
 

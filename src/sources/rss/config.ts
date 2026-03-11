@@ -10,7 +10,10 @@ export const RSS_FEEDS = [
   { url: 'https://today.lorientlejour.com/feed/', name: "L'Orient Today" },
   { url: 'https://www.lorientlejour.com/feed', name: "L'Orient-Le Jour FR" },
   { url: 'https://www.agendaculturel.com/rss', name: 'Agenda Culturel' },
+  { url: 'https://www.presidency.gov.lb/English/Pages/rss.aspx', name: 'Presidency Lebanon EN' },
+  { url: 'https://www.presidency.gov.lb/Arabic/Pages/rss.aspx', name: 'Presidency Lebanon AR' },
   { url: 'http://nna-leb.gov.lb/en/rss', name: 'NNA' },
+  { url: 'http://nna-leb.gov.lb/ar/rss', name: 'NNA AR' },
   { url: 'https://www.dailystar.com.lb/rss', name: 'Daily Star Lebanon' },
   { url: 'https://www.mtv.com.lb/en/?feed=rss', name: 'MTV Lebanon' },
   { url: 'https://www.beirut.com/feed/', name: 'Beirut.com' },
@@ -43,6 +46,9 @@ export const RSS_FEEDS = [
   { url: 'https://reliefweb.int/updates/rss.xml?search%5Bfilter%5D%5Bfield_country%5D%5B%5D=128', name: 'ReliefWeb Lebanon' },
   { url: 'https://www.undp.org/lebanon/rss.xml', name: 'UNDP Lebanon' },
   { url: 'https://www.unicef.org/lebanon/rss.xml', name: 'UNICEF Lebanon' },
+  { url: 'https://www.wfp.org/rss.xml', name: 'WFP Global' },
+  { url: 'https://www.icrc.org/en/where-we-work/middle-east/lebanon/rss', name: 'ICRC Lebanon' },
+  { url: 'https://www.unhcr.org/news-stories.rss', name: 'UNHCR News' },
   // ── Think tanks ──
   { url: 'https://www.crisisgroup.org/rss.xml', name: 'Crisis Group' },
   { url: 'https://carnegie-mec.org/rss/feeds', name: 'Carnegie MEC' },
@@ -53,6 +59,8 @@ export const RSS_FEEDS = [
   // ── Diaspora & International ──
   { url: 'https://libnanews.com/feed/', name: 'LibnaNews' },
   { url: 'https://www.lorientlejour.com/rubrique/43-diaspora/feed', name: 'OLJ Diaspora' },
+  { url: 'https://www.falebanon.com/feed', name: 'Lebanon Football Assoc' },
+  { url: 'https://www.fiba.basketball/rss', name: 'FIBA News' },
   // ── Économie & Marchés ──
   { url: 'https://www.businessnews.com.lb/cms/feed/', name: 'Business News Lebanon' },
   { url: 'https://www.lbprate.com/feed', name: 'LBP Rate' },
@@ -71,6 +79,9 @@ export const RSS_FEEDS = [
   { url: 'https://www.jpost.com/rss/rssfeedsfrontpage.aspx', name: 'Jerusalem Post' },
   { url: 'https://www.haaretz.com/cmlink/1.628752', name: 'Haaretz' },
   { url: 'https://www.i24news.tv/fr/rss', name: 'i24NEWS FR' },
+  { url: 'https://news.google.com/rss/search?q=Lebanon+diplomacy+statement&hl=en-US&gl=US&ceid=US:en', name: 'GN Lebanon Diplomacy' },
+  { url: 'https://news.google.com/rss/search?q=Lebanon+sports+federation&hl=en-US&gl=US&ceid=US:en', name: 'GN Lebanon Sports' },
+  { url: 'https://news.google.com/rss/search?q=Lebanon+aid+delivery&hl=en-US&gl=US&ceid=US:en', name: 'GN Lebanon Aid Delivery' },
   // ── Positive signal trackers (Google News RSS queries) ──
   { url: 'https://news.google.com/rss/search?q=Lebanon+solidarity&hl=en-US&gl=US&ceid=US:en', name: 'GN Lebanon Solidarity' },
   { url: 'https://news.google.com/rss/search?q=Lebanon+reconstruction&hl=en-US&gl=US&ceid=US:en', name: 'GN Lebanon Reconstruction' },

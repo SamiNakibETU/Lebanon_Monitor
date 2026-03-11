@@ -18,6 +18,7 @@ import { EVENT_SOURCE_NAMES } from '@/sources/connector-registry';
 import { enrichEvent } from '@/core/enrichment';
 import type { LebanonEvent } from '@/types/events';
 import { extractBestLocality } from '@/lib/geo/locality-extractor';
+import { computeLumiereScore } from '@/lib/lumiere/scoring';
 
 export interface PipelineResult {
   eventsCreated: number;
@@ -63,7 +64,10 @@ export async function runPipeline(options: PipelineOptions = {}): Promise<Pipeli
       .filter(({ event }) => needsLlmClassification(event.title));
 
     const maxLlmItems = Math.max(0, options.maxLlmItems ?? Number(process.env.GROQ_CLASSIFY_MAX_ITEMS ?? 15));
-    const llmCandidates = options.skipLlmClassification ? [] : needsLlm.slice(0, maxLlmItems);
+    const globalBudget = Math.max(0, Number(process.env.GROQ_BUDGET_CALLS_PER_RUN ?? 30));
+    let remainingBudget = globalBudget;
+    const llmCandidates = options.skipLlmClassification ? [] : needsLlm.slice(0, Math.min(maxLlmItems, remainingBudget));
+    remainingBudget -= llmCandidates.length;
 
     const llmResults =
       llmCandidates.length > 0 && getSanitizedGroqKey()
@@ -100,10 +104,13 @@ export async function runPipeline(options: PipelineOptions = {}): Promise<Pipeli
         const locality = await extractBestLocality({
           title: enriched.title,
           description: enriched.description,
-          allowLlm: geoLlmUsed < maxGeoLlmItems,
+          allowLlm: geoLlmUsed < maxGeoLlmItems && remainingBudget > 0,
         });
         if (locality) {
-          if (locality.method === 'llm') geoLlmUsed++;
+          if (locality.method === 'llm') {
+            geoLlmUsed++;
+            remainingBudget = Math.max(0, remainingBudget - 1);
+          }
           enriched = {
             ...enriched,
             latitude: locality.lat,
@@ -122,6 +129,35 @@ export async function runPipeline(options: PipelineOptions = {}): Promise<Pipeli
         }
       }
 
+      const lumiereScore = computeLumiereScore(enriched);
+      if (lumiereScore) {
+        enriched = {
+          ...enriched,
+          metadata: {
+            ...enriched.metadata,
+            evidence: {
+              ...(enriched.metadata.evidence ?? {}),
+              verificationStatus: lumiereScore.verificationStatus,
+              chain: [
+                {
+                  source: enriched.source,
+                  timestamp: new Date(enriched.timestamp).toISOString(),
+                  step: 'ingest',
+                  note: 'Initial capture from source connector',
+                },
+              ],
+            } as LebanonEvent['metadata']['evidence'] & { chain?: unknown[] },
+            confidenceLumiere: lumiereScore.confidenceLumiere,
+            impactLumiere: lumiereScore.impactLumiere,
+            verificationStatus: lumiereScore.verificationStatus,
+          } as LebanonEvent['metadata'] & {
+            confidenceLumiere?: number;
+            impactLumiere?: number;
+            verificationStatus?: string;
+          },
+        };
+      }
+
       const duplicate = await findDuplicate(enriched);
 
       if (duplicate) {
@@ -130,8 +166,9 @@ export async function runPipeline(options: PipelineOptions = {}): Promise<Pipeli
       } else {
         const { eventId, title, summary } = await storeNewEvent(sourceItem, enriched);
         eventsCreated++;
-        if (translationsTriggered < maxTranslations) {
+        if (translationsTriggered < maxTranslations && remainingBudget > 0) {
           translationsTriggered++;
+          remainingBudget = Math.max(0, remainingBudget - 1);
           translateAndStore(eventId, title, summary).catch((err) =>
             logger.warn('Translation failed for event', { eventId, err: err instanceof Error ? err.message : String(err) })
           );

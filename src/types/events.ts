@@ -20,6 +20,11 @@ export type SourceName =
   | "telegram";
 
 export type EventCategory =
+  | "aid_delivery_verified"
+  | "service_restoration"
+  | "cultural_resilience"
+  | "sports_cohesion"
+  | "civil_society_mobilization"
   | "cultural_event"
   | "reconstruction"
   | "institutional_progress"

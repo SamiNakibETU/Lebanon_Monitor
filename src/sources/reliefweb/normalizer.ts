@@ -10,7 +10,7 @@ import type { ReliefWebReport } from './types';
 function getCategoryFromClassification(
   result: ReturnType<typeof classifyByKeywords>
 ): LebanonEvent['category'] {
-  if (result.classification === 'lumiere') return 'solidarity';
+  if (result.classification === 'lumiere') return 'aid_delivery_verified';
   if (result.classification === 'ombre') return 'political_tension';
   return 'neutral';
 }

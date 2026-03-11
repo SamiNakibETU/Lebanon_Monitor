@@ -11,6 +11,7 @@ import type { RssItem } from './types';
 import { RSS_CONFIG } from './config';
 
 const CULTURE_FEEDS = new Set(['Agenda Culturel', 'Beirut.com', 'Mondanite', "L'Orient Littéraire"]);
+const SPORTS_FEEDS = new Set(['GN Lebanon Sports']);
 const SOLIDARITY_FEEDS = new Set([
   'UNDP Lebanon',
   'UNICEF Lebanon',
@@ -45,23 +46,26 @@ function classifyRssContent(input: {
   const isHumanitarianFeed = SOLIDARITY_FEEDS.has(feed);
 
   if (CULTURE_FEEDS.has(feed) || CULTURE_KEYWORDS.test(text)) {
-    return { classification: 'lumiere', confidence: Math.max(input.baseConfidence, 0.82), category: 'cultural_event' };
+    return { classification: 'lumiere', confidence: Math.max(input.baseConfidence, 0.82), category: 'cultural_resilience' };
+  }
+  if (SPORTS_FEEDS.has(feed) || /(football|soccer|basketball|fifa|fiba|championship|cup|league|marathon|team|matchday|olympic)/i.test(text)) {
+    return { classification: 'lumiere', confidence: Math.max(input.baseConfidence, 0.8), category: 'sports_cohesion' };
   }
   if (isHumanitarianFeed && !WAR_NEGATIVE_KEYWORDS.test(text)) {
-    return { classification: 'lumiere', confidence: Math.max(input.baseConfidence, 0.82), category: 'solidarity' };
+    return { classification: 'lumiere', confidence: Math.max(input.baseConfidence, 0.82), category: 'aid_delivery_verified' };
   }
   if (SOLIDARITY_FEEDS.has(feed) || SOLIDARITY_KEYWORDS.test(text)) {
-    return { classification: 'lumiere', confidence: Math.max(input.baseConfidence, 0.8), category: 'solidarity' };
+    return { classification: 'lumiere', confidence: Math.max(input.baseConfidence, 0.8), category: 'civil_society_mobilization' };
   }
   if (RECONSTRUCTION_KEYWORDS.test(text)) {
-    return { classification: 'lumiere', confidence: Math.max(input.baseConfidence, 0.78), category: 'reconstruction' };
+    return { classification: 'lumiere', confidence: Math.max(input.baseConfidence, 0.78), category: 'service_restoration' };
   }
   if (DIPLOMACY_POSITIVE_KEYWORDS.test(text)) {
     return { classification: 'lumiere', confidence: Math.max(input.baseConfidence, 0.75), category: 'institutional_progress' };
   }
 
   if (input.baseClassification === 'lumiere') {
-    return { classification: 'lumiere', confidence: input.baseConfidence, category: 'cultural_event' };
+    return { classification: 'lumiere', confidence: input.baseConfidence, category: 'civil_society_mobilization' };
   }
   if (input.baseClassification === 'ombre') {
     return { classification: 'ombre', confidence: input.baseConfidence, category: 'political_tension' };
