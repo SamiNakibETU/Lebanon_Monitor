@@ -41,3 +41,4 @@ agent-transcripts/
 _archive/
 AGENT_PROMPT*.md
 SKILL.md
+.worktrees/

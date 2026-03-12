@@ -16,7 +16,7 @@ export async function GET() {
             event_id: string;
             title: string;
             occurred_at: string;
-            claim_count: number;
+            observation_count: number;
             source_diversity: number;
             verification_status: string;
           }>(
@@ -24,7 +24,7 @@ export async function GET() {
               e.id as event_id,
               e.canonical_title as title,
               e.occurred_at,
-              COUNT(eo.id)::int as claim_count,
+              COUNT(eo.id)::int as observation_count,
               COUNT(DISTINCT si.source_name)::int as source_diversity,
               e.verification_status::text
             FROM event e
@@ -38,11 +38,12 @@ export async function GET() {
 
           return {
             generatedAt: new Date().toISOString(),
+            _meta: { description: 'Event list with observation count (sources corroborating), not extracted claims.' },
             items: rows.map((r) => ({
               eventId: r.event_id,
               title: r.title,
               occurredAt: r.occurred_at,
-              claimCount: r.claim_count,
+              observationCount: r.observation_count,
               sourceDiversity: r.source_diversity,
               mediaCount: 0,
               verificationStatus: r.verification_status,

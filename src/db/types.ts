@@ -12,6 +12,15 @@ export type GeoPrecision =
   | 'inferred'
   | 'unknown';
 
+export type GeoMethod =
+  | 'source_exact'
+  | 'gazetteer'
+  | 'llm'
+  | 'inferred'
+  | 'unknown';
+
+export type ClaimStatus = 'asserted' | 'contradicted' | 'retracted';
+
 export type PolarityUi = 'lumiere' | 'ombre' | 'neutre';
 
 export type VerificationStatus =
@@ -66,6 +75,14 @@ export interface PlaceRow {
   created_at: Date;
 }
 
+export interface EntityRow {
+  id: string;
+  name: string;
+  entity_type: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: Date;
+}
+
 export interface EventClusterRow {
   id: string;
   label: string | null;
@@ -94,12 +111,52 @@ export interface EventRow {
   last_seen_at: Date;
   place_id: string | null;
   geo_precision: GeoPrecision | null;
+  geo_method: GeoMethod | null;
+  uncertainty_radius_m: number | null;
   primary_cluster_id: string | null;
+  primary_episode_id: string | null;
   canonical_source_item_id: string | null;
   is_active: boolean;
   metadata: Record<string, unknown> | null;
   created_at: Date;
   updated_at: Date;
+}
+
+export interface ClaimRow {
+  id: string;
+  event_id: string;
+  source_item_id: string | null;
+  text: string;
+  claim_type: string | null;
+  confidence: number | null;
+  status: ClaimStatus;
+  retracted_at: Date | null;
+  superseded_by_id: string | null;
+  created_at: Date;
+}
+
+export type EpisodeStatus = 'open' | 'closed';
+
+export interface EpisodeRow {
+  id: string;
+  label: string | null;
+  summary: string | null;
+  status: EpisodeStatus;
+  first_event_at: Date | null;
+  last_event_at: Date | null;
+  event_count: number;
+  footprint_geojson: unknown | null;
+  metadata: Record<string, unknown> | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface EpisodeEventRow {
+  id: string;
+  episode_id: string;
+  event_id: string;
+  order: number;
+  created_at: Date;
 }
 
 export interface IndicatorSnapshotRow {
@@ -109,6 +166,21 @@ export interface IndicatorSnapshotRow {
   period_end: Date;
   payload: Record<string, unknown>;
   computed_at: Date;
+}
+
+export interface ClaimContradictionRow {
+  id: string;
+  claim_id_a: string;
+  claim_id_b: string;
+  contradiction_type: 'direct' | 'partial';
+  created_at: Date;
+}
+
+export interface EventEntityRow {
+  id: string;
+  event_id: string;
+  entity_id: string;
+  role: string | null;
 }
 
 export interface EventObservationRow {

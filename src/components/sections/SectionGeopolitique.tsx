@@ -7,7 +7,7 @@ import { RegionalWidget } from '@/components/widgets/RegionalWidget';
 import { SignalsWidget } from '@/components/widgets/SignalsWidget';
 import { ConflictGauge } from '@/components/charts/ConflictGauge';
 import { ReliefWebWidget } from '@/components/widgets/ReliefWebWidget';
-import { CausalTimelineWidget } from '@/components/widgets/CausalTimelineWidget';
+import { HourlyActivityWidget } from '@/components/widgets/HourlyActivityWidget';
 import { MarketIntelWidget } from '@/components/widgets/MarketIntelWidget';
 import { SocialMediaWidget } from '@/components/widgets/SocialMediaWidget';
 import { AnalystWorkbenchWidget } from '@/components/widgets/AnalystWorkbenchWidget';
@@ -39,7 +39,7 @@ export function SectionGeopolitique() {
         <SignalsWidget />
       </div>
       <div className="md:col-span-2" style={{ background: '#0A0A0A' }}>
-        <CausalTimelineWidget />
+        <HourlyActivityWidget />
       </div>
       <div style={{ background: '#0A0A0A' }}>
         <UNIFILWidget />

@@ -8,8 +8,19 @@ import {
   createEventObservation,
   getObservationCountByEventIds,
 } from '@/db/repositories/event-observation-repository';
+import {
+  upsertEntity,
+  linkEventToEntity,
+  type EntityType,
+} from '@/db/repositories/entity-repository';
+import type { PoolClient } from 'pg';
+import { createClaim, getClaimsByEventId } from '@/db/repositories/claim-repository';
+import { createClaimContradiction } from '@/db/repositories/claim-contradiction-repository';
 import type { LebanonEvent } from '@/types/events';
 import type { SourceItemRow } from '@/db/types';
+import type { ExtractedEntities } from '@/lib/nlp/entity-extract';
+import { extractClaims } from '@/core/claims/extract-claims';
+import { detectContradictions } from '@/core/claims/detect-contradictions';
 import { LEBANON_BBOX } from '@/config/lebanon';
 
 function clampCoords(lat: number, lng: number): [number, number] {
@@ -57,6 +68,13 @@ export async function storeNewEvent(
       event_type: event.category,
       canonical_source_item_id: sourceItem.id,
       geo_precision: event.metadata.geoPrecision ?? 'unknown',
+      geo_method: (event.metadata.geoPrecision && event.metadata.geoPrecision !== 'unknown') ? 'gazetteer' : 'inferred',
+      uncertainty_radius_m: (() => {
+        const p = event.metadata?.geoPrecision;
+        if (!p || p === 'unknown') return null;
+        const m: Record<string, number> = { exact_point: 100, neighborhood: 500, city: 2500, district: 5000, governorate: 15000, country: 50000, inferred: 10000 };
+        return m[p] ?? null;
+      })(),
       metadata: {
         latitude: lat,
         longitude: lng,
@@ -80,6 +98,22 @@ export async function storeNewEvent(
       matching_confidence: safeConfidence,
       dedup_reason: 'new',
     });
+
+    const entities = event.metadata?.extractedEntities as ExtractedEntities | undefined;
+    if (entities) {
+      await persistEntitiesForEvent(client, ev.id, entities);
+    }
+    const claims = extractClaims(event.title, event.description);
+    for (const c of claims) {
+      await createClaim(client, {
+        event_id: ev.id,
+        source_item_id: sourceItem.id,
+        text: c.text,
+        claim_type: c.type ?? null,
+        confidence: c.confidence,
+      });
+    }
+    await persistContradictionsForEvent(client, ev.id);
 
     return ev;
   });
@@ -142,7 +176,71 @@ export async function linkToExistingEvent(
        WHERE id = $1`,
       [eventId, count, sourceDiversity, verificationLevel, verificationStatus]
     );
+
+    const entities = event.metadata?.extractedEntities as ExtractedEntities | undefined;
+    if (entities) {
+      await persistEntitiesForEvent(client, eventId, entities);
+    }
+    const claims = extractClaims(event.title, event.description);
+    for (const c of claims) {
+      await createClaim(client, {
+        event_id: eventId,
+        source_item_id: sourceItem.id,
+        text: c.text,
+        claim_type: c.type ?? null,
+        confidence: c.confidence,
+      });
+    }
+    await persistContradictionsForEvent(client, eventId);
   });
+}
+
+async function persistEntitiesForEvent(
+  client: PoolClient,
+  eventId: string,
+  entities: ExtractedEntities
+): Promise<void> {
+  const entries: { name: string; type: EntityType }[] = [];
+  for (const n of entities.persons ?? []) {
+    if (n?.trim()) entries.push({ name: n.trim(), type: 'person' });
+  }
+  for (const n of entities.parties ?? []) {
+    if (n?.trim()) entries.push({ name: n.trim(), type: 'organization' });
+  }
+  for (const n of entities.organizations ?? []) {
+    if (n?.trim()) entries.push({ name: n.trim(), type: 'organization' });
+  }
+  for (const n of entities.cities ?? []) {
+    if (n?.trim()) entries.push({ name: n.trim(), type: 'place' });
+  }
+  const seen = new Set<string>();
+  for (const { name, type } of entries) {
+    const key = `${type}:${name}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const entity = await upsertEntity(client, name, type);
+    await linkEventToEntity(client, eventId, entity.id, type);
+  }
+}
+
+async function persistContradictionsForEvent(
+  client: PoolClient,
+  eventId: string
+): Promise<void> {
+  const claims = await getClaimsByEventId(client, eventId);
+  const forDetection = claims.map((c) => ({
+    id: c.id,
+    text: c.text,
+    claim_type: c.claim_type ?? null,
+  }));
+  const contradictions = detectContradictions(forDetection);
+  for (const d of contradictions) {
+    await createClaimContradiction(client, {
+      claim_id_a: d.claim_id_a,
+      claim_id_b: d.claim_id_b,
+      contradiction_type: d.contradiction_type,
+    });
+  }
 }
 
 function mapSeverity(severity: string): number {

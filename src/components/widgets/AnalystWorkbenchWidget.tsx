@@ -8,7 +8,7 @@ interface AnalystRow {
   eventId: string;
   title: string;
   occurredAt: string;
-  claimCount: number;
+  observationCount: number;
   sourceDiversity: number;
   mediaCount: number;
   verificationStatus: string;
@@ -26,7 +26,7 @@ export function AnalystWorkbenchWidget() {
   return (
     <div className="p-4">
       <div className="text-[11px] uppercase tracking-[0.08em] mb-2" style={{ color: '#666666' }}>
-        Analyst Workbench
+        Event Review Queue
       </div>
       <div className="flex flex-col">
         {items.map((row) => (
@@ -35,7 +35,7 @@ export function AnalystWorkbenchWidget() {
               {row.title.length > 100 ? `${row.title.slice(0, 100)}...` : row.title}
             </div>
             <div className="text-[10px]" style={{ color: '#666666' }}>
-              preuves: {row.claimCount} · diversité: {row.sourceDiversity} · media: {row.mediaCount} · {row.verificationStatus}
+              sources: {row.observationCount} · diversité: {row.sourceDiversity} · media: {row.mediaCount} · {row.verificationStatus}
             </div>
           </div>
         ))}

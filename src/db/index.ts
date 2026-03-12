@@ -10,3 +10,7 @@ export * from './repositories/source-item-repository';
 export * from './repositories/indicator-snapshot-repository';
 export * from './repositories/event-observation-repository';
 export * from './repositories/event-translation-repository';
+export * from './repositories/entity-repository';
+export * from './repositories/claim-repository';
+export * from './repositories/claim-contradiction-repository';
+export * from './repositories/episode-repository';

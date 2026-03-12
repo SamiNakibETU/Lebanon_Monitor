@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import useSWR from 'swr';
 import Link from 'next/link';
 import { Header } from '@/components/layout/Header';
+import { EpisodeBadge } from '@/components/EpisodeBadge';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -37,6 +38,7 @@ interface EventDetail {
   sourceCount?: number;
   sourceTier?: 'T1' | 'T2' | 'T3' | null;
   translations?: Record<string, string>;
+  episode?: { id: string; label: string | null; status?: string; eventCount: number } | null;
 }
 
 export default function EventDetailPage() {
@@ -131,6 +133,14 @@ export default function EventDetailPage() {
               <span className="text-[11px]" style={{ color: '#666' }}>
                 · Confirmé par {data.sourceCount} sources
               </span>
+            )}
+            {data.episode && (
+              <EpisodeBadge
+                id={data.episode.id}
+                label={data.episode.label}
+                eventCount={data.episode.eventCount}
+                status={data.episode.status as 'open' | 'closed' | undefined}
+              />
             )}
             {data.sources && data.sources.length > 0 && (
               <span className="text-[11px] flex items-center gap-1" style={{ color: '#666' }}>

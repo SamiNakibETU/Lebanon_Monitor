@@ -37,6 +37,9 @@ import { OPENAQ_CONFIG } from "./openaq/config";
 import { fetchTwitter } from "./twitter";
 import { normalize as normalizeTwitter } from "./twitter";
 import { TWITTER_CONFIG } from "./twitter/config";
+import { fetchAcled } from "./acled";
+import { normalize as normalizeAcled } from "./acled";
+import { ACLED_CONFIG } from "./acled/config";
 import { fetchUcdp } from "./ucdp";
 import { normalize as normalizeUcdp } from "./ucdp";
 import { UCDP_CONFIG } from "./ucdp/config";
@@ -109,6 +112,18 @@ export const CONNECTORS: ConnectorDescriptor[] = [
     fetch: fetchGdacs,
     normalize: (raw, fetchedAt) =>
       normalizeGdacs(raw.features ?? [], fetchedAt),
+  }),
+  createConnector({
+    name: "acled",
+    category: "conflict",
+    eventSource: true,
+    indicatorSource: false,
+    ttlSeconds: ACLED_CONFIG.ttlSeconds,
+    reliability: "high",
+    costClass: "free",
+    fetch: fetchAcled,
+    normalize: normalizeAcled,
+    isSkipped: (msg) => msg.includes("not configured"),
   }),
   createConnector({
     name: "reliefweb",

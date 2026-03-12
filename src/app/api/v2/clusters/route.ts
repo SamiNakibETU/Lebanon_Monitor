@@ -49,7 +49,10 @@ export async function GET() {
         };
       });
 
-      return { clusters };
+      return {
+        _meta: { description: 'Trending event types (last 24h vs prior 24h). Not semantic clusters.' },
+        clusters,
+      };
     });
 
     return NextResponse.json(result, {

@@ -1,10 +1,46 @@
 # Lebanon Monitor V2 — État du plan et étapes détaillées
 
-**Dernière mise à jour** : 7 mars 2025
+**Dernière mise à jour** : 12 mars 2026
+
+**Référence stratégique** : [LEBANON_MONITOR_DIRECTOR_BRIEF.md](./LEBANON_MONITOR_DIRECTOR_BRIEF.md)
 
 ---
 
 ## 1. OÙ ON EN EST
+
+### Phase 0 — Truthfulness (Directeur Brief) ✅
+| Élément | Statut |
+|--------|--------|
+| Labels alignés | `/api/v2/clusters` : _meta "Not semantic clusters" ; `/api/v2/analyst-workbench` : "observation count (sources)" |
+| CausalTimeline → HourlyActivity | Renommé |
+| Analyst Workbench → Event Review Queue | Renommé (liste events + sources) |
+| Surfaces trompeuses | Corrigées |
+
+### Phase 2 — Claim Graph ✅
+| Élément | Statut |
+|--------|--------|
+
+### Phase 3 — Episode Engine V2 ✅
+| Élément | Statut |
+|--------|--------|
+| Statut episode (open/closed) | Migration 004, closeStaleEpisodes |
+| Rattachement 48h + governorate | choose-episode-for-event |
+| API episodes/list/detail + status | exposé |
+| EpisodeBadge, page event detail | EpisodeBadge |
+| Page épisode `/episode/[id]` | ✅ |
+| Extraction claims (fatality, injury, general) | `extract-claims.ts` |
+| claim_type, claim_contradiction | Migration 003, repository |
+| Détection contradictions (nombres incompatibles, négation vs nombre) | `detect-contradictions.ts` |
+| Store : persist claims, entities, contradictions | `store.ts` |
+| API event detail : claims, entities, contradictions | `/api/v2/events/[id]` |
+
+### Phase 3 — Moteur d’épisodes V2 ✅
+| Élément | Statut |
+|--------|--------|
+| Statut episode (open/closed) | Migration 004, closeStaleEpisodes |
+| Rattachement : épisodes ouverts 48h, place governorate | `choose-episode-for-event.ts` |
+| APIs episode : status | `/api/v2/episodes`, `/api/v2/episodes/[id]` |
+| EpisodeBadge, page episode | `EpisodeBadge.tsx`, `/episode/[id]` |
 
 ### Sprint 1 — Foundation ✅ (terminé)
 | Tâche | Statut |
@@ -36,7 +72,7 @@
 | Tâche | Statut |
 |-------|--------|
 | Telegram dans connector registry | ✅ |
-| ACLED | ✅ |
+| ACLED dans connector registry | ✅ (nécessite ACLED_API_KEY + ACLED_EMAIL ; skippé si non configuré) |
 | UCDP | ✅ |
 | MapLibre GL (carte unique, clustering) | ✅ |
 | CCTV multi-source (Al Jadeed → MTV → LBCI → Al Jazeera) | ✅ |
@@ -56,7 +92,7 @@
 | SEO (meta, sitemap) | ⏳ |
 | Performance (ISR, lazy load) | ⏳ |
 | Déploiement Railway (Web + Worker) | ⏳ |
-| 150+ tests | ⏳ (131 actuellement) |
+| 150+ tests | ⏳ (149 actuellement) |
 
 ---
 

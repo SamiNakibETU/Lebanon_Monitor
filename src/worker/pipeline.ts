@@ -12,6 +12,7 @@ import { storeNewEvent, linkToExistingEvent } from './store';
 import { translateAndStore } from './translate';
 import { runIndicators } from './indicators';
 import { runCluster } from './cluster';
+import { runEpisodes } from './episodes';
 import { logSourceHealth, logPipelineRun } from './health';
 import { logger } from '@/lib/logger';
 import { EVENT_SOURCE_NAMES } from '@/sources/connector-registry';
@@ -185,6 +186,10 @@ export async function runPipeline(options: PipelineOptions = {}): Promise<Pipeli
         logger.warn('Clustering failed (non-fatal)', { err: err instanceof Error ? err.message : String(err) })
       );
     }
+
+    await runEpisodes().catch((err) =>
+      logger.warn('Episodes failed (non-fatal)', { err: err instanceof Error ? err.message : String(err) })
+    );
 
     await logPipelineRun({
       status: 'success',

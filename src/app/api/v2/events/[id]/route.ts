@@ -6,6 +6,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withClient, isDbConfigured } from '@/db/client';
 import { getEventById } from '@/db/repositories/event-repository';
 import { getEventTranslations } from '@/db/repositories/event-translation-repository';
+import { getClaimsByEventId } from '@/db/repositories/claim-repository';
+import { getEntitiesByEventId } from '@/db/repositories/entity-repository';
+import { getEpisodeById } from '@/db/repositories/episode-repository';
+import { getContradictionsByEventId } from '@/db/repositories/claim-contradiction-repository';
 import { getSourceTier } from '@/config/source-tiers';
 import { isProbablyGarbled, normalizeText } from '@/lib/text-normalize';
 import type { Lang } from '@/db/repositories/event-translation-repository';
@@ -39,11 +43,16 @@ export async function GET(
   const lang = (req.nextUrl.searchParams.get('lang') ?? 'fr') as Lang;
 
   try {
-    const { event, translations, observations } = await withClient(async (client) => {
+    const { event, translations, observations, claims, entities, contradictions, episode } = await withClient(async (client) => {
       const event = await getEventById(client, id);
-      if (!event) return { event: null, translations: [], observations: [] };
+      if (!event) return { event: null, translations: [], observations: [], claims: [], entities: [], contradictions: [], episode: null };
 
-      const translations = await getEventTranslations(client, id);
+      const [translations, claims, entities, contradictions] = await Promise.all([
+        getEventTranslations(client, id),
+        getClaimsByEventId(client, id),
+        getEntitiesByEventId(client, id),
+        getContradictionsByEventId(client, id),
+      ]);
       const obsResult = await client.query(
         `SELECT eo.observed_title, eo.observed_at, si.source_name
          FROM event_observation eo
@@ -53,10 +62,19 @@ export async function GET(
         [id]
       );
 
+      const episode =
+        event.primary_episode_id
+          ? await getEpisodeById(client, event.primary_episode_id)
+          : null;
+
       return {
         event,
         translations,
         observations: obsResult.rows,
+        claims,
+        entities,
+        contradictions,
+        episode,
       };
     });
 
@@ -104,6 +122,34 @@ export async function GET(
           verificationStatus: event.verification_status,
         },
         translations: Object.fromEntries(translations.map((t) => [t.language, t.title])),
+        claims: claims.map((c) => ({
+          id: c.id,
+          text: c.text,
+          claim_type: c.claim_type,
+          confidence: c.confidence,
+          status: c.status,
+        })),
+        entities: entities.map((e) => ({
+          id: e.id,
+          name: e.name,
+          entity_type: e.entity_type,
+          role: e.role,
+        })),
+        contradictions: contradictions.map((cc) => ({
+          claim_id_a: cc.claim_id_a,
+          claim_id_b: cc.claim_id_b,
+          type: cc.contradiction_type,
+        })),
+        episode: episode
+          ? {
+              id: episode.id,
+              label: episode.label,
+              status: (episode as { status?: string }).status ?? 'open',
+              firstEventAt: episode.first_event_at,
+              lastEventAt: episode.last_event_at,
+              eventCount: episode.event_count,
+            }
+          : null,
       },
       {
         headers: { 'Cache-Control': 's-maxage=60, stale-while-revalidate=300' },

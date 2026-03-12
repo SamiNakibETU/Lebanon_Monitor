@@ -8,6 +8,7 @@ import type {
   PolarityUi,
   VerificationStatus,
   GeoPrecision,
+  GeoMethod,
 } from "../types";
 
 export interface CreateEventInput {
@@ -24,6 +25,8 @@ export interface CreateEventInput {
   occurred_at: Date;
   place_id?: string | null;
   geo_precision?: GeoPrecision | null;
+  geo_method?: GeoMethod | null;
+  uncertainty_radius_m?: number | null;
   primary_cluster_id?: string | null;
   canonical_source_item_id?: string | null;
   metadata?: Record<string, unknown> | null;
@@ -58,9 +61,9 @@ export async function createEvent(
       canonical_title, canonical_summary, original_language,
       event_type, sub_type, polarity_ui, impact_score, severity_score, confidence_score,
       verification_status, occurred_at, first_seen_at, last_seen_at,
-      place_id, geo_precision, primary_cluster_id, canonical_source_item_id,
+      place_id, geo_precision, geo_method, uncertainty_radius_m, primary_cluster_id, canonical_source_item_id,
       is_active, metadata, created_at, updated_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, true, $18, $19, $20)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, true, $20, $21, $22)
     RETURNING *`,
     [
       input.canonical_title,
@@ -78,6 +81,8 @@ export async function createEvent(
       now,
       input.place_id ?? null,
       input.geo_precision ?? null,
+      input.geo_method ?? null,
+      input.uncertainty_radius_m ?? null,
       input.primary_cluster_id ?? null,
       input.canonical_source_item_id ?? null,
       input.metadata ?? null,
@@ -311,6 +316,37 @@ export async function updateEventPrimaryCluster(
   await client.query(
     `UPDATE event SET primary_cluster_id = $1, updated_at = now() WHERE id = $2`,
     [clusterId, eventId]
+  );
+}
+/**
+ * Get recent events without primary_episode_id for episode linking.
+ */
+export async function getRecentUnepisodedEvents(
+  client: PoolClient,
+  fromDate: Date,
+  limit = 500
+): Promise<EventRow[]> {
+  const { rows } = await client.query<EventRow>(
+    `SELECT * FROM event
+     WHERE is_active = true AND primary_episode_id IS NULL AND occurred_at >= $1
+     ORDER BY occurred_at ASC
+     LIMIT $2`,
+    [fromDate, limit]
+  );
+  return rows;
+}
+
+/**
+ * Update event's primary_episode_id.
+ */
+export async function updateEventPrimaryEpisode(
+  client: PoolClient,
+  eventId: string,
+  episodeId: string
+): Promise<void> {
+  await client.query(
+    `UPDATE event SET primary_episode_id = $1, updated_at = now() WHERE id = $2`,
+    [episodeId, eventId]
   );
 }
 

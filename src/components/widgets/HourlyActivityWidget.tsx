@@ -17,7 +17,7 @@ interface TimelineEvent {
   occurredAt: string;
 }
 
-export function CausalTimelineWidget() {
+export function HourlyActivityWidget() {
   const { data } = useSWR<TimelineItem[]>('/api/v2/timeline', fetcher, {
     refreshInterval: 120_000,
   });
@@ -94,4 +94,3 @@ export function CausalTimelineWidget() {
     </div>
   );
 }
-
