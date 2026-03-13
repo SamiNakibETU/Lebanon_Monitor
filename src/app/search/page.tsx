@@ -5,6 +5,9 @@ import { Suspense, useCallback, useEffect, useState } from 'react';
 import useSWR from 'swr';
 import Link from 'next/link';
 import { Header } from '@/components/layout/Header';
+import { AnalystHeader } from '@/components/shared/AnalystHeader';
+import { AnalystActionsBar } from '@/components/shared/AnalystActionsBar';
+import { AnalystEmptyState } from '@/components/shared/AnalystEmptyState';
 import { CATEGORY_LABELS } from '@/lib/labels';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -52,90 +55,163 @@ function SearchContent() {
   }, []);
 
   const searchUrl = q ? `/api/v2/search?q=${encodeURIComponent(q)}&lang=${lang}&limit=50` : null;
+  const placesUrl = q ? `/api/v2/places?q=${encodeURIComponent(q)}&limit=10` : null;
+  const actorsUrl = q ? `/api/v2/actors?q=${encodeURIComponent(q)}&limit=10` : null;
+
   const { data, error, isLoading } = useSWR<{ data: SearchEvent[]; meta: { total: number } }>(
     searchUrl,
+    fetcher
+  );
+  const { data: placesData } = useSWR<{ items: Array<{ id: string; label: string; eventCount: number }>; total: number }>(
+    placesUrl,
+    fetcher
+  );
+  const { data: actorsData } = useSWR<{ items: Array<{ id: string; label: string; eventCount: number }>; total: number }>(
+    actorsUrl,
     fetcher
   );
 
   const events = data?.data ?? [];
   const total = data?.meta?.total ?? 0;
+  const places = placesData?.items ?? [];
+  const placesTotal = placesData?.total ?? 0;
+  const actors = actorsData?.items ?? [];
+  const actorsTotal = actorsData?.total ?? 0;
 
   return (
-    <div className="min-h-screen" style={{ background: '#000000' }}>
+    <div className="min-h-screen" style={{ background: '#000000', color: '#FFFFFF' }}>
       <Header lang={lang} onLangChange={handleLangChange} />
       <main className="max-w-[720px] mx-auto px-6 py-8">
-        <div className="mb-6">
-          <h1 className="text-[24px] font-light" style={{ color: '#FFFFFF' }}>
-            Recherche
-          </h1>
-          {q && (
-            <p className="text-[13px] mt-1" style={{ color: '#666666' }}>
-              &quot;{q}&quot; — {total} résultat{total !== 1 ? 's' : ''}
-            </p>
-          )}
-        </div>
+        <AnalystHeader
+          title="Recherche"
+          subtitle={q ? `"${q}" — ${total} événement${total !== 1 ? 's' : ''}${(placesTotal > 0 || actorsTotal > 0) ? ` · ${placesTotal} lieu${placesTotal !== 1 ? 's' : ''} · ${actorsTotal} acteur${actorsTotal !== 1 ? 's' : ''}` : ''}` : 'Point d\'entrée analyste — explorez par terme'}
+          backHref="/"
+          backLabel="Retour au dashboard"
+        />
+        {q && (
+          <div className="mt-6">
+            <AnalystActionsBar
+              focusType="search"
+              query={q}
+              label={q}
+            />
+          </div>
+        )}
 
         {!q ? (
-          <p style={{ color: '#666666', fontSize: 13 }}>
-            Entrez un terme dans la barre de recherche du header et appuyez sur Entrée.
-          </p>
+          <div style={{ color: '#666666', fontSize: 13 }}>
+            <p>Utilisez la barre de recherche du header ou entrez une URL : <code className="text-[12px] bg-[#0A0A0A] px-1" style={{ color: '#888888' }}>/search?q=votre_terme</code></p>
+            <p className="mt-4">Ou accédez à : <a href="/retrieval" className="transition-colors duration-150 hover:text-[#FFFFFF]" style={{ color: '#888888' }}>/retrieval</a> pour une exploration structurée.</p>
+          </div>
         ) : error ? (
-          <p style={{ color: '#666666', fontSize: 13 }}>Erreur de chargement.</p>
+          <AnalystEmptyState message="Erreur de chargement. Réessayez." />
         ) : isLoading ? (
-          <p style={{ color: '#666666', fontSize: 13 }}>Chargement…</p>
-        ) : events.length === 0 ? (
-          <p style={{ color: '#666666', fontSize: 13 }}>Aucun résultat.</p>
+          <p className="mt-8" style={{ color: '#666666', fontSize: 13 }}>Chargement…</p>
+        ) : events.length === 0 && places.length === 0 && actors.length === 0 ? (
+          <AnalystEmptyState message="Aucun résultat pour cette requête." />
         ) : (
-          <div className="flex flex-col">
-            {events.map((e) => {
-              const isLumiere = e.classification === 'lumiere';
-              const dotColor = isLumiere ? '#2E7D32' : '#C62828';
-              const borderColor = isLumiere ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.04)';
-              const textColor = isLumiere ? '#1A1A1A' : '#FFFFFF';
-              const metaColor = isLumiere ? '#888888' : '#666666';
-              const time = new Date(e.occurredAt);
-              const rel =
-                time > new Date(Date.now() - 60 * 60 * 1000)
-                  ? `${Math.round((Date.now() - time.getTime()) / 60000)} min ago`
-                  : time.toLocaleDateString();
-
-              return (
-                <Link
-                  key={e.id}
-                  href={`/event/${e.id}?lang=${lang}`}
-                  className="flex gap-3 py-4 transition-colors block no-underline border-b"
-                  style={{ borderColor }}
-                >
-                  <span
-                    className="inline-block shrink-0 rounded-full"
-                    style={{ width: 6, height: 6, background: dotColor }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div
-                      className="flex items-center gap-2 flex-wrap text-[11px] mb-1.5 uppercase tracking-[0.08em]"
-                      style={{ color: metaColor }}
+          <div className="flex flex-col gap-10">
+            {events.length > 0 && (
+              <div>
+                <div className="text-[11px] uppercase tracking-[0.08em] mb-3" style={{ color: '#666666' }}>
+                  Événements ({total})
+                </div>
+                <div className="flex flex-col">
+                  {events.map((e) => {
+                    const isLumiere = e.classification === 'lumiere';
+                    const dotColor = isLumiere ? '#2E7D32' : '#C62828';
+                    const borderColor = isLumiere ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.04)';
+                    const textColor = isLumiere ? '#1A1A1A' : '#FFFFFF';
+                    const metaColor = isLumiere ? '#888888' : '#666666';
+                    const time = new Date(e.occurredAt);
+                    const rel =
+                      time > new Date(Date.now() - 60 * 60 * 1000)
+                        ? `${Math.round((Date.now() - time.getTime()) / 60000)} min ago`
+                        : time.toLocaleDateString();
+                    return (
+                      <Link
+                        key={e.id}
+                        href={`/event/${e.id}?lang=${lang}`}
+                        className="flex gap-3 py-4 transition-colors block no-underline border-b"
+                        style={{ borderColor }}
+                      >
+                        <span
+                          className="inline-block shrink-0 rounded-full"
+                          style={{ width: 6, height: 6, background: dotColor }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div
+                            className="flex items-center gap-2 flex-wrap text-[11px] mb-1.5 uppercase tracking-[0.08em]"
+                            style={{ color: metaColor }}
+                          >
+                            {e.category && (
+                              <>
+                                <span>{getCategoryLabel(e.category)}</span>
+                                <span>·</span>
+                              </>
+                            )}
+                            {e.source && <span>{e.source}</span>}
+                            {e.sourceCount != null && e.sourceCount > 1 && (
+                              <span className="tabular-nums">{e.sourceCount} sources</span>
+                            )}
+                            <span className="ml-auto" suppressHydrationWarning>
+                              {rel}
+                            </span>
+                          </div>
+                          <div className="text-[14px] font-normal leading-snug" style={{ color: textColor }}>
+                            {e.title}
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {places.length > 0 && (
+              <div>
+                <div className="text-[11px] uppercase tracking-[0.08em] mb-3" style={{ color: '#666666' }}>
+                  Lieux ({placesTotal})
+                </div>
+                <div className="flex flex-col">
+                  {places.map((p) => (
+                    <Link
+                      key={p.id}
+                      href={`/place/${p.id}`}
+                      className="flex flex-col gap-0.5 py-3 transition-colors block no-underline border-b hover:bg-[rgba(255,255,255,0.02)]"
+                      style={{ borderColor: 'rgba(255,255,255,0.04)', color: '#FFFFFF' }}
                     >
-                      {e.category && (
-                        <>
-                          <span>{getCategoryLabel(e.category)}</span>
-                          <span>·</span>
-                        </>
-                      )}
-                      {e.source && <span>{e.source}</span>}
-                      {e.sourceCount != null && e.sourceCount > 1 && (
-                        <span className="tabular-nums">{e.sourceCount} sources</span>
-                      )}
-                      <span className="ml-auto" suppressHydrationWarning>
-                        {rel}
+                      <span className="text-[14px] font-normal">{p.label}</span>
+                      <span className="text-[11px] uppercase tracking-[0.08em]" style={{ color: '#666666' }}>
+                        {p.eventCount} événement{p.eventCount !== 1 ? 's' : ''}
                       </span>
-                    </div>
-                    <div className="text-[14px] font-normal leading-snug" style={{ color: textColor }}>
-                      {e.title}
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+            {actors.length > 0 && (
+              <div>
+                <div className="text-[11px] uppercase tracking-[0.08em] mb-3" style={{ color: '#666666' }}>
+                  Acteurs ({actorsTotal})
+                </div>
+                <div className="flex flex-col">
+                  {actors.map((a) => (
+                    <Link
+                      key={a.id}
+                      href={`/actor/${a.id}`}
+                      className="flex flex-col gap-0.5 py-3 transition-colors block no-underline border-b hover:bg-[rgba(255,255,255,0.02)]"
+                      style={{ borderColor: 'rgba(255,255,255,0.04)', color: '#FFFFFF' }}
+                    >
+                      <span className="text-[14px] font-normal">{a.label}</span>
+                      <span className="text-[11px] uppercase tracking-[0.08em]" style={{ color: '#666666' }}>
+                        {a.eventCount} événement{a.eventCount !== 1 ? 's' : ''}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>

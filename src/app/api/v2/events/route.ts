@@ -9,6 +9,7 @@ import { getTranslationPayloadsForEvents } from '@/db/repositories/event-transla
 import { getObservationCountByEventIds } from '@/db/repositories/event-observation-repository';
 import { getSourceTier } from '@/config/source-tiers';
 import { isProbablyGarbled, normalizeText } from '@/lib/text-normalize';
+import { buildGeoQualityFromEvent } from '@/lib/api/geo-quality';
 import { z } from 'zod';
 
 /** Event types considered "political" for the political feed. */
@@ -108,6 +109,7 @@ export async function GET(request: Request) {
         latitude: meta.latitude ?? null,
         longitude: meta.longitude ?? null,
         geoPrecision: e.geo_precision ?? (meta.geoPrecision as string | null) ?? 'unknown',
+        geoQuality: buildGeoQualityFromEvent(e),
         resolvedPlaceName: (meta.resolvedPlaceName as string | null) ?? null,
         source,
         eventSource: source,

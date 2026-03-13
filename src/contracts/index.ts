@@ -3,5 +3,6 @@
  */
 
 export * from './events';
+export * from './geo-quality';
 export * from './indicators';
 export * from './analytics';

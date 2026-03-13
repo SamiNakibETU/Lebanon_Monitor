@@ -47,14 +47,26 @@ function run(cmd, args = [], opts = {}) {
 async function fetchHealth(baseUrl) {
   try {
     const res = await fetch(`${baseUrl}/api/v2/health`, { cache: 'no-store' });
+    if (!res.ok) return null;
     const data = await res.json();
     return data;
-  } catch (e) {
+  } catch {
     return null;
   }
 }
 
+function parseArgs(argv) {
+  const flags = new Set(argv.filter((a) => a.startsWith('--')));
+  const urlArg = argv.find((a) => !a.startsWith('--'));
+  return { flags, urlArg };
+}
+
 async function main() {
+  const { flags, urlArg } = parseArgs(process.argv.slice(2));
+  const skipBuild = flags.has('--skip-build');
+  const skipDb = flags.has('--skip-db');
+  const healthRequired = flags.has('--require-health') || Boolean(urlArg) || Boolean(process.env.HEALTH_URL);
+
   console.log('=== Lebanon Monitor — Vérification complète ===\n');
 
   // 1. Type check
@@ -77,7 +89,21 @@ async function main() {
     process.exit(1);
   }
 
-  // 3. DB (charge .env.local pour db:check)
+  // 3. Build (optionnel)
+  if (skipBuild) {
+    console.log('3. Build... (skipped --skip-build)\n');
+  } else {
+    console.log('3. Build...');
+    try {
+      await run('npm', ['run', 'build']);
+      console.log('   ✓ Build OK\n');
+    } catch {
+      console.error('   ✗ Build échoué\n');
+      process.exit(1);
+    }
+  }
+
+  // 4. DB (charge .env.local pour db:check)
   loadEnvLocal();
   const hasDb = !!(
     process.env.DATABASE_URL ||
@@ -85,22 +111,24 @@ async function main() {
     process.env.DATABASE_PRIVATE_URL
   );
 
-  if (hasDb) {
-    console.log('3. Base de données... (DATABASE_PUBLIC_URL pour Railway depuis local)');
+  if (skipDb) {
+    console.log('4. Base de données... (skipped --skip-db)\n');
+  } else if (hasDb) {
+    console.log('4. Base de données... (DATABASE_PUBLIC_URL pour Railway depuis local)');
     try {
       await run('npm', ['run', 'db:check']);
       console.log('   ✓ DB OK\n');
     } catch {
-      console.error('   ✗ DB non joignable (OK en local si Postgres pas lancé — sur Railway ça marche)\n');
-      // Ne pas exit : vérif continue pour health API
+      console.error('   ✗ DB non joignable\n');
+      process.exit(1);
     }
   } else {
-    console.log('3. Base de données... (skipped — DATABASE_URL non défini)\n');
+    console.log('4. Base de données... (skipped — DATABASE_URL non défini)\n');
   }
 
-  // 4. Sources / APIs — URL en argument (npm run verify -- https://ton-app.railway.app) ou HEALTH_URL
-  const healthUrl = process.argv[2] || process.env.HEALTH_URL || 'http://localhost:3000';
-  console.log(`4. Health API (${healthUrl})...`);
+  // 5. Sources / APIs — URL en argument (npm run verify -- https://ton-app.railway.app) ou HEALTH_URL
+  const healthUrl = urlArg || process.env.HEALTH_URL || 'http://localhost:3000';
+  console.log(`5. Health API (${healthUrl})...`);
 
   const health = await fetchHealth(healthUrl);
   if (health) {
@@ -115,6 +143,10 @@ async function main() {
     }
     console.log('   ✓ Health récupéré\n');
   } else {
+    if (healthRequired) {
+      console.error('   ✗ Health indisponible\n');
+      process.exit(1);
+    }
     console.log('   (Serveur non démarré — lance "npm run dev" puis GET /api/v2/health)\n');
   }
 

@@ -17,7 +17,7 @@ const LEVANT_BOUNDS: [[number, number], [number, number]] = [
   [42.0, 38.0],
 ];
 
-const LAYER_IDS = ['events', 'strikes', 'convergence', 'flights', 'fires', 'infra', 'unifil', 'media', 'statements'] as const;
+const LAYER_IDS = ['events', 'footprints', 'strikes', 'convergence', 'flights', 'fires', 'infra', 'unifil', 'media', 'statements'] as const;
 type LayerId = (typeof LAYER_IDS)[number];
 
 const INFRA_TYPES: Record<string, { color: string; radius: number }> = {
@@ -49,6 +49,14 @@ interface MapEvent {
   category?: string | null;
   severity?: string | null;
   geoPrecision?: string | null;
+  geoQuality?: {
+    precision: string;
+    method: string;
+    uncertaintyRadiusM: number | null;
+    resolvedPlaceName: string | null;
+    admin1: string | null;
+    geocodeConfidence: number | null;
+  } | null;
   verificationStatus?: string | null;
   translationStatus?: string | null;
   evidence?: {
@@ -133,6 +141,8 @@ interface StatementsResponse {
 }
 
 function toGeoJSON(events: MapEvent[], classification: 'lumiere' | 'ombre'): GeoJSON.FeatureCollection {
+  const precision = (e: MapEvent) => e.geoQuality?.precision ?? e.geoPrecision ?? 'unknown';
+  const uncertaintyM = (e: MapEvent) => e.geoQuality?.uncertaintyRadiusM ?? null;
   const features = events
     .filter((e) => e.latitude != null && e.longitude != null)
     .filter((e) => {
@@ -151,13 +161,14 @@ function toGeoJSON(events: MapEvent[], classification: 'lumiere' | 'ombre'): Geo
         occurredAt: e.occurredAt,
         category: e.category ?? null,
         severity: e.severity ?? null,
-        geoPrecision: e.geoPrecision ?? 'unknown',
+        geoPrecision: precision(e),
+        uncertaintyRadiusM: uncertaintyM(e),
         verificationStatus: e.verificationStatus ?? 'unverified',
         translationStatus: e.translationStatus ?? 'unknown',
         sourceCount: e.evidence?.sourceCount ?? 1,
         sourceDiversity: e.evidence?.sourceDiversity ?? 1,
         verificationLevel: e.evidence?.verificationLevel ?? 'low',
-        geocodeConfidence: e.evidence?.geocodeConfidence ?? 0,
+        geocodeConfidence: e.geoQuality?.geocodeConfidence ?? e.evidence?.geocodeConfidence ?? 0,
       },
     }));
   return { type: 'FeatureCollection', features };
@@ -175,6 +186,7 @@ export function HeroMap({ minimized }: HeroMapProps) {
   const [styleLoaded, setStyleLoaded] = useState(false);
   const [layers, setLayers] = useState<Record<LayerId, boolean>>({
     events: false,
+    footprints: false,
     strikes: true,
     convergence: true,
     flights: true,
@@ -242,6 +254,9 @@ export function HeroMap({ minimized }: HeroMapProps) {
     fetcher,
     { refreshInterval: 300_000 }
   );
+  const { data: episodesRes } = useSWR<{
+    items: Array<{ id: string; label: string | null; footprintGeojson: unknown }>;
+  }>('/api/v2/episodes?limit=50', fetcher, { refreshInterval: 120_000 });
 
   const cutoffTs = Date.now() - playbackHours * 60 * 60 * 1000;
   const lumiereEvents = (Array.isArray(lumiereRes?.data) ? lumiereRes.data : []).filter((e) => {
@@ -322,6 +337,20 @@ export function HeroMap({ minimized }: HeroMapProps) {
   const firesGeo: GeoJSON.FeatureCollection = firmsRes?.data ?? {
     type: 'FeatureCollection',
     features: [],
+  };
+
+  const footprintsGeo: GeoJSON.FeatureCollection = {
+    type: 'FeatureCollection',
+    features:
+      episodesRes?.items?.flatMap((ep) => {
+        const f = ep.footprintGeojson as GeoJSON.Feature | null | undefined;
+        if (!f || f.type !== 'Feature' || !f.geometry) return [];
+        const geom = f.geometry as GeoJSON.Polygon | GeoJSON.Point;
+        if (geom.type === 'Polygon') {
+          return [{ ...f, properties: { ...(f.properties as object), episodeId: ep.id, label: ep.label ?? '' } }];
+        }
+        return [];
+      }) ?? [],
   };
 
   const flightsGeoData = flightsGeo ?? { type: 'FeatureCollection' as const, features: [] };
@@ -504,7 +533,28 @@ export function HeroMap({ minimized }: HeroMapProps) {
             '#2E7D32',
             '#C62828',
           ],
-          'circle-radius': 5,
+          'circle-radius': [
+            'match',
+            ['get', 'geoPrecision'],
+            'exact_point', 5,
+            'neighborhood', 5,
+            'city', 5,
+            'district', 6,
+            'governorate', 7,
+            'country', 8,
+            'inferred', 6,
+            5,
+          ],
+          'circle-opacity': [
+            'match',
+            ['get', 'geoPrecision'],
+            'exact_point', 1,
+            'neighborhood', 0.95,
+            'city', 0.95,
+            'country', 0.7,
+            'inferred', 0.8,
+            0.9,
+          ],
           'circle-stroke-width': 1,
           'circle-stroke-color': 'rgba(255,255,255,0.3)',
         },
@@ -524,7 +574,9 @@ export function HeroMap({ minimized }: HeroMapProps) {
             `<div style="font-weight:500;margin-bottom:6px;line-height:1.4">${props.title ?? 'Événement'}</div>` +
             `<div style="color:#888;font-size:10px">${props.source ?? ''} · ${props.occurredAt ? new Date(props.occurredAt).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' }) : ''}</div>` +
             `<div style="color:#666;font-size:10px;margin-top:6px">` +
-            `Pourquoi ce point: ${props.verificationStatus ?? 'unverified'} · geo=${props.geoPrecision ?? 'unknown'} · sources=${props.sourceCount ?? 1}` +
+            `Précision: ${props.geoPrecision ?? 'unknown'}` +
+            (props.uncertaintyRadiusM ? ` · Incertitude: ±${Math.round((props.uncertaintyRadiusM as number) / 1000)} km` : '') +
+            ` · sources=${props.sourceCount ?? 1}` +
             `</div>` +
             `<a href="/event/${props.id}" style="color:#4FC3F7;font-size:10px;margin-top:8px;display:block;text-decoration:none">Détails →</a>` +
             `</div>`
@@ -550,6 +602,22 @@ export function HeroMap({ minimized }: HeroMapProps) {
       map.on('mouseleave', 'events-clusters', () => { map.getCanvas().style.cursor = ''; });
     } else {
       (map.getSource('events-points') as maplibregl.GeoJSONSource).setData(allEventsGeo);
+    }
+
+    if (!map.getSource('footprints')) {
+      map.addSource('footprints', { type: 'geojson', data: footprintsGeo });
+      map.addLayer({
+        id: 'footprints-fill',
+        type: 'fill',
+        source: 'footprints',
+        paint: {
+          'fill-color': 'rgba(46,125,50,0.2)',
+          'fill-outline-color': 'rgba(46,125,50,0.5)',
+        },
+        layout: { visibility: 'none' },
+      });
+    } else {
+      (map.getSource('footprints') as maplibregl.GeoJSONSource).setData(footprintsGeo);
     }
 
     if (!map.getSource('strikes-points')) {
@@ -977,6 +1045,7 @@ export function HeroMap({ minimized }: HeroMapProps) {
     const v = (id: string) => (layers[id as LayerId] ? 'visible' : 'none');
     if (map.getLayer('events-clusters')) map.setLayoutProperty('events-clusters', 'visibility', v('events'));
     if (map.getLayer('events-unclustered')) map.setLayoutProperty('events-unclustered', 'visibility', v('events'));
+    if (map.getLayer('footprints-fill')) map.setLayoutProperty('footprints-fill', 'visibility', v('footprints'));
     if (map.getLayer('strikes-circles')) map.setLayoutProperty('strikes-circles', 'visibility', v('strikes'));
     if (map.getLayer('flights-points')) map.setLayoutProperty('flights-points', 'visibility', v('flights'));
     if (map.getLayer('fires-points')) map.setLayoutProperty('fires-points', 'visibility', v('fires'));

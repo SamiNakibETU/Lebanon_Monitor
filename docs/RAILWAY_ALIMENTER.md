@@ -37,6 +37,7 @@ Remplace `COLLE_ICI_L_URL_COPIEE` par l'URL (ex. `postgresql://postgres:xxx@xxx.
 - Attends 1–2 min (le worker ingère GDELT, RSS, Twitter, etc.)
 - Ouvre https://lebanonmonitor-production.up.railway.app/
 - Les événements devraient apparaître
+- Vérifie `https://lebanonmonitor-production.up.railway.app/api/v2/health` (`database.status` doit être `ok`)
 
 ---
 

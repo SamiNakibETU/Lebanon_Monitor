@@ -39,6 +39,8 @@ export const getEventsQuerySchema = z.object({
 
 export type GetEventsQuery = z.infer<typeof getEventsQuerySchema>;
 
+import { geoQualitySchema } from './geo-quality';
+
 export const eventResponseSchema = z.object({
   id: z.string().uuid(),
   canonical_title: z.string(),
@@ -56,6 +58,7 @@ export const eventResponseSchema = z.object({
   last_seen_at: z.string().datetime(),
   place_id: z.string().uuid().nullable(),
   geo_precision: z.string().nullable(),
+  geoQuality: geoQualitySchema.optional(),
   metadata: z.record(z.string(), z.unknown()).nullable(),
 });
 

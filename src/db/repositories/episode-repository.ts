@@ -158,3 +158,14 @@ export async function updateEpisodeTimes(
     [firstEventAt, lastEventAt, eventCount, episodeId]
   );
 }
+
+export async function updateEpisodeFootprint(
+  client: PoolClient,
+  episodeId: string,
+  footprintGeojson: unknown
+): Promise<void> {
+  await client.query(
+    `UPDATE episode SET footprint_geojson = $1::jsonb, updated_at = now() WHERE id = $2`,
+    [footprintGeojson, episodeId]
+  );
+}

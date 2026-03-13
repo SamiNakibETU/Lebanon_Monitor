@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 type Language = 'fr' | 'en' | 'ar';
 
@@ -84,6 +86,15 @@ export function Header({
   lang = 'fr',
   onLangChange,
 }: HeaderProps) {
+  const router = useRouter();
+  const [searchQ, setSearchQ] = useState('');
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = searchQ.trim();
+    if (q) router.push(`/search?q=${encodeURIComponent(q)}`);
+  };
+
   const handleLang = (l: Language) => {
     if (l === 'ar') {
       document.documentElement.dir = 'rtl';
@@ -107,15 +118,71 @@ export function Header({
         borderColor: 'rgba(255,255,255,0.06)',
       }}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-4">
         <SourceHealthDot />
-        <span
-          className="font-medium"
+        <Link
+          href="/"
+          className="font-medium no-underline transition-colors duration-150"
           style={{ color: '#FFFFFF', fontSize: 13 }}
         >
           LB: LEBANON MONITOR
-        </span>
+        </Link>
         <FreshnessChip />
+        <nav className="hidden sm:flex items-center gap-1" aria-label="Exploration analyste">
+          <Link
+            href="/episodes"
+            className="px-2 py-1 text-[11px] uppercase tracking-[0.08em] transition-colors duration-150 hover:text-[#FFFFFF]"
+            style={{ color: '#666666' }}
+          >
+            Episodes
+          </Link>
+          <Link
+            href="/places"
+            className="px-2 py-1 text-[11px] uppercase tracking-[0.08em] transition-colors duration-150 hover:text-[#FFFFFF]"
+            style={{ color: '#666666' }}
+          >
+            Lieux
+          </Link>
+          <Link
+            href="/actors"
+            className="px-2 py-1 text-[11px] uppercase tracking-[0.08em] transition-colors duration-150 hover:text-[#FFFFFF]"
+            style={{ color: '#666666' }}
+          >
+            Acteurs
+          </Link>
+          <Link
+            href="/search"
+            className="px-2 py-1 text-[11px] uppercase tracking-[0.08em] transition-colors duration-150 hover:text-[#FFFFFF]"
+            style={{ color: '#666666' }}
+          >
+            Recherche
+          </Link>
+          <Link
+            href="/vitality"
+            className="px-2 py-1 text-[11px] uppercase tracking-[0.08em] transition-colors duration-150 hover:text-[#FFFFFF]"
+            style={{ color: '#666666' }}
+          >
+            Vitalité
+          </Link>
+          <Link
+            href="/retrieval"
+            className="px-2 py-1 text-[11px] uppercase tracking-[0.08em] transition-colors duration-150 hover:text-[#FFFFFF]"
+            style={{ color: '#666666' }}
+          >
+            Retrieval
+          </Link>
+        </nav>
+        <form onSubmit={handleSearch} className="hidden md:flex items-center" role="search">
+          <input
+            type="search"
+            value={searchQ}
+            onChange={(e) => setSearchQ(e.target.value)}
+            placeholder="Rechercher événements…"
+            className="w-36 px-2 py-1 text-[12px] bg-transparent border transition-colors duration-150 placeholder-[#666666] focus:outline-none"
+            style={{ color: '#FFFFFF', borderColor: 'rgba(255,255,255,0.15)' }}
+            aria-label="Rechercher"
+          />
+        </form>
       </div>
       <div className="flex items-center gap-4">
         <div className="flex gap-0">

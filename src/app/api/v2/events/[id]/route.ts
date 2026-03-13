@@ -12,6 +12,7 @@ import { getEpisodeById } from '@/db/repositories/episode-repository';
 import { getContradictionsByEventId } from '@/db/repositories/claim-contradiction-repository';
 import { getSourceTier } from '@/config/source-tiers';
 import { isProbablyGarbled, normalizeText } from '@/lib/text-normalize';
+import { buildGeoQualityFromEvent } from '@/lib/api/geo-quality';
 import type { Lang } from '@/db/repositories/event-translation-repository';
 
 function mapSeverityScore(score: number | null): string {
@@ -99,6 +100,7 @@ export async function GET(
     return NextResponse.json(
       {
         id: event.id,
+        placeId: event.place_id ?? null,
         title,
         summary: normalizeText(event.canonical_summary ?? '') || null,
         classification: event.polarity_ui,
@@ -109,6 +111,7 @@ export async function GET(
         latitude: meta.latitude ?? null,
         longitude: meta.longitude ?? null,
         geoPrecision: event.geo_precision ?? (meta.geoPrecision as string | null) ?? 'unknown',
+        geoQuality: buildGeoQualityFromEvent(event),
         resolvedPlaceName: (meta.resolvedPlaceName as string | null) ?? null,
         sources: observations.map((o: { source_name: string }) => o.source_name),
         verification_status: event.verification_status,

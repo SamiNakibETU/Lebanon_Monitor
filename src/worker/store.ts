@@ -23,6 +23,17 @@ import { extractClaims } from '@/core/claims/extract-claims';
 import { detectContradictions } from '@/core/claims/detect-contradictions';
 import { LEBANON_BBOX } from '@/config/lebanon';
 
+const EVIDENCE_METHOD_TO_GEO: Record<string, 'source_exact' | 'gazetteer' | 'llm' | 'inferred' | 'unknown'> = {
+  source_exact: 'source_exact',
+  gazetteer_match: 'gazetteer',
+  gazetteer: 'gazetteer',
+  admin_fallback: 'inferred',
+  country_fallback: 'inferred',
+  inferred: 'inferred',
+  llm: 'llm',
+  unknown: 'unknown',
+};
+
 function clampCoords(lat: number, lng: number): [number, number] {
   return [
     Math.max(LEBANON_BBOX.minLat, Math.min(LEBANON_BBOX.maxLat, lat)),
@@ -35,16 +46,30 @@ export async function storeNewEvent(
   event: LebanonEvent
 ): Promise<{ eventId: string; title: string; summary?: string }> {
   const [lat, lng] = clampCoords(event.latitude, event.longitude);
+  const enrichedEvidence = event.metadata?.evidence && typeof event.metadata.evidence === 'object'
+    ? (event.metadata.evidence as Record<string, unknown>)
+    : null;
+  const geocodeMethodFromEnrichment = typeof enrichedEvidence?.geocodeMethod === 'string'
+    ? enrichedEvidence.geocodeMethod
+    : null;
+  const geocodeConfidenceFromEnrichment = typeof enrichedEvidence?.geocodeConfidence === 'number'
+    ? enrichedEvidence.geocodeConfidence
+    : null;
+
+  const geoMethod = geocodeMethodFromEnrichment
+    ? (EVIDENCE_METHOD_TO_GEO[geocodeMethodFromEnrichment] ?? 'inferred')
+    : ((event.metadata.geoPrecision && event.metadata.geoPrecision !== 'unknown') ? 'gazetteer' : 'inferred');
+
   const initialEvidence = {
     primarySource: event.source,
     sourceCount: 1,
     sourceDiversity: 1,
     verificationLevel: 'low',
     verificationStatus: 'unverified',
-    geocodeMethod: (event.metadata.geoPrecision && event.metadata.geoPrecision !== 'unknown')
+    geocodeMethod: geocodeMethodFromEnrichment ?? ((event.metadata.geoPrecision && event.metadata.geoPrecision !== 'unknown')
       ? 'gazetteer_match'
-      : 'unknown',
-    geocodeConfidence: (event.metadata.geoPrecision && event.metadata.geoPrecision !== 'unknown') ? 0.8 : 0.2,
+      : 'unknown'),
+    geocodeConfidence: geocodeConfidenceFromEnrichment ?? ((event.metadata.geoPrecision && event.metadata.geoPrecision !== 'unknown') ? 0.8 : 0.2),
   };
 
   const eventRow = await withClient(async (client) => {
@@ -68,7 +93,7 @@ export async function storeNewEvent(
       event_type: event.category,
       canonical_source_item_id: sourceItem.id,
       geo_precision: event.metadata.geoPrecision ?? 'unknown',
-      geo_method: (event.metadata.geoPrecision && event.metadata.geoPrecision !== 'unknown') ? 'gazetteer' : 'inferred',
+      geo_method: geoMethod,
       uncertainty_radius_m: (() => {
         const p = event.metadata?.geoPrecision;
         if (!p || p === 'unknown') return null;
@@ -82,6 +107,7 @@ export async function storeNewEvent(
         originalSource: sourceItem.source_name,
         geoPrecision: event.metadata.geoPrecision ?? 'unknown',
         resolvedPlaceName: event.metadata.resolvedPlaceName ?? null,
+        admin1: (event.metadata as { admin1?: string }).admin1 ?? null,
         evidence: initialEvidence,
         confidenceLumiere: scoredMeta.confidenceLumiere ?? null,
         impactLumiere: scoredMeta.impactLumiere ?? null,

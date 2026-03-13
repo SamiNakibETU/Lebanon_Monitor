@@ -32,6 +32,13 @@ export interface CreateEventInput {
   metadata?: Record<string, unknown> | null;
 }
 
+export interface BboxFilter {
+  minLng: number;
+  minLat: number;
+  maxLng: number;
+  maxLat: number;
+}
+
 export interface ListEventsFilter {
   source?: string;
   polarity?: PolarityUi;
@@ -44,6 +51,7 @@ export interface ListEventsFilter {
   min_confidence?: number;
   geo_precision?: GeoPrecision;
   multi_source_only?: boolean;
+  bbox?: BboxFilter;
   limit?: number;
   offset?: number;
 }
@@ -91,6 +99,21 @@ export async function createEvent(
     ]
   );
   return rows[0]!;
+}
+
+/**
+ * Get events by IDs (for footprint computation).
+ */
+export async function getEventsByIds(
+  client: PoolClient,
+  ids: string[]
+): Promise<EventRow[]> {
+  if (ids.length === 0) return [];
+  const { rows } = await client.query<EventRow>(
+    `SELECT * FROM event WHERE id = ANY($1::uuid[]) AND is_active = true`,
+    [ids]
+  );
+  return rows;
 }
 
 /**
@@ -161,6 +184,13 @@ export async function listEvents(
       JOIN source_item si2 ON si2.id = eo2.source_item_id
       WHERE eo2.event_id = event.id
     ) >= 2`);
+  }
+  if (filter.bbox) {
+    const { minLat, maxLat, minLng, maxLng } = filter.bbox;
+    conditions.push(`(metadata->>'latitude') IS NOT NULL AND (metadata->>'longitude') IS NOT NULL`);
+    conditions.push(`(metadata->>'latitude')::float BETWEEN $${paramIndex++} AND $${paramIndex++}`);
+    conditions.push(`(metadata->>'longitude')::float BETWEEN $${paramIndex++} AND $${paramIndex++}`);
+    params.push(minLat, maxLat, minLng, maxLng);
   }
 
   const whereClause =

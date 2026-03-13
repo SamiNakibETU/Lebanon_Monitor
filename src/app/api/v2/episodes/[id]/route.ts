@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withClient, isDbConfigured } from '@/db/client';
 import { getEpisodeById, getEpisodeEventIds } from '@/db/repositories/episode-repository';
+import { buildGeoQualityFromEpisode } from '@/lib/api/geo-quality';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -36,6 +37,7 @@ export async function GET(
       return NextResponse.json({ error: 'Episode not found', code: 404 }, { status: 404 });
     }
 
+    const geoQuality = buildGeoQualityFromEpisode(episode);
     return NextResponse.json(
       {
         id: episode.id,
@@ -46,6 +48,7 @@ export async function GET(
         lastEventAt: episode.last_event_at,
         eventCount: episode.event_count,
         footprintGeojson: episode.footprint_geojson,
+        geoQuality,
         metadata: episode.metadata,
         eventIds,
       },

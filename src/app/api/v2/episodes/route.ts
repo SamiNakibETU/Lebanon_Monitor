@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withClient, isDbConfigured } from '@/db/client';
 import { listEpisodes } from '@/db/repositories/episode-repository';
+import { buildGeoQualityFromEpisode } from '@/lib/api/geo-quality';
 
 export async function GET(req: NextRequest) {
   if (!isDbConfigured()) {
@@ -26,16 +27,20 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(
       {
-        items: episodes.map((ep) => ({
-          id: ep.id,
-          label: ep.label,
-          summary: ep.summary,
-          status: (ep as { status?: string }).status ?? 'open',
-          firstEventAt: ep.first_event_at,
-          lastEventAt: ep.last_event_at,
-          eventCount: ep.event_count,
-          footprintGeojson: ep.footprint_geojson,
-        })),
+        items: episodes.map((ep) => {
+          const geoQuality = buildGeoQualityFromEpisode(ep);
+          return {
+            id: ep.id,
+            label: ep.label,
+            summary: ep.summary,
+            status: (ep as { status?: string }).status ?? 'open',
+            firstEventAt: ep.first_event_at,
+            lastEventAt: ep.last_event_at,
+            eventCount: ep.event_count,
+            footprintGeojson: ep.footprint_geojson,
+            geoQuality,
+          };
+        }),
         total,
       },
       {

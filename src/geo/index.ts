@@ -6,3 +6,4 @@
 export * from './types';
 export * from './gazetteer';
 export * from './resolve-place';
+export * from './footprints';

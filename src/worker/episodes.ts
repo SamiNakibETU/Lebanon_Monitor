@@ -7,12 +7,14 @@ import { withClient } from '@/db/client';
 import {
   getRecentUnepisodedEvents,
   updateEventPrimaryEpisode,
+  getEventsByIds,
 } from '@/db/repositories/event-repository';
 import {
   createEpisode,
   linkEventToEpisode,
   getEpisodeEventIds,
   updateEpisodeTimes,
+  updateEpisodeFootprint,
   listEpisodes,
   getEpisodeById,
   closeStaleEpisodes,
@@ -23,6 +25,7 @@ import {
   placeToGovernorate,
   type EpisodeCandidate,
 } from '@/core/episodes/choose-episode-for-event';
+import { computeFootprintFromEvents } from '@/geo/footprints';
 import type { EventRow } from '@/db/types';
 import { logger } from '@/lib/logger';
 
@@ -87,6 +90,9 @@ export async function runEpisodes(): Promise<{
           : ev.occurred_at;
         await updateEpisodeTimes(client, matched.id, firstAt, lastAt, ids.length);
         await updateEventPrimaryEpisode(client, ev.id, matched.id);
+        const episodeEvents = await getEventsByIds(client, ids);
+        const footprint = computeFootprintFromEvents(episodeEvents);
+        await updateEpisodeFootprint(client, matched.id, footprint);
       });
       const c = candidates.find((x) => x.id === matched!.id);
       if (c) c.lastEventAt = new Date(Math.max(c.lastEventAt.getTime(), ev.occurred_at.getTime()));
@@ -94,12 +100,14 @@ export async function runEpisodes(): Promise<{
     } else {
       const placeKey = getPlaceKey(eventForLinking);
       const governorateKey = eventForLinking.metadata?.admin1 ?? placeToGovernorate(placeKey);
+      const footprint = computeFootprintFromEvents([ev]);
       const episode = await withClient(async (client) => {
         const ep = await createEpisode(client, {
           label: ev.canonical_title?.slice(0, 100) ?? 'Episode',
           first_event_at: ev.occurred_at,
           last_event_at: ev.occurred_at,
           event_count: 1,
+          footprint_geojson: footprint,
           metadata: { eventType: ev.event_type, placeKey, governorateKey: governorateKey ?? undefined },
         });
         await linkEventToEpisode(client, ep.id, ev.id);

@@ -6,6 +6,9 @@ import useSWR from 'swr';
 import Link from 'next/link';
 import { Header } from '@/components/layout/Header';
 import { EpisodeBadge } from '@/components/EpisodeBadge';
+import { AnalystHeader } from '@/components/shared/AnalystHeader';
+import { AnalystActionsBar } from '@/components/shared/AnalystActionsBar';
+import { AnalystEmptyState } from '@/components/shared/AnalystEmptyState';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -24,6 +27,7 @@ function getInitialLang(searchParams: URLSearchParams | null): Language {
 
 interface EventDetail {
   id: string;
+  placeId?: string | null;
   title: string;
   summary?: string | null;
   classification: string;
@@ -39,6 +43,7 @@ interface EventDetail {
   sourceTier?: 'T1' | 'T2' | 'T3' | null;
   translations?: Record<string, string>;
   episode?: { id: string; label: string | null; status?: string; eventCount: number } | null;
+  entities?: Array<{ id: string; name: string; entity_type?: string | null; role?: string | null }>;
 }
 
 export default function EventDetailPage() {
@@ -96,20 +101,26 @@ export default function EventDetailPage() {
   }
 
   const dotColor = data.classification === 'ombre' ? '#E53935' : data.classification === 'lumiere' ? '#43A047' : '#666666';
+  const actionFocusType: 'place' | 'search' = data.placeId ? 'place' : 'search';
 
   return (
     <div className="min-h-screen" style={{ background: '#000', color: '#FFF' }}>
       <Header lang={lang} onLangChange={handleLangChange} />
       <div className="max-w-[720px] mx-auto px-6 py-8">
-        <Link
-          href="/"
-          className="text-[11px] uppercase tracking-[0.08em] transition-colors duration-150 hover:text-[#FFF]"
-          style={{ color: '#666' }}
-        >
-          ← Retour au dashboard
-        </Link>
+        <AnalystHeader
+          title={data.title}
+          subtitle={`${data.category ?? data.classification} · ${new Date(data.occurredAt).toLocaleDateString('fr-FR')}`}
+          backHref="/"
+          backLabel="Retour au dashboard"
+        />
+        <AnalystActionsBar
+          focusType={actionFocusType}
+          placeId={data.placeId ?? undefined}
+          query={data.title}
+          label={data.title}
+        />
 
-        <div className="mt-8">
+        <div className="mt-6">
           <div className="flex items-center gap-2 flex-wrap mb-4">
             <span
               className="inline-block shrink-0 rounded-full"
@@ -158,10 +169,6 @@ export default function EventDetailPage() {
             )}
           </div>
 
-          <h1 className="text-[24px] font-normal leading-snug" style={{ color: '#FFF' }}>
-            {data.title}
-          </h1>
-
           <p className="mt-2 text-[13px]" style={{ color: '#666' }} suppressHydrationWarning>
             {new Date(data.occurredAt).toLocaleString('fr-FR', {
               dateStyle: 'medium',
@@ -173,6 +180,38 @@ export default function EventDetailPage() {
             <p className="mt-6 text-[14px] leading-relaxed" style={{ color: '#FFF' }}>
               {data.summary}
             </p>
+          )}
+
+          {(data.placeId || (data.entities && data.entities.length > 0)) && (
+            <div className="mt-8 pt-6" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <div className="text-[11px] uppercase tracking-[0.08em] mb-3" style={{ color: '#666' }}>
+                Explorer
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {data.placeId && (
+                  <Link
+                    href={`/place/${data.placeId}`}
+                    className="text-[13px] transition-colors duration-150 hover:text-[#FFF]"
+                    style={{ color: '#666' }}
+                  >
+                    Lieu →
+                  </Link>
+                )}
+                {data.entities?.map((ent) => (
+                  <Link
+                    key={ent.id}
+                    href={`/actor/${ent.id}`}
+                    className="text-[13px] transition-colors duration-150 hover:text-[#FFF]"
+                    style={{ color: '#666' }}
+                  >
+                    {ent.name} {ent.role && `(${ent.role})`} →
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+          {!data.placeId && (!data.entities || data.entities.length === 0) && (
+            <AnalystEmptyState message="Aucun pivot lieu/acteur disponible pour cet événement." />
           )}
 
           {data.translations && Object.keys(data.translations).length > 1 && (

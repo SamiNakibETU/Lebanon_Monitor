@@ -92,7 +92,55 @@
 | SEO (meta, sitemap) | ⏳ |
 | Performance (ISR, lazy load) | ⏳ |
 | Déploiement Railway (Web + Worker) | ⏳ |
-| 150+ tests | ⏳ (149 actuellement) |
+| 150+ tests | ✅ (171) |
+
+### Phase 6 — Analyst Tool UX Surfaces ✅
+| Élément | Statut |
+|--------|--------|
+| Header nav : Episodes, Lieux, Acteurs, Recherche | ✅ |
+| Barre de recherche header → /search?q= | ✅ |
+| Pages listes : /episodes, /places, /actors | ✅ |
+| Pages détail : /place/[id], /actor/[id] | ✅ |
+| APIs place/actor list + detail (existantes) | ✅ |
+| Composants partagés : AnalystHeader, EvidenceSummary, LinkedEpisodeList, RecentEventList, ClaimsPanel, PlaceMap, ActorSummary | ✅ |
+| Pivots : event → place, actor, episode ; episode → events | ✅ |
+| Search multi-type : Events, Lieux, Acteurs | ✅ |
+| API places ?q= pour recherche par nom | ✅ |
+| place_id exposé dans API event pour liens | ✅ |
+| États vides : « Aucun événement ni épisode lié », « metadata-only » | ✅ |
+| Tests : place-repository, entity-repository | ✅ |
+| Note : pages place peuvent rester transitionnelles tant que event.place_id n'est pas pleinement backfill | Documenté |
+
+### Phase Vitality & Recovery ✅
+| Élément | Statut |
+|--------|--------|
+| Module Vitality (remplace Lumière) | ✅ |
+| API `/api/v2/vitality` — measured, proxy, narrative séparés | ✅ |
+| API `/api/v2/places/[id]/vitality` — vitalité par lieu | ✅ |
+| Home : Vitalité & Reprise, TerritorialVitalityBoard | ✅ |
+| Composants Vitality : Summary, IndicatorStrip, EvidenceList, TrendChart | ✅ |
+| Place page : PlaceVitalityBlock | ✅ |
+| Retrieval structuré : `/api/v2/retrieval` | ✅ |
+| Context packs : place, actor, episode, vitality | ✅ |
+| Agents : synthesis, explore (citations, guards) | ✅ |
+| Tests : retrieval, agents | ✅ |
+| Docs : vitality-design, vitality-retrieval-agents-implementation | ✅ |
+
+### Phase 7 — Analyst Tool, Vitality, Retrieval, Agents, Ops ✅ (avec limites runtime documentées)
+| Élément | Statut |
+|--------|--------|
+| AnalystActionsBar (Explorer, Synthétiser, Ouvrir retrieval, Copier citations) | ✅ |
+| AnalystEmptyState harmonisé | ✅ |
+| AgentPanel minimal (provenance, timeouts, erreurs GROQ) | ✅ |
+| Page /retrieval (presets, pagination, inspection ContextPack) | ✅ |
+| Pages place, actor, episode, search avec barre actions | ✅ |
+| Page /vitality entrée analytique | ✅ |
+| Nav Vitalité dans header | ✅ |
+| TerritorialVitalityBoard : Mesuré, Proxy, Narratif comparables | ✅ |
+| Retrieval : presets (place/actor/episode/vitality brief), tests | ✅ |
+| Agents : tests schemas | ✅ |
+| Release gate : verify (type-check, tests, build, db:check, health) | ✅ partiel (DB/health dépendent de l’environnement exécuté) |
+| Release checklist | ✅ |
 
 ---
 
@@ -217,7 +265,7 @@ npm run db:seed
 6. (Optionnel) `ANTHROPIC_API_KEY`, `HF_API_TOKEN` pour classification LLM et traduction
 
 ### Étape 6 : Vérifier
-- `https://ton-app.railway.app/api/health` → `database: "connected"`
+- `https://ton-app.railway.app/api/v2/health` → `database.status: "ok"`
 - Dashboard → événements après 1–2 cycles worker
 
 ---
@@ -246,3 +294,25 @@ npm run db:seed
 3. Quelques finitions (toasts, SEO, tests)
 
 **Prochaine action recommandée** : Suivre les étapes de la section 3 (local) ou 4 (Railway) pour avoir un dashboard fonctionnel avec des événements.
+
+---
+
+## 7. VERDICT FINAL BRIEF (2026-03-13)
+
+### Preuves vérifiées
+
+- `npm run type-check` : OK
+- `npm run test` : OK (171 tests)
+- `npm run build` : OK (build complet local validé)
+- `node scripts/verify-all.mjs --skip-db --skip-build` : OK
+- Endpoints de health alignés docs/code : `/api/v2/health` (full), `/api/health/live` (liveness)
+
+### Limites documentées (non maquillées)
+
+- `db:check` échoue si la DB cible n’est pas joignable depuis la machine locale (ex: `read ECONNRESET`), ce qui bloque `npm run verify` complet tant que l’environnement DB n’est pas stable.
+- Un run `verify` a montré un échec intermittent du build worker (`code: 3221226505`) alors qu’un build complet séparé passe ; cela reste un risque runtime machine/environnement à surveiller.
+- Validation prod health (`--require-health` sur URL Railway) à exécuter sur l’environnement cible avant clôture opérationnelle.
+
+### Verdict
+
+**brief atteint avec limites documentées**

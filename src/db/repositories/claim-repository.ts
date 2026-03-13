@@ -45,6 +45,21 @@ export async function getClaimsByEventId(
   return rows;
 }
 
+/**
+ * Get claims for any of the given event IDs.
+ */
+export async function getClaimsByEventIds(
+  client: PoolClient,
+  eventIds: string[]
+): Promise<ClaimRow[]> {
+  if (eventIds.length === 0) return [];
+  const { rows } = await client.query<ClaimRow>(
+    `SELECT * FROM claim WHERE event_id = ANY($1::uuid[]) ORDER BY created_at DESC`,
+    [eventIds]
+  );
+  return rows;
+}
+
 export async function getClaimById(
   client: PoolClient,
   id: string

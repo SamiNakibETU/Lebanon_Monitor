@@ -1,6 +1,6 @@
 # Lebanon Monitor
 
-Real-time intelligence dashboard for Lebanon. Aggregates 10+ public data sources, classifies events as Lumière (positive) or Ombre (negative), and displays them on an interactive map.
+Plateforme d’intelligence géotemporelle centrée Liban, avec surfaces analystes, retrieval structuré et agents contraints.
 
 ## Quick Start
 
@@ -9,56 +9,62 @@ npm install
 npm run dev
 ```
 
-## API Endpoints
+## Core Routes
 
-- **GET /api/events** — Aggregated events from all sources
-  - Query params: `source` (all|gdelt|usgs|...), `classification` (all|lumiere|ombre|neutre)
-- **GET /api/health** — Source status and event counts
+- `GET /api/v2/events`
+- `GET /api/v2/search`
+- `GET /api/v2/retrieval`
+- `POST /api/v2/agent/explore`
+- `POST /api/v2/agent/synthesis`
+- `GET /api/v2/vitality`
+- `GET /api/v2/places/:id/vitality`
+- `GET /api/v2/health` (full health)
+- `GET /api/health/live` (liveness probe)
 
-## Environment Variables
+## Main Pages
 
-Copy `.env.local.example` to `.env.local`:
+- `/` dashboard
+- `/search`
+- `/retrieval`
+- `/vitality`
+- `/episodes`, `/episode/:id`
+- `/places`, `/place/:id`
+- `/actors`, `/actor/:id`
+- `/event/:id`
 
-- `FIRMS_MAP_KEY` — NASA FIRMS (optional)
-- `OWM_API_KEY` — OpenWeatherMap (optional)
-- `CF_API_TOKEN` — Cloudflare Radar (optional)
-- `OPENAQ_API_KEY` — OpenAQ v3 (optional, free at explore.openaq.org/register)
+## Verification
 
-## Data Sources
-
-| Source      | Auth   | Status                      |
-|-------------|--------|-----------------------------|
-| GDELT       | None   | Rate limit / format may vary |
-| USGS        | None   | ✓                           |
-| NASA FIRMS  | MAP_KEY| ✓ (with key)                |
-| RSS         | None   | ✓ (some feeds may 403)       |
-| GDACS       | None   | ✓                           |
-| ReliefWeb   | Appname| Requires approval            |
-| OpenWeatherMap | KEY | ✓ (with key)                |
-| Cloudflare  | Token  | ✓ (with token)               |
-| LBP Rate    | None   | ✓                           |
-| OpenAQ      | API Key| ✓ v3 (with key)             |
-
-## Scripts
-
-- `npm run dev` — Development server
-- `npm run build` — Production build
-- `npm run test` — Run Vitest tests
-- `npm run type-check` — TypeScript check
-- `npm run lint` — ESLint
-
-## Project Structure
-
+```bash
+npm run type-check
+npm run test
+npm run verify
 ```
-src/
-├── types/         # LebanonEvent, SourceName, etc.
-├── config/        # Lebanon geography, bounding box
-├── lib/           # fetcher, logger, classification
-├── sources/       # 10 data source modules
-│   ├── gdelt/
-│   ├── usgs/
-│   ├── firms/
-│   └── ...
-└── app/
-    └── api/       # /api/events, /api/health
+
+Useful flags:
+
+```bash
+node scripts/verify-all.mjs --skip-build
+node scripts/verify-all.mjs --skip-db
+node scripts/verify-all.mjs https://your-app.railway.app --require-health
 ```
+
+## Environment (key vars)
+
+- `DATABASE_URL` or `DATABASE_PUBLIC_URL`
+- `GROQ_API_KEY` (agents)
+- `ANTHROPIC_API_KEY` (classification ambiguë)
+- `HF_API_TOKEN` (traductions)
+- `INGEST_SECRET` (si trigger via `/api/admin/ingest`)
+- Source connectors optionnels: `FIRMS_MAP_KEY`, `OWM_API_KEY`, `CF_API_TOKEN`, `OPENAQ_API_KEY`, `RELIEFWEB_APPNAME`, `UCDP_ACCESS_TOKEN`
+
+## Ingestion
+
+Deux stratégies supportées:
+
+1. Worker service (`npm run worker`)  
+2. Endpoint sécurisé `/api/admin/ingest` via cron (`X-Ingest-Secret`)
+
+## Notes
+
+- Les anciens endpoints `/api/events` et `/api/health` sont legacy; la référence produit est `v2`.
+- Le statut d’avancement global est documenté dans `docs/STATUS_PLAN.md`.

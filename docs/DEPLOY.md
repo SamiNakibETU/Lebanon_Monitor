@@ -132,7 +132,7 @@ npm run worker
 ### Vérifier que ça marche
 
 - **En local** : `npm run db:check` → doit afficher "DB OK"
-- **En prod** : ouvre `https://ton-app.railway.app/api/health` → `database` doit être `"connected"`
+- **En prod** : ouvre `https://ton-app.railway.app/api/v2/health` → `database.status` doit être `"ok"`
 
 ---
 
@@ -266,7 +266,7 @@ npm run db:migrate && npm run start
 ## 6. Healthcheck
 
 - **Path** : `/api/health/live` (réponse rapide, pas d’appels externes)
-- **Full health** : `/api/health` (DB + statut des sources)
+- **Full health** : `/api/v2/health` (DB + statut des sources)
 
 Configurer dans Railway : **Settings** → **Health Check** → Path: `/api/health/live`
 
@@ -275,7 +275,7 @@ Configurer dans Railway : **Settings** → **Health Check** → Path: `/api/heal
 ## 7. Vérification
 
 1. Ouvrir l’URL du service (ex. `*.railway.app`)
-2. Tester `/api/health` → `database: "connected"` si PostgreSQL est configuré
+2. Tester `/api/v2/health` → `database.status: "ok"` si PostgreSQL est configuré
 3. Vérifier la carte et les panels Lumière/Ombre
 
 ---
@@ -311,7 +311,7 @@ Le worker tourne en boucle (5 min). Pour un run unique : `npm run worker:once`.
 |----------|--------|
 | Build échoue (Turbopack) | Le script utilise `--webpack` |
 | **`ENOTFOUND postgres.railway.internal`** | L’URL interne Railway ne se résout pas. **Solution** : sur le service Web, ajouter `DATABASE_PUBLIC_URL` = `${{ Postgres.DATABASE_PUBLIC_URL }}`. Le client DB utilise cette variable en priorité. Redéployer. |
-| DB non connectée | 1) Vérifier `/api/health` : si `dbError` est présent, il indique la cause (ex. `ECONNREFUSED`, `ETIMEDOUT`). 2) Sur Railway : utiliser la référence `${{ Postgres.DATABASE_URL }}` (pas une copie manuelle). 3) Si tu as copié l’URL : utiliser `DATABASE_PUBLIC_URL` du service Postgres (le client ajoute `sslmode=require` automatiquement). 4) Vérifier que Web et Postgres sont dans le même projet Railway. |
+| DB non connectée | 1) Vérifier `/api/v2/health` : regarder `database.status` et `database.error`. 2) Sur Railway : utiliser la référence `${{ Postgres.DATABASE_URL }}` (pas une copie manuelle). 3) Si tu as copié l’URL : utiliser `DATABASE_PUBLIC_URL` du service Postgres (le client ajoute `sslmode=require` automatiquement). 4) Vérifier que Web et Postgres sont dans le même projet Railway. |
 | Timeout healthcheck | Utiliser `/api/health/live` pour le healthcheck Railway |
 | **`extension "postgis" is not available`** | La migration actuelle n’utilise **pas** PostGIS (lat/lng uniquement). Si tu vois cette erreur, une ancienne version est déployée. Pull le dernier code, push, redéploie. Puis réinitialise la DB : supprimer le service PostgreSQL Railway et en recréer un, ou `DROP SCHEMA public CASCADE; CREATE SCHEMA public;` puis `npm run db:migrate` et `npm run db:seed`. |
 | **`column "geometry" of relation "place" does not exist`** | Même cause : seed exécuté avec une migration PostGIS. Utilise la migration actuelle (lat/lng) et réinitialise la DB comme ci-dessus. |

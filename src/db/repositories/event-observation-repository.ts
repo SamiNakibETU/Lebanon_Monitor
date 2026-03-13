@@ -52,6 +52,24 @@ export async function createEventObservation(
 }
 
 /**
+ * Get source diversity (count of distinct source_name) for a set of event IDs.
+ */
+export async function getSourceDiversityForEventIds(
+  client: PoolClient,
+  eventIds: string[]
+): Promise<number> {
+  if (eventIds.length === 0) return 0;
+  const { rows } = await client.query<{ count: string }>(
+    `SELECT COUNT(DISTINCT si.source_name)::int as count
+     FROM event_observation eo
+     JOIN source_item si ON si.id = eo.source_item_id
+     WHERE eo.event_id = ANY($1::uuid[])`,
+    [eventIds]
+  );
+  return parseInt(rows[0]?.count ?? '0', 10);
+}
+
+/**
  * Get observation counts for a list of event IDs.
  * Returns a map of event_id -> count.
  */
